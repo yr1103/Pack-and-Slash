@@ -1,5 +1,19 @@
 {
   "dependencies": {
+<<<<<<< Updated upstream
+=======
+    "com.ivanmurzak.unity.mcp": {
+      "version": "1.10.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.test-framework": "1.1.33",
+        "com.unity.modules.uielements": "1.0.0",
+        "extensions.unity.playerprefsex": "2.1.5"
+      },
+      "url": "https://package.openupm.com"
+    },
+>>>>>>> Stashed changes
     "com.unity.ai.navigation": {
       "version": "2.0.10",
       "depth": 0,

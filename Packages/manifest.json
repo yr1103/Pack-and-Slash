@@ -1,5 +1,9 @@
 {
   "dependencies": {
+<<<<<<< Updated upstream
+=======
+    "com.ivanmurzak.unity.mcp": "1.10.0",
+>>>>>>> Stashed changes
     "com.unity.ai.navigation": "2.0.10",
     "com.unity.collab-proxy": "2.11.3",
     "com.unity.ide.rider": "3.0.39",

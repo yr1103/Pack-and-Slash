@@ -107,3 +107,9 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+<<<<<<< Updated upstream
+=======
+
+# 추가 ignore 처리
+/[Aa]ssets/[Ii]mports/
+>>>>>>> Stashed changes
