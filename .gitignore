@@ -109,4 +109,4 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ss]ceneDependencyCache*
 
 # 추가 ignore 처리
-/[Aa]ssets/imports/
+/[Aa]ssets/[Ii]mports/
