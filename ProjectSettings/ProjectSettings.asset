@@ -825,9 +825,6 @@ PlayerSettings:
   webGLCloseOnQuit: 0
   webWasm2023: 0
   webEnableSubmoduleStrippingCompatibility: 0
-<<<<<<< Updated upstream
-  scriptingDefineSymbols: {}
-=======
   scriptingDefineSymbols:
     Android: UNITY_MCP_READY;UNITY_MCP_DEPS_41
     EmbeddedLinux: UNITY_MCP_READY;UNITY_MCP_DEPS_41
@@ -848,7 +845,6 @@ PlayerSettings:
     XboxOne: UNITY_MCP_READY;UNITY_MCP_DEPS_41
     iPhone: UNITY_MCP_READY;UNITY_MCP_DEPS_41
     tvOS: UNITY_MCP_READY;UNITY_MCP_DEPS_41
->>>>>>> Stashed changes
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:
