@@ -32,3 +32,9 @@
 
 - 무기·패시브 레벨을 올리는 디버그 수단은 보류한다. (필요 시 별도 브리핑)
 - 시스템 간 경계 계약은 `MonsterMovement.md`, `Inventory.md`를 따른다.
+
+**확정 사항** (Issue #3에서 확정)
+
+- 1단계 탑다운 카메라 : Cinemachine (`CinemachineCamera` + `CinemachineFollow`, 월드 고정 오프셋·고정 각도)
+- 3단계 이동 처리 : 플레이어 루트의 `CharacterController.SimpleMove`, Move 입력은 월드 XZ 평면 기준
+- 3단계 Input Action : 기존 `InputSystem_Actions`의 `Player/Move`를 수정 없이 사용, `InputActionReference`로 참조

@@ -131,6 +131,9 @@ flowchart TD
 
 - Commit, Push는 사용자가 수행한다. (조직 규칙)
 - Commit 전 Claude는 변경 파일 목록을 확인해, 업무와 관계없는 파일이 있으면 사용자에게 보고하고 포함 여부를 확인한다.
+- 작업 하나가 끝나면, Claude는 변경 파일 확인과 함께 커밋 메시지 초안을 작성해 제시한다.
+    - 형식 : `[Tag] 작업 내용` (`[Tag]`는 `Docs/Documentation/GithubIssueRules.md`의 `Tag 표기`를 따른다)
+    - 변경 파일이 6개 이상(`.meta` 제외)이면 description에 변경 요약을 목록으로 추가한다.
 
 ## 8. PR
 
