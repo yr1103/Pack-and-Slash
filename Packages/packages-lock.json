@@ -1,7 +1,5 @@
 {
   "dependencies": {
-<<<<<<< Updated upstream
-=======
     "com.ivanmurzak.unity.mcp": {
       "version": "1.10.0",
       "depth": 0,
@@ -13,7 +11,6 @@
       },
       "url": "https://package.openupm.com"
     },
->>>>>>> Stashed changes
     "com.unity.ai.navigation": {
       "version": "2.0.10",
       "depth": 0,
@@ -206,6 +203,13 @@
         "com.unity.modules.jsonserialize": "1.0.0"
       },
       "url": "https://packages.unity.com"
+    },
+    "extensions.unity.playerprefsex": {
+      "version": "2.1.5",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://package.openupm.com"
     },
     "com.unity.modules.accessibility": {
       "version": "1.0.0",
