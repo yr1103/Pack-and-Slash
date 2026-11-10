@@ -14,6 +14,7 @@
 | 프로퍼티·이벤트 | PascalCase | `CurrentHealth`, `OnHealthChanged` |
 | 지역 변수·매개변수 | camelCase | `damageAmount`, `targetEnemy` |
 | private·protected 인스턴스 필드 | `_camelCase` | `_currentHealth` |
+| `private static readonly` 필드 | `_camelCase` | `_tieLeft` |
 | const | UPPER_SNAKE_CASE | `MAX_WEAPON_LEVEL` |
 | 파일명 | 해당 타입명과 일치 | `PlayerController.cs` |
 
