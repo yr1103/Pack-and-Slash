@@ -1,6 +1,6 @@
 # Tech Specification
 
-**버전:** v2.2 (2026-11-09)
+**버전:** v2.3 (2026-11-10)
 **기준 기획서:** `Docs/Spec/GDD.md`
 
 > 매 세션 읽는 허브 문서다. 기술 환경·담당 경계·기능 문서 목록·우선순위만 둔다.
@@ -57,10 +57,13 @@
 | 인벤토리 (장착 격자·Storage·합성·확장) | `Docs/Spec/Inventory.md` | §7, §8, §10 |
 | 보상·판매·리롤·재화 | `Docs/Spec/Reward.md` | §9.2 ~ §9.4, §11 |
 | 전투 (경험치·무기·패시브·진화·캐릭터) | `Docs/Spec/Combat.md` | §2.1, §3 ~ §6 |
+| 무기 상세 (조준·발사·투사체·배치·주무기 승계·고유 아이템 탈착) | `Docs/Spec/Weapon/WeaponSystem.md` | §3 ~ §6 |
+| 무기 작업 지시서 (W00 ~ W13) | `Docs/Spec/Weapon/WeaponAgentTasks/README_weapon.md` | - |
 | 보스 | `Docs/Spec/Boss.md` | §13 |
 | 작업 순서 (로드맵) | `Docs/Spec/Roadmap.md` | §16 |
 
-- 기능 문서는 `데이터 / 계약 / 테스트 기준 / 미정 파라미터` 순서로 작성한다. (`Roadmap.md`는 작업 순서 문서로 예외)
+- 기능 문서는 `데이터 / 계약 / 테스트 기준 / 미정 파라미터` 순서로 작성한다. (`Roadmap.md`는 작업 순서 문서, `WeaponSystem.md`는 상세 설계서, `README_weapon.md`는 작업 지시서로 예외)
+- 무기 관련 내용이 `Combat.md`·GDD와 충돌하면 `WeaponSystem.md`를 따른다.
 - 데이터 표는 **개념적 필드**이며 클래스명·구조체명·저장 형식을 강제하지 않는다.
 - `미정 파라미터`는 AI Agent가 임의로 확정하지 않는다.
 
