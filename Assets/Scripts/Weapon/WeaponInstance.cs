@@ -26,12 +26,16 @@ public class WeaponInstance
     /// <summary>재장전 중 여부</summary>
     public bool IsReloading { get; }
 
+    /// <summary>이번 프레임 탐색한 표적, 없으면 null (WeaponAttackController가 Update에서 갱신, 다른 컴포넌트는 LateUpdate에서 읽음)</summary>
+    public ITargetable CurrentTarget { get; set; }
+
     /// <summary>탄창을 가득 채운 상태로 생성</summary>
-    public WeaponInstance(int instanceId, WeaponDefinition definition, int level)
+    public WeaponInstance(int instanceId, WeaponDefinition definition, int level, bool isEvolved = false)
     {
         InstanceId = instanceId;
         Definition = definition;
         Level = level;
+        IsEvolved = isEvolved;
         CurrentAmmo = definition.MagazineCapacity;
     }
 

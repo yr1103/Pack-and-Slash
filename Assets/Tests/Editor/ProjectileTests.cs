@@ -2,7 +2,7 @@ using NUnit.Framework;
 using UnityEngine;
 
 /// <summary>
-/// 투사체 뷰포트·발사 방향 판정과 적중 탐지기의 중복 제외·한도·재사용 초기화 검증
+/// 투사체 뷰포트·발사 방향 판정과 적중 탐지기의 중복·사망 대상 제외·한도·재사용 초기화 검증
 /// </summary>
 public class ProjectileTests
 {
@@ -15,9 +15,11 @@ public class ProjectileTests
 
     private ProjectileHitDetector _hitDetector;
 
-    /// <summary>참조 식별만 필요한 테스트용 피해 대상</summary>
+    /// <summary>참조 식별·생존 여부만 필요한 테스트용 피해 대상</summary>
     private class StubDamageable : IDamageable
     {
+        public bool IsAlive { get; set; } = true;
+
         public void TakeDamage(float damage)
         {
         }
@@ -65,6 +67,19 @@ public class ProjectileTests
         Assert.IsTrue(_hitDetector.TryRecord(target));
         Assert.IsFalse(_hitDetector.TryRecord(target));
         Assert.IsFalse(_hitDetector.HasReachedLimit);
+    }
+
+    // TryGetNewTarget은 Physics Cast 결과가 필요해, 생존 판정이 들어 있는 TryRecord로 검증
+    [Test]
+    public void TryRecord_DeadTarget_NotRecorded()
+    {
+        StubDamageable target = new StubDamageable { IsAlive = false };
+
+        Assert.IsFalse(_hitDetector.TryRecord(target));
+
+        // 죽은 동안 기록되지 않았으므로 살아나면 처음 맞는 적으로 기록
+        target.IsAlive = true;
+        Assert.IsTrue(_hitDetector.TryRecord(target));
     }
 
     [Test]

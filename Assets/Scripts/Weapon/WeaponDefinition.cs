@@ -11,26 +11,25 @@ public class WeaponDefinition : ScriptableObject
     [SerializeField] private int _magazineCapacity; // 0 = 탄창 없음 (권총·샷건)
     [SerializeField] private float _reloadDuration;
     [SerializeField, Min(0f)] private float _detectionRange;
-
-    /// <summary>무기 종류</summary>
+    [SerializeField, Min(0f)] private float _projectileSpeed;
+    [SerializeField, Min(0f)] private float _projectileMaxDistance; // 탄 비행 한계, 탐지 거리(DetectionRange)와 별개
+    [SerializeField, Min(0f)] private float _projectileMaxLifetime;
+    [SerializeField, Min(0f)] private float _projectileDamage;
+    [SerializeField] private bool _disableOutsideGameCamera; // 출력 카메라 화면 밖이면 탄 반환·피해 무효 (권총·미니건 true)
+    
     public WeaponType WeaponType => _weaponType;
-
-    /// <summary>기본 발사 간격(초)</summary>
     public float FireInterval => _fireInterval;
-
-    /// <summary>탄창 용량 (0이면 탄창 없는 무기)</summary>
     public int MagazineCapacity => _magazineCapacity;
-
-    /// <summary>재장전 소요 시간(초)</summary>
     public float ReloadDuration => _reloadDuration;
-
-    /// <summary>적 탐색 반경 (플레이어 루트 기준 XZ 평면)</summary>
     public float DetectionRange => _detectionRange;
+    public float ProjectileSpeed => _projectileSpeed;
+    public float ProjectileMaxDistance => _projectileMaxDistance;
+    public float ProjectileMaxLifetime => _projectileMaxLifetime;
+    public float ProjectileDamage => _projectileDamage;
+    public bool DisableOutsideGameCamera => _disableOutsideGameCamera;
 }
 
-/// <summary>
-/// 무기 종류
-/// </summary>
+/// <summary>무기 종류</summary>
 public enum WeaponType
 {
     Pistol,

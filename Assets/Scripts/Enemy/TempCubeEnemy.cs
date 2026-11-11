@@ -28,10 +28,13 @@ public class TempCubeEnemy : MonoBehaviour, ITargetable, IDamageable
     public Vector3 AimPoint => _aimPoint.position;
 
     /// <inheritdoc/>
-    public bool IsTargetable => _currentHealth > 0f && isActiveAndEnabled;
+    public bool IsTargetable => IsAlive;
 
     /// <inheritdoc/>
     public int SpawnId { get; private set; }
+
+    /// <inheritdoc/>
+    public bool IsAlive => _currentHealth > 0f && isActiveAndEnabled;
 
     private void Awake()
     {
