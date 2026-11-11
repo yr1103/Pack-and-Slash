@@ -22,3 +22,6 @@ MonoBehaviour:
   _projectileMaxLifetime: 5
   _projectileDamage: 10
   _disableOutsideGameCamera: 1
+  _projectilesPerShot: 1
+  _spreadAngle: 0
+  _projectilePrefab: {fileID: 4426899373576748405, guid: 620b91c9bed8bc047a210bf8d37f9d52, type: 3}

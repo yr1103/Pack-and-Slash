@@ -12,9 +12,15 @@ public class WeaponTargetingTests
     private const float SHORT_RANGE = 5f;
     private const float LONG_RANGE = 20f;
     private const float TOLERANCE = 0.0001f;
+    // Vector3.Angle은 acos 기반이라 0° 근처에서 float 오차가 약 0.02°까지 커짐
+    private const float ANGLE_TOLERANCE = 0.05f;
     private const int DEFAULT_SPAWN_ID = 0;
     private const int LOW_SPAWN_ID = 1;
     private const int HIGH_SPAWN_ID = 2;
+    private const float SPREAD_ANGLE = 45f;
+    private const float NO_SPREAD = 0f;
+    private const int SINGLE_SHOT = 1;
+    private const int PELLET_COUNT = 5;
 
     private static readonly Vector3 _origin = Vector3.zero;
     private static readonly Vector3 _frontFar = new Vector3(0f, 0f, 8f);
@@ -27,6 +33,11 @@ public class WeaponTargetingTests
     private static readonly Vector3 _rangeEdge = new Vector3(RANGE, 0f, 0f);
     private static readonly Vector3 _muzzle = new Vector3(0f, 1.5f, 0f);
     private static readonly Vector3 _aimPoint = new Vector3(3f, 0.2f, 4f);
+    // _aimPoint와 XZ만 같고 높이는 다른 총구 (적이 총구에 파고든 상황)
+    private static readonly Vector3 _overlappedMuzzle = new Vector3(3f, 1.5f, 4f);
+    // 높이 성분과 길이가 있는 중심 방향으로 XZ 투영·정규화까지 확인
+    private static readonly Vector3 _spreadCenter = new Vector3(3f, 2f, 4f);
+    private static readonly float[] _expectedPelletAngles = { -22.5f, -11.25f, 0f, 11.25f, 22.5f };
 
     /// <summary>GameObject 없이 쓰는 테스트용 표적</summary>
     private class StubTarget : ITargetable
@@ -142,6 +153,67 @@ public class WeaponTargetingTests
 
         Assert.AreEqual(0f, direction.y);
         Assert.AreEqual(1f, direction.magnitude, TOLERANCE);
+    }
+
+    [Test]
+    public void GetFireDirection_MuzzleOverlapsTarget_UsesPlayerCenterDirection()
+    {
+        Vector3 expected = Vector3.ProjectOnPlane(_aimPoint - _origin, Vector3.up).normalized;
+
+        Vector3 direction = WeaponTargeting.GetFireDirection(_overlappedMuzzle, _origin, _aimPoint);
+
+        // Vector3.Angle은 영벡터에도 0을 반환하므로 성분으로 비교
+        Assert.AreEqual(expected.x, direction.x, TOLERANCE);
+        Assert.AreEqual(0f, direction.y, TOLERANCE);
+        Assert.AreEqual(expected.z, direction.z, TOLERANCE);
+    }
+
+    [Test]
+    public void GetSpreadDirection_SingleShot_ReturnsCenter()
+    {
+        Vector3 center = Vector3.ProjectOnPlane(_spreadCenter, Vector3.up).normalized;
+
+        Vector3 direction = WeaponTargeting.GetSpreadDirection(_spreadCenter, SPREAD_ANGLE, SINGLE_SHOT, 0);
+
+        Assert.AreEqual(0f, Vector3.Angle(center, direction), ANGLE_TOLERANCE);
+    }
+
+    [Test]
+    public void GetSpreadDirection_FivePellets_EvenlySpacedIncludingEdges()
+    {
+        Vector3 center = Vector3.ProjectOnPlane(_spreadCenter, Vector3.up).normalized;
+
+        for (int i = 0; i < PELLET_COUNT; i++)
+        {
+            Vector3 direction = WeaponTargeting.GetSpreadDirection(_spreadCenter, SPREAD_ANGLE, PELLET_COUNT, i);
+
+            Assert.AreEqual(_expectedPelletAngles[i], Vector3.SignedAngle(center, direction, Vector3.up), ANGLE_TOLERANCE);
+        }
+    }
+
+    [Test]
+    public void GetSpreadDirection_ZeroSpread_AllCenter()
+    {
+        Vector3 center = Vector3.ProjectOnPlane(_spreadCenter, Vector3.up).normalized;
+
+        for (int i = 0; i < PELLET_COUNT; i++)
+        {
+            Vector3 direction = WeaponTargeting.GetSpreadDirection(_spreadCenter, NO_SPREAD, PELLET_COUNT, i);
+
+            Assert.AreEqual(0f, Vector3.Angle(center, direction), ANGLE_TOLERANCE);
+        }
+    }
+
+    [Test]
+    public void GetSpreadDirection_IsFlatAndNormalized()
+    {
+        for (int i = 0; i < PELLET_COUNT; i++)
+        {
+            Vector3 direction = WeaponTargeting.GetSpreadDirection(_spreadCenter, SPREAD_ANGLE, PELLET_COUNT, i);
+
+            Assert.AreEqual(0f, direction.y, TOLERANCE);
+            Assert.AreEqual(1f, direction.magnitude, TOLERANCE);
+        }
     }
 
     private static WeaponDefinition CreateDefinition(float detectionRange)
