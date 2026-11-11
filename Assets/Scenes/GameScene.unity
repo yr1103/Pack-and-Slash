@@ -7211,6 +7211,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8765907936762248209, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
+      propertyPath: _signatureWeapon
+      value: 
+      objectReference: {fileID: 11400000, guid: c8428468fe4d08940ba664176b113bc1, type: 2}
     - target: {fileID: 9151649186774323212, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
       propertyPath: m_Name
       value: PFB_Player
@@ -7579,7 +7583,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ce7386d10aac3e4abfc10f725f52588, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectilePool
-  _projectilePrefab: {fileID: 4426899373576748405, guid: 620b91c9bed8bc047a210bf8d37f9d52, type: 3}
   _outputCamera: {fileID: 836134593}
   _projectileParent: {fileID: 1075857157}
   _defaultCapacity: 64

@@ -16,7 +16,10 @@ public class WeaponDefinition : ScriptableObject
     [SerializeField, Min(0f)] private float _projectileMaxLifetime;
     [SerializeField, Min(0f)] private float _projectileDamage;
     [SerializeField] private bool _disableOutsideGameCamera; // 출력 카메라 화면 밖이면 탄 반환·피해 무효 (권총·미니건 true)
-    
+    [SerializeField, Min(1)] private int _projectilesPerShot = 1;
+    [SerializeField, Min(0f)] private float _spreadAngle; // 부채꼴 전체 각도(도), 양 끝 탄 포함
+    [SerializeField] private Projectile _projectilePrefab; // 무기별 탄 외형, 프리팹마다 풀 분리
+
     public WeaponType WeaponType => _weaponType;
     public float FireInterval => _fireInterval;
     public int MagazineCapacity => _magazineCapacity;
@@ -27,6 +30,9 @@ public class WeaponDefinition : ScriptableObject
     public float ProjectileMaxLifetime => _projectileMaxLifetime;
     public float ProjectileDamage => _projectileDamage;
     public bool DisableOutsideGameCamera => _disableOutsideGameCamera;
+    public int ProjectilesPerShot => _projectilesPerShot;
+    public float SpreadAngle => _spreadAngle;
+    public Projectile ProjectilePrefab => _projectilePrefab;
 }
 
 /// <summary>무기 종류</summary>

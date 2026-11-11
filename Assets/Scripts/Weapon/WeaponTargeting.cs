@@ -6,6 +6,8 @@ using UnityEngine;
 /// </summary>
 public static class WeaponTargeting
 {
+    private const float HALF_RATIO = 0.5f;
+
     /// <summary>XZ 평면 기준 반경 안에서 공격 가능한 최근접 표적 1개 탐색</summary>
     /// <param name="origin">탐색 기준 위치 (플레이어 루트)</param>
     /// <param name="range">탐색 반경</param>
@@ -54,5 +56,41 @@ public static class WeaponTargeting
     public static Vector3 GetAimDirection(Vector3 muzzlePosition, Vector3 aimPoint)
     {
         return Vector3.ProjectOnPlane(aimPoint - muzzlePosition, Vector3.up).normalized;
+    }
+
+    /// <summary>발사 기준 XZ 방향 (총구→표적, 총구와 표적이 겹치면 플레이어 중심→표적)</summary>
+    /// <param name="muzzlePosition">총구 위치</param>
+    /// <param name="playerPosition">플레이어 루트 위치</param>
+    /// <param name="aimPoint">표적 조준 위치</param>
+    /// <returns>정규화 방향, 둘 다 겹치면 영벡터</returns>
+    public static Vector3 GetFireDirection(Vector3 muzzlePosition, Vector3 playerPosition, Vector3 aimPoint)
+    {
+        Vector3 muzzleDirection = GetAimDirection(muzzlePosition, aimPoint);
+        // 적이 총구에 파고들면 총구 기준 방향이 사라지므로 플레이어 중심 기준으로 대체
+        if (muzzleDirection != Vector3.zero)
+        {
+            return muzzleDirection;
+        }
+
+        return GetAimDirection(playerPosition, aimPoint);
+    }
+
+    /// <summary>부채꼴 안 index번째 탄의 XZ 평면 정규화 방향 (양 끝 포함 균등 간격, 1발이면 중앙)</summary>
+    /// <param name="centerDirection">부채꼴 중심 방향</param>
+    /// <param name="spreadAngle">부채꼴 전체 각도(도)</param>
+    /// <param name="count">한 번에 발사하는 탄 수</param>
+    /// <param name="index">0부터 count - 1까지의 탄 순번</param>
+    public static Vector3 GetSpreadDirection(Vector3 centerDirection, float spreadAngle, int count, int index)
+    {
+        Vector3 planarCenter = Vector3.ProjectOnPlane(centerDirection, Vector3.up).normalized;
+        // 1발 이하는 간격 계산 시 0으로 나누게 되므로 중앙 고정
+        if (count <= 1)
+        {
+            return planarCenter;
+        }
+
+        float halfSpread = spreadAngle * HALF_RATIO;
+        float angle = Mathf.Lerp(-halfSpread, halfSpread, (float)index / (count - 1));
+        return Quaternion.AngleAxis(angle, Vector3.up) * planarCenter;
     }
 }

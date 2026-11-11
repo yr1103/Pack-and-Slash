@@ -41,10 +41,17 @@ public class WeaponAttackController : MonoBehaviour
                 continue;
             }
 
-            Vector3 direction = WeaponTargeting.GetAimDirection(_muzzle.position, target.AimPoint);
-            _pool.Fire(new ProjectileSpawnContext(_muzzle.position, direction, definition.ProjectileSpeed,
-                definition.ProjectileDamage, definition.ProjectileMaxDistance, definition.ProjectileMaxLifetime,
-                definition.DisableOutsideGameCamera, MAX_UNIQUE_TARGETS_HIT));
+            Vector3 centerDirection = WeaponTargeting.GetFireDirection(_muzzle.position, _playerRoot.position, target.AimPoint);
+            int projectileCount = definition.ProjectilesPerShot;
+            for (int j = 0; j < projectileCount; j++)
+            {
+                Vector3 direction = WeaponTargeting.GetSpreadDirection(centerDirection, definition.SpreadAngle, projectileCount, j);
+                _pool.Fire(definition.ProjectilePrefab, new ProjectileSpawnContext(_muzzle.position, direction,
+                    definition.ProjectileSpeed, definition.ProjectileDamage, definition.ProjectileMaxDistance,
+                    definition.ProjectileMaxLifetime, definition.DisableOutsideGameCamera, MAX_UNIQUE_TARGETS_HIT));
+            }
+
+            // 펠릿 수와 무관하게 한 번 발사로 취급
             weapon.ResetShotCooldown();
         }
     }

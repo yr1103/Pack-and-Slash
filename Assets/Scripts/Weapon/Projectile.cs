@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Pool;
 
 /// <summary>
 /// 고정 방향 직진 투사체 (이동, 적중 피해 적용, 화면·거리·수명 경계 반환)
@@ -12,7 +13,7 @@ public class Projectile : MonoBehaviour
 
     private ProjectileHitDetector _hitDetector;
     private ProjectileSpawnContext _context;
-    private ProjectilePool _pool;
+    private IObjectPool<Projectile> _pool;
     private Camera _outputCamera;
     private Vector3 _direction;
     private float _traveledDistance;
@@ -56,9 +57,9 @@ public class Projectile : MonoBehaviour
 
     /// <summary>풀에서 꺼낸 직후 호출, 이전 발사의 상태를 모두 초기화하고 발사 (방향을 정할 수 없으면 경고 후 즉시 반환)</summary>
     /// <param name="context">발사 시점 값 (Direction은 비정규 입력 허용, 여기서 XZ 정규화)</param>
-    /// <param name="pool">반환할 풀</param>
+    /// <param name="pool">반환할 풀 (이 탄을 꺼낸 프리팹별 풀)</param>
     /// <param name="outputCamera">화면 판정 기준 출력 카메라</param>
-    public void Launch(ProjectileSpawnContext context, ProjectilePool pool, Camera outputCamera)
+    public void Launch(ProjectileSpawnContext context, IObjectPool<Projectile> pool, Camera outputCamera)
     {
         _context = context;
         _pool = pool;
