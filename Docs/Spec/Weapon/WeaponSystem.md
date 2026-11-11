@@ -348,8 +348,8 @@ GDD/Roadmap에서 Flow Field·Spatial Hash·Separation과 넉백의 결합은 **
 | 미니건 진화 | `maxUniqueTargetsHit` | **3마리** |
 | 미니건 진화 | `evolvedProjectilesPerShot` | **미정**(진화 시 탄환 수 증가 필요) |
 | 시작 무기 조준 연출 | `PlayerAimController._turnSpeed` (무기 SO가 아닌 플레이어 비주얼 회전 속도, §6.2) | 360° 거리 감지; 매우 짧고 자연스러운 몸통 회전, 발사 대기 없음 |
-| 부유 무기 조준 연출 | `floatingTurnSpeed`, `floatingOffset` | **360° 감지 확정**, 무기별 독립 회전/배치. 연출값 미정 |
-| 원형 배치 | `floatingOrbitRadius`, `slotRepositionDuration`, `maxSingleRingGunCount` | 총기 수에 따라 360° 분할; 반경·보간·2중 원 전환값은 미정 |
+| 부유 무기 조준 연출 | `floatingTurnSpeed` → 구현 : `WeaponViewController._floatingTurnSpeed`(초당 각도), `floatingOffset` | **360° 감지 확정**, 무기별 독립 회전/배치. 구현 초깃값 `_floatingTurnSpeed` **720**(임시) |
+| 원형 배치 | `floatingOrbitRadius` → 구현 : `WeaponViewController._orbitRadius`, 높이 `WeaponViewController._orbitHeight`, `slotRepositionDuration` → 구현 : `WeaponViewController._slotMoveSpeed`(슬롯 재배치, 초당 이동 거리), `maxSingleRingGunCount` | 총기 수에 따라 360° 분할. 구현 초깃값 `_orbitRadius` **1.5**, `_orbitHeight` **1.2**, `_slotMoveSpeed` **6**(모두 임시). 2중 원 전환·총기 수 상한은 미구현(미정) |
 | 고유 아이템 탈착 | `cowboyUnequippedSpreadAngle`, `cowboyFireIntervalMultiplier`, `vestUnequippedDamageTakenMultiplier`, `heavyUnequippedSpreadMultiplier`, `heavyUnequippedReloadMultiplier` | 표 §3.6의 **초기 밸런스 제안값**, 인스펙터 조절 |
 | 공통 | `disableOutsideGameCamera` | 권총/미니건 **true**, 샷건 **false**(짧은 사거리로 정리) |
 
@@ -405,6 +405,8 @@ GDD/Roadmap에서 Flow Field·Spatial Hash·Separation과 넉백의 결합은 **
 ---
 
 ### 변경 이력
+
+- **2026-11-11 / 구현 반영(#5 W07):** §11 "부유 무기 조준 연출"·"원형 배치" 행에 구현 소유 위치(`WeaponViewController._floatingTurnSpeed`·`_orbitRadius`·`_orbitHeight`·`_slotMoveSpeed`)와 초깃값을 표기. 구현 차이 : §3.5 설계 제안 `PrimaryWeaponChanged`는 `WeaponLoadout.PrimaryChanged`(인자 없는 이벤트)로 구현, 슬롯 재배치는 보간 시간(`slotRepositionDuration`)이 아닌 이동 속도 방식, 캐릭터 생김새는 고유 무기 종류 기준 임시 구현. 설계 본문 변경 없음.
 
 - **2026-11-11 / 주무기 승계 기준 통일·회전 속도 소유 표기(#5 W05):** §3.5-2와 §12 체크리스트의 자동 승계 순서를 코드 기준 "진화 → 고유 무기 → 최고 레벨 → 인스턴스 ID(먼저 장착)"로 통일(GDD·Combat·W11 동기화). §11 "시작 무기 조준 연출" 행의 회전 속도를 `PlayerAimController._turnSpeed` 소유로 표기(§6.2와 일치).
 

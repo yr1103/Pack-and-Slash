@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -14,11 +15,19 @@ public class WeaponLoadout : MonoBehaviour
     private readonly List<WeaponInstance> _weapons = new List<WeaponInstance>();
     private int _nextInstanceId = 1;
 
+    public WeaponDefinition SignatureWeapon => _signatureWeapon;
+
     /// <summary>현재 장착 중인 무기 인스턴스 목록</summary>
     public IReadOnlyList<WeaponInstance> Weapons => _weapons;
 
     /// <summary>몸통 조준 기준 주무기, 장착 무기가 없으면 null (주무기가 없을 때 장착하면 지정, 주무기 해제 시에만 재선정)</summary>
     public WeaponInstance Primary { get; private set; }
+
+    /// <summary>Primary 값이 실제로 바뀐 직후 발생 (null로 바뀐 경우 포함, 같은 호출의 WeaponsChanged보다 먼저)</summary>
+    public event Action PrimaryChanged;
+
+    /// <summary>장착·해제가 성공할 때마다 Primary 갱신 후 발생</summary>
+    public event Action WeaponsChanged;
 
     // 다른 컴포넌트가 Start·Update에서 장착 목록을 읽기 전에 고유 무기를 채움
     private void Awake()
@@ -36,8 +45,10 @@ public class WeaponLoadout : MonoBehaviour
         if (Primary == null)
         {
             Primary = weapon;
+            PrimaryChanged?.Invoke();
         }
 
+        WeaponsChanged?.Invoke();
         return weapon;
     }
 
@@ -51,11 +62,14 @@ public class WeaponLoadout : MonoBehaviour
             {
                 WeaponInstance removed = _weapons[i];
                 _weapons.RemoveAt(i);
+                // 해제한 주무기는 목록에 없으므로 재선정 결과는 항상 다른 값
                 if (removed == Primary)
                 {
                     Primary = SelectPrimary(_weapons, _signatureWeapon);
+                    PrimaryChanged?.Invoke();
                 }
 
+                WeaponsChanged?.Invoke();
                 return true;
             }
         }

@@ -26,3 +26,4 @@ MonoBehaviour:
   _spreadAngle: 0
   _randomSpread: 0
   _projectilePrefab: {fileID: 4426899373576748405, guid: 620b91c9bed8bc047a210bf8d37f9d52, type: 3}
+  _floatingViewPrefab: {fileID: 2513688473513759035, guid: 09985ec916f86d44bad4e75d8692c666, type: 3}
