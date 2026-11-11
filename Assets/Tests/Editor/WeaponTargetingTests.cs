@@ -21,6 +21,10 @@ public class WeaponTargetingTests
     private const float NO_SPREAD = 0f;
     private const int SINGLE_SHOT = 1;
     private const int PELLET_COUNT = 5;
+    private const float LEFT_EDGE_RATIO = 0f;
+    private const float MIDDLE_RATIO = 0.5f;
+    private const float RIGHT_EDGE_RATIO = 1f;
+    private const float HALF_SPREAD_ANGLE = SPREAD_ANGLE / 2f;
 
     private static readonly Vector3 _origin = Vector3.zero;
     private static readonly Vector3 _frontFar = new Vector3(0f, 0f, 8f);
@@ -38,6 +42,7 @@ public class WeaponTargetingTests
     // 높이 성분과 길이가 있는 중심 방향으로 XZ 투영·정규화까지 확인
     private static readonly Vector3 _spreadCenter = new Vector3(3f, 2f, 4f);
     private static readonly float[] _expectedPelletAngles = { -22.5f, -11.25f, 0f, 11.25f, 22.5f };
+    private static readonly float[] _randomRatios = { 0f, 0.1f, 0.37f, 0.5f, 0.82f, 1f };
 
     /// <summary>GameObject 없이 쓰는 테스트용 표적</summary>
     private class StubTarget : ITargetable
@@ -210,6 +215,58 @@ public class WeaponTargetingTests
         for (int i = 0; i < PELLET_COUNT; i++)
         {
             Vector3 direction = WeaponTargeting.GetSpreadDirection(_spreadCenter, SPREAD_ANGLE, PELLET_COUNT, i);
+
+            Assert.AreEqual(0f, direction.y, TOLERANCE);
+            Assert.AreEqual(1f, direction.magnitude, TOLERANCE);
+        }
+    }
+
+    [Test]
+    public void GetRandomSpreadDirection_RatioEdgesAndMiddle_MapToSpreadEdgesAndCenter()
+    {
+        Vector3 center = Vector3.ProjectOnPlane(_spreadCenter, Vector3.up).normalized;
+
+        Vector3 left = WeaponTargeting.GetRandomSpreadDirection(_spreadCenter, SPREAD_ANGLE, LEFT_EDGE_RATIO);
+        Vector3 middle = WeaponTargeting.GetRandomSpreadDirection(_spreadCenter, SPREAD_ANGLE, MIDDLE_RATIO);
+        Vector3 right = WeaponTargeting.GetRandomSpreadDirection(_spreadCenter, SPREAD_ANGLE, RIGHT_EDGE_RATIO);
+
+        Assert.AreEqual(-HALF_SPREAD_ANGLE, Vector3.SignedAngle(center, left, Vector3.up), ANGLE_TOLERANCE);
+        Assert.AreEqual(0f, Vector3.SignedAngle(center, middle, Vector3.up), ANGLE_TOLERANCE);
+        Assert.AreEqual(HALF_SPREAD_ANGLE, Vector3.SignedAngle(center, right, Vector3.up), ANGLE_TOLERANCE);
+    }
+
+    [Test]
+    public void GetRandomSpreadDirection_AnyRatio_StaysWithinSpread()
+    {
+        Vector3 center = Vector3.ProjectOnPlane(_spreadCenter, Vector3.up).normalized;
+
+        for (int i = 0; i < _randomRatios.Length; i++)
+        {
+            Vector3 direction = WeaponTargeting.GetRandomSpreadDirection(_spreadCenter, SPREAD_ANGLE, _randomRatios[i]);
+
+            Assert.LessOrEqual(Vector3.Angle(center, direction), HALF_SPREAD_ANGLE + ANGLE_TOLERANCE);
+        }
+    }
+
+    [Test]
+    public void GetRandomSpreadDirection_ZeroSpread_ReturnsCenter()
+    {
+        Vector3 center = Vector3.ProjectOnPlane(_spreadCenter, Vector3.up).normalized;
+
+        for (int i = 0; i < _randomRatios.Length; i++)
+        {
+            Vector3 direction = WeaponTargeting.GetRandomSpreadDirection(_spreadCenter, NO_SPREAD, _randomRatios[i]);
+
+            Assert.AreEqual(0f, Vector3.Angle(center, direction), ANGLE_TOLERANCE);
+        }
+    }
+
+    [Test]
+    public void GetRandomSpreadDirection_IsFlatAndNormalized()
+    {
+        for (int i = 0; i < _randomRatios.Length; i++)
+        {
+            Vector3 direction = WeaponTargeting.GetRandomSpreadDirection(_spreadCenter, SPREAD_ANGLE, _randomRatios[i]);
 
             Assert.AreEqual(0f, direction.y, TOLERANCE);
             Assert.AreEqual(1f, direction.magnitude, TOLERANCE);

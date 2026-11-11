@@ -6,8 +6,11 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "New Weapon Definition", menuName = "Data/Weapon Definition")]
 public class WeaponDefinition : ScriptableObject
 {
+    private const float MIN_FIRE_INTERVAL = 0.01f;
+    private const float DEFAULT_FIRE_INTERVAL = 1f;
+
     [SerializeField] private WeaponType _weaponType;
-    [SerializeField] private float _fireInterval;
+    [SerializeField, Min(MIN_FIRE_INTERVAL)] private float _fireInterval = DEFAULT_FIRE_INTERVAL; // 0 이하면 한 프레임 연속 발사 루프가 끝나지 않아 하한 지정
     [SerializeField] private int _magazineCapacity; // 0 = 탄창 없음 (권총·샷건)
     [SerializeField] private float _reloadDuration;
     [SerializeField, Min(0f)] private float _detectionRange;
@@ -18,6 +21,7 @@ public class WeaponDefinition : ScriptableObject
     [SerializeField] private bool _disableOutsideGameCamera; // 출력 카메라 화면 밖이면 탄 반환·피해 무효 (권총·미니건 true)
     [SerializeField, Min(1)] private int _projectilesPerShot = 1;
     [SerializeField, Min(0f)] private float _spreadAngle; // 부채꼴 전체 각도(도), 양 끝 탄 포함
+    [SerializeField] private bool _randomSpread; // true = 탄마다 ±SpreadAngle/2 랜덤 각도, false = 균등 간격 부채꼴
     [SerializeField] private Projectile _projectilePrefab; // 무기별 탄 외형, 프리팹마다 풀 분리
 
     public WeaponType WeaponType => _weaponType;
@@ -32,6 +36,7 @@ public class WeaponDefinition : ScriptableObject
     public bool DisableOutsideGameCamera => _disableOutsideGameCamera;
     public int ProjectilesPerShot => _projectilesPerShot;
     public float SpreadAngle => _spreadAngle;
+    public bool RandomSpread => _randomSpread;
     public Projectile ProjectilePrefab => _projectilePrefab;
 }
 

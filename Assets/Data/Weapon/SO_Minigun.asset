@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c57cf1f97ee36d84897f6702c5746328, type: 3}
+  m_Name: SO_Minigun
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponDefinition
+  _weaponType: 2
+  _fireInterval: 0.15
+  _magazineCapacity: 150
+  _reloadDuration: 5
+  _detectionRange: 20
+  _projectileSpeed: 20
+  _projectileMaxDistance: 40
+  _projectileMaxLifetime: 5
+  _projectileDamage: 3
+  _disableOutsideGameCamera: 1
+  _projectilesPerShot: 1
+  _spreadAngle: 18
+  _randomSpread: 1
+  _projectilePrefab: {fileID: 4426899373576748405, guid: c9d5b64562ce7fa4196d3ae832c57434, type: 3}
