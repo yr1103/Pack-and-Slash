@@ -166,12 +166,13 @@
 ## 호출 순서 또는 데이터 흐름
 
 ```
-[Awake]
+[Awake · OnEnable]   (오브젝트가 켜질 때 컴포넌트마다 Awake → OnEnable을 이어서 호출한다.
+                      컴포넌트 사이 순서는 지정되지 않아, 아래 두 블록 중 어느 쪽이 먼저인지는 정해져 있지 않다)
 WeaponLoadout.Awake → Equip(_signatureWeapon) → Primary 지정
 PlayerAimController.Awake → CharacterController 캐싱
 (ProjectilePool은 Awake에서 풀을 만들지 않는다. 프리팹별 풀은 첫 Fire 시 생성)
 
-[OnEnable] WeaponViewController
+WeaponViewController.OnEnable
   _loadout.PrimaryChanged += OnPrimaryChanged
   _loadout.WeaponsChanged += SyncFloatingViews
   (OnDisable에서 해제)
@@ -432,7 +433,7 @@ PFB_Floating…                 (FloatingWeaponView, _muzzle = MuzzlePoint)
 | y | `_magazineCapacity`, `_reloadDuration`에는 하한(`Min`)이 없다 | 미정 |
 | z1 | 생김새를 고유 무기 종류(`WeaponType`)로 정하는 임시 구조다 (코드의 `shortcut` 주석). 캐릭터가 아닌 무기 종류에 묶여 있고, 외형 표시 컴포넌트가 생김새까지 맡는다 (reviewer 단일 책임 권고) | 캐릭터 데이터 추가 시 캐릭터 쪽으로 이전 |
 | z2 | 부유 총기는 풀링 없이 `Instantiate`·`Destroy`한다 (코드의 `shortcut` 주석, 장착 변경은 인벤토리 확정 시점에만 발생한다는 전제) | 장착 변경이 잦아지면 풀링 |
-| z3 | `WeaponViewController`가 꺼진 동안(`OnDisable`로 구독 해제) 장착이 바뀌면 다시 켜질 때 재동기화하지 않는다. 이후 `LateUpdate`·`GetMuzzle`이 뷰가 없는 무기를 조회해 `KeyNotFoundException`이 날 수 있다. 현재 이 컴포넌트를 끄는 흐름은 없다 | 끄는 흐름 도입 시 |
+| z3 | `WeaponViewController`가 꺼진 동안(`OnDisable`로 구독 해제) 장착이 바뀌면 다시 켜질 때 재동기화하지 않는다. `GetMuzzle`은 `WeaponAttackController.Update`가 매 프레임 부르므로 꺼진 동안에도 호출된다. 이때 새로 장착한 부유 무기는 뷰가 없어 `KeyNotFoundException`이 나고(다시 켜진 뒤 `LateUpdate`도 같음), 주무기만 바뀐 경우는 예외 없이 이전 주무기의 손 총구(`_activeHandWeapon`)를 돌려준다. 현재 이 컴포넌트를 끄는 흐름은 없다 | 끄는 흐름 도입 시 |
 | z4 | 주무기 변경을 수반하는 `Equip`/`Unequip` 1회에 `SyncFloatingViews`가 2회 실행된다 (`PrimaryChanged`, `WeaponsChanged` 각각). 두 번째 실행은 변경이 없어 결과는 같다 | 참고 |
 | z5 | `WeaponViewController.LateUpdate`와 `PlayerAimController.LateUpdate`의 실행 순서가 지정되지 않았다. 슬롯 각도가 `_visualRoot` 회전을 기준으로 하므로, 몸통 회전보다 먼저 실행되면 슬롯 목표 위치가 최대 1프레임 늦을 수 있다 | 문제가 보이면 실행 순서 지정 |
 | z6 | Inspector·SO 연결 누락 시 `null` 검사 없이 예외·오동작이 난다. `_handWeapons`에 주무기 `WeaponType` 항목이 없으면 `GetMuzzle`에서 `NullReferenceException`. `_appearances`에 고유 무기 종류 항목이 없으면 등록된 Body·Head가 모두 꺼진다. SO의 `_floatingViewPrefab`이 비면 `Instantiate`에서 예외 | 무기·캐릭터 추가 시 연결 필수 |
