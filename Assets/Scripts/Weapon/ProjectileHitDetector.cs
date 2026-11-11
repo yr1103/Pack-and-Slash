@@ -51,7 +51,7 @@ public class ProjectileHitDetector
 
     /// <summary>Cast 결과 index번째가 처음 맞는 피해 대상이면 기록 후 반환</summary>
     /// <param name="hitDistance">Cast 시작점부터 적중 지점까지 거리</param>
-    /// <returns>IDamageable이 없는 Collider이거나 이미 맞힌 적이면 false</returns>
+    /// <returns>IDamageable이 없는 Collider이거나 살아 있지 않거나 이미 맞힌 적이면 false</returns>
     public bool TryGetNewTarget(int index, out IDamageable target, out float hitDistance)
     {
         hitDistance = _castHits[index].distance;
@@ -60,9 +60,10 @@ public class ProjectileHitDetector
     }
 
     /// <summary>처음 맞는 적이면 기록 (한 적의 Collider 여러 개·연속 프레임 접촉을 1회로 제한, 참조 기준)</summary>
-    /// <returns>이미 기록된 적이면 false</returns>
+    /// <returns>살아 있지 않거나 이미 기록된 적이면 false</returns>
     public bool TryRecord(IDamageable target)
     {
-        return _hitTargets.Add(target);
+        // 죽은 적은 기록하지 않아 한도를 소모하지 않고 탄이 통과
+        return target.IsAlive && _hitTargets.Add(target);
     }
 }

@@ -6,8 +6,8 @@ tools: Read, Glob, Grep, Edit, Write
 
 # 개발 담당 (developer)
 
+> 당신은 유니티 게임 개발 10년차 시니어 개발자이다. 
 > 이 문서는 **역할·입력·금지사항·출력 형식**만 정의한다.
->
 > 작성 기준의 원본은 아래 표의 규칙 문서이며, 이 문서에 규칙을 복사하지 않는다. (규칙 단일출처 유지)
 
 ---
@@ -26,8 +26,8 @@ tools: Read, Glob, Grep, Edit, Write
 |---|---|
 | 작업 범위·변경 원칙 | `Docs/Claude/ClaudeCodeRules.md` › `행동 원칙`의 `2. 단순함 우선`, `3. 외과적 변경` / `작업 범위 규칙` |
 | 구조·책임·패턴 판단 | `Docs/Code/CodingStyleGuide.md` › `설계 검토·제안 기준`, `프로젝트·폴더·클래스 책임`(하위 절 포함), `공통 기능·아키텍처` |
-| C# 작성 | `Docs/Code/CsharpCodeConvention.md` › 내용이 작성된 본문 절 (예시·체크리스트·TODO 절 제외) |
-| 주석 | `Docs/Code/CommentConvention.md` › 내용이 작성된 본문 절과 예시 절 (체크리스트·TODO 절 제외) |
+| C# 작성 | `Docs/Code/CsharpCodeConvention.md` › 내용이 작성된 본문 절 (예시·체크리스트 절 제외) |
+| 주석 | `Docs/Code/CommentConvention.md` › 내용이 작성된 본문 절과 예시 절 (체크리스트 절 제외) |
 | 엔진·입력 사양 | `Docs/TechSpec.md` › `Unity 환경`, `입력 시스템`, `담당 경계` |
 | Scene·Prefab 변경 | 직접 수행하지 않음 (`Docs/Claude/WorkflowRules.md` › `4. 업무 수행` - 메인 세션 담당). 필요한 작업은 보고 사항에 기재 |
 | 완료 보고 | `Docs/Claude/WorkflowRules.md` › `4. 업무 수행`(보고 항목) / `Docs/Code/CsharpCodeConvention.md` › `10. Unity C# 검증` |
