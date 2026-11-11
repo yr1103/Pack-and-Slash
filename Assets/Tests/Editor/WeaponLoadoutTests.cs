@@ -13,6 +13,7 @@ public class WeaponLoadoutTests
     private const int HIGH_LEVEL = 3;
     private const int EARLIER_INSTANCE_ID = 1;
     private const int LATER_INSTANCE_ID = 2;
+    private const int UNKNOWN_INSTANCE_ID = 999;
     private const string SIGNATURE_WEAPON_FIELD = "_signatureWeapon";
 
     private WeaponDefinition _signatureWeapon;
@@ -135,5 +136,70 @@ public class WeaponLoadoutTests
         _loadout.Unequip(only.InstanceId);
 
         Assert.IsNull(_loadout.Primary);
+    }
+
+    [Test]
+    public void Equip_NoPrimary_RaisesPrimaryChangedOnce()
+    {
+        int primaryChangedCount = 0;
+        _loadout.PrimaryChanged += () => primaryChangedCount++;
+
+        _loadout.Equip(_otherWeapon);
+
+        Assert.AreEqual(1, primaryChangedCount);
+    }
+
+    [Test]
+    public void Equip_HasPrimary_RaisesOnlyWeaponsChanged()
+    {
+        _loadout.Equip(_otherWeapon);
+        int primaryChangedCount = 0;
+        int weaponsChangedCount = 0;
+        _loadout.PrimaryChanged += () => primaryChangedCount++;
+        _loadout.WeaponsChanged += () => weaponsChangedCount++;
+
+        _loadout.Equip(_otherWeapon);
+
+        Assert.AreEqual(0, primaryChangedCount);
+        Assert.AreEqual(1, weaponsChangedCount);
+    }
+
+    [Test]
+    public void Unequip_NonPrimary_DoesNotRaisePrimaryChanged()
+    {
+        _loadout.Equip(_otherWeapon);
+        WeaponInstance second = _loadout.Equip(_otherWeapon);
+        int primaryChangedCount = 0;
+        _loadout.PrimaryChanged += () => primaryChangedCount++;
+
+        _loadout.Unequip(second.InstanceId);
+
+        Assert.AreEqual(0, primaryChangedCount);
+    }
+
+    [Test]
+    public void Unequip_Primary_RaisesPrimaryChangedOnce()
+    {
+        WeaponInstance first = _loadout.Equip(_otherWeapon);
+        _loadout.Equip(_otherWeapon);
+        int primaryChangedCount = 0;
+        _loadout.PrimaryChanged += () => primaryChangedCount++;
+
+        _loadout.Unequip(first.InstanceId);
+
+        Assert.AreEqual(1, primaryChangedCount);
+    }
+
+    [Test]
+    public void Unequip_UnknownId_RaisesNoEvents()
+    {
+        _loadout.Equip(_otherWeapon);
+        int eventCount = 0;
+        _loadout.PrimaryChanged += () => eventCount++;
+        _loadout.WeaponsChanged += () => eventCount++;
+
+        _loadout.Unequip(UNKNOWN_INSTANCE_ID);
+
+        Assert.AreEqual(0, eventCount);
     }
 }
