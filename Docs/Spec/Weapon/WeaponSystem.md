@@ -348,7 +348,7 @@ GDD/Roadmap에서 Flow Field·Spatial Hash·Separation과 넉백의 결합은 **
 | 미니건 진화 | `maxUniqueTargetsHit` | **3마리** |
 | 미니건 진화 | `evolvedProjectilesPerShot` | **미정**(진화 시 탄환 수 증가 필요) |
 | 시작 무기 조준 연출 | `PlayerAimController._turnSpeed` (무기 SO가 아닌 플레이어 비주얼 회전 속도, §6.2) | 360° 거리 감지; 매우 짧고 자연스러운 몸통 회전, 발사 대기 없음 |
-| 부유 무기 조준 연출 | `floatingTurnSpeed` → 구현 : `WeaponViewController._floatingTurnSpeed`(초당 각도), `floatingOffset` | **360° 감지 확정**, 무기별 독립 회전/배치. 구현 초깃값 `_floatingTurnSpeed` **720**(임시) |
+| 부유 무기 조준 연출 | `floatingTurnSpeed` → 구현 : `WeaponViewController._floatingTurnSpeed`(초당 각도), `floatingOffset` → 미구현(대응 필드 없음, 위치는 아래 원형 배치 행의 반경·높이로만 정함) | **360° 감지 확정**, 무기별 독립 회전/배치. 구현 초깃값 `_floatingTurnSpeed` **720**(임시) |
 | 원형 배치 | `floatingOrbitRadius` → 구현 : `WeaponViewController._orbitRadius`, 높이 `WeaponViewController._orbitHeight`, `slotRepositionDuration` → 구현 : `WeaponViewController._slotMoveSpeed`(슬롯 재배치, 초당 이동 거리), `maxSingleRingGunCount` | 총기 수에 따라 360° 분할. 구현 초깃값 `_orbitRadius` **1.5**, `_orbitHeight` **1.2**, `_slotMoveSpeed` **6**(모두 임시). 2중 원 전환·총기 수 상한은 미구현(미정) |
 | 고유 아이템 탈착 | `cowboyUnequippedSpreadAngle`, `cowboyFireIntervalMultiplier`, `vestUnequippedDamageTakenMultiplier`, `heavyUnequippedSpreadMultiplier`, `heavyUnequippedReloadMultiplier` | 표 §3.6의 **초기 밸런스 제안값**, 인스펙터 조절 |
 | 공통 | `disableOutsideGameCamera` | 권총/미니건 **true**, 샷건 **false**(짧은 사거리로 정리) |
