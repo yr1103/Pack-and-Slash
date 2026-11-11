@@ -17,11 +17,12 @@ MonoBehaviour:
   _magazineCapacity: 0
   _reloadDuration: 0
   _detectionRange: 15
-  _projectileSpeed: 15
+  _projectileSpeed: 22
   _projectileMaxDistance: 40
   _projectileMaxLifetime: 5
-  _projectileDamage: 10
+  _projectileDamage: 15
   _disableOutsideGameCamera: 1
   _projectilesPerShot: 1
   _spreadAngle: 0
+  _randomSpread: 0
   _projectilePrefab: {fileID: 4426899373576748405, guid: 620b91c9bed8bc047a210bf8d37f9d52, type: 3}

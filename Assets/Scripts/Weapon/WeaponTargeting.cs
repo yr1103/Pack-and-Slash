@@ -93,4 +93,16 @@ public static class WeaponTargeting
         float angle = Mathf.Lerp(-halfSpread, halfSpread, (float)index / (count - 1));
         return Quaternion.AngleAxis(angle, Vector3.up) * planarCenter;
     }
+
+    /// <summary>부채꼴 안 랜덤 위치 탄의 XZ 평면 정규화 방향 (±spreadAngle/2 범위)</summary>
+    /// <param name="centerDirection">부채꼴 중심 방향</param>
+    /// <param name="spreadAngle">부채꼴 전체 각도(도)</param>
+    /// <param name="randomRatio">0 = 왼쪽 끝, 1 = 오른쪽 끝 (호출부가 Random.value 등으로 공급, 범위 밖은 끝으로 고정)</param>
+    public static Vector3 GetRandomSpreadDirection(Vector3 centerDirection, float spreadAngle, float randomRatio)
+    {
+        Vector3 planarCenter = Vector3.ProjectOnPlane(centerDirection, Vector3.up).normalized;
+        float halfSpread = spreadAngle * HALF_RATIO;
+        float angle = Mathf.Lerp(-halfSpread, halfSpread, randomRatio);
+        return Quaternion.AngleAxis(angle, Vector3.up) * planarCenter;
+    }
 }
