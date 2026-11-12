@@ -41,6 +41,10 @@
 `@Docs\Code\CommentConvention.md`
 `@Docs\Code\CsharpCodeConvention.md`
 
+### 무기 코드 수정 시
+
+`@Docs\TechDocs\Weapon.md`
+
 ### 브랜치 생성 시
 
 `@Docs\Documentation\GitBranchRules.md`

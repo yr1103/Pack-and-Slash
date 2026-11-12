@@ -14,6 +14,9 @@
 ## 2. XML 문서 주석 적용 대상
 
 - AI가 새로 만들거나 승인된 범위에서 변경한 `public`·`protected` 클래스, 메서드, 프로퍼티, 이벤트, 필드는 간결한 `///` XML 문서 주석으로 역할을 기록한다.
+- 단, 필드 값을 그대로 노출하는 프로퍼티는 필드와 같은 대상이므로 주석을 달지 않는다.
+    - 설명이 필요하면 필드 옆 `//` 주석으로만 남긴다.
+    - 주석이 없는 프로퍼티끼리는 빈 줄 없이 연속으로 선언한다.
 - Unity `Awake`·`Start`·`Update`·`OnEnable`·`OnDisable` 등 생명주기 메서드는 역할이나 호출 순서가 불명확한 경우에만 짧게 설명한다. 모든 생명주기 메서드에 장황한 설명을 반복하지 않는다.
 - `private` 구현은 복잡한 판단·계산·버그 회피 이유가 필요한 경우에만 인라인 주석을 단다.
 
@@ -44,13 +47,12 @@ using UnityEngine;
 public class PlayerHealth : MonoBehaviour
 {
     [SerializeField] private int _maxHealth = 100;
+    [SerializeField] private float _invincibleDuration = 0.5f; // 피격 후 무적 시간(초)
     private int _currentHealth;
 
-    /// <summary>현재 체력을 반환</summary>
-    public int CurrentHealth
-    {
-        get { return _currentHealth; }
-    }
+    public int MaxHealth => _maxHealth;
+    public float InvincibleDuration => _invincibleDuration;
+    public int CurrentHealth => _currentHealth;
 
     /// <summary>체력을 감소시키고 0 미만으로 내려가지 않게 처리</summary>
     /// <param name="damage">피해량</param>

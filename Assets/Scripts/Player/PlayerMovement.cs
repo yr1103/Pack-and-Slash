@@ -2,14 +2,13 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Move 입력을 월드 XZ 평면 이동과 이동 방향 회전으로 변환
+/// Move 입력을 월드 XZ 평면 이동으로 변환 (회전은 PlayerAimController가 모델에 적용)
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
     [SerializeField] private InputActionReference _moveAction;
     [SerializeField] private float _moveSpeed = 5f;
-    [SerializeField] private float _rotationSpeed = 720f; // 초당 회전 각도(도)
 
     private CharacterController _characterController;
 
@@ -36,20 +35,6 @@ public class PlayerMovement : MonoBehaviour
 
         // 입력이 없어도 중력 적용을 위해 매 프레임 호출
         _characterController.SimpleMove(moveDirection * _moveSpeed);
-
-        RotateTowards(moveDirection);
-    }
-
-    private void RotateTowards(Vector3 moveDirection)
-    {
-        // 입력이 없을 때 LookRotation(zero) 경고 방지 및 마지막 방향 유지
-        if (moveDirection == Vector3.zero)
-        {
-            return;
-        }
-
-        Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, _rotationSpeed * Time.deltaTime);
     }
 
     private void CacheComponents()
