@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// CostField 기준 목적지 타일까지의 최소 누적 이동 비용 (8방향 다익스트라, Corner Cutting 금지)
+/// CostField 기준 목적지 타일까지의 최소 누적 이동 비용 (8방향 다익스트라, 장애물이 대각선으로 존재할 때 뚫고 지나가기 금지)
 /// </summary>
 public class IntegrationField
 {
@@ -20,7 +20,7 @@ public class IntegrationField
 
     private readonly CostField _costField;
     private readonly float[,] _integration;
-    private readonly SortedSet<QueueEntry> _frontier;
+    private readonly SortedSet<QueueEntry> _frontier; // 우선 순위 큐 사용 불가에 따른 SortedSet으로 힙 대체
     private Vector2Int _target; // 마지막 Calculate 목적지 (호출 전에는 (0, 0))
 
     public Vector2Int Target => _target;
@@ -33,7 +33,7 @@ public class IntegrationField
         _frontier = new SortedSet<QueueEntry>(new QueueEntryComparer());
     }
 
-    /// <summary>목적지 기준 누적 비용 재계산 (목적지가 이동 불가면 모든 칸 PositiveInfinity)</summary>
+    /// <summary>목적지 기준 누적 비용 재계산, 목적지로 이동 불가시 모든 칸 무한대 처리</summary>
     public void Calculate(Vector2Int target)
     {
         _target = target;
@@ -47,8 +47,10 @@ public class IntegrationField
         _integration[target.x, target.y] = 0f;
         _frontier.Add(new QueueEntry(0f, target.x, target.y));
 
+        // 지연 삭제 : 같은 칸 갱신 시 기존 항목을 찾아 지우지 않고 새로 추가, 꺼낼 때 오래된 항목을 건너뜀
         while (_frontier.Count > 0)
         {
+            // Min 조회 + Remove = 최소 힙 Pop
             QueueEntry current = _frontier.Min;
             _frontier.Remove(current);
 
@@ -74,7 +76,7 @@ public class IntegrationField
         }
     }
 
-    /// <summary>누적 비용 (범위 안 좌표만 허용, 도달 불가는 PositiveInfinity)</summary>
+    /// <summary>누적 비용 (범위 안 좌표만 허용, 이동 불가 좌표는 비용 무한대 처리)</summary>
     public float GetIntegration(int x, int z)
     {
         return _integration[x, z];
@@ -93,6 +95,7 @@ public class IntegrationField
         if (nextCost < _integration[nextX, nextZ])
         {
             _integration[nextX, nextZ] = nextCost;
+            // 추가마다 트리 노드 할당으로 가비지 컬렉터 발생 : 개선 TODO
             _frontier.Add(new QueueEntry(nextCost, nextX, nextZ));
         }
     }
@@ -139,7 +142,6 @@ public class IntegrationField
             {
                 return xOrder;
             }
-
             return left.Z.CompareTo(right.Z);
         }
     }

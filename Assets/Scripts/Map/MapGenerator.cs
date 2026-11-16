@@ -38,7 +38,7 @@ public class MapGenerator : MonoBehaviour
     [SerializeField] private Transform _generatedRoot; // Environment/GeneratedMap
     [SerializeField] private float _boundaryWallHeight = 3f;
     [SerializeField] private float _boundaryWallThickness = 1f;
-    [SerializeField] private bool _drawGizmos = true;
+    [SerializeField] private bool _drawGizmos = true; // Scene 뷰 맵 확인용, 경계(노랑 와이어)는 항상, 이동 불가 칸(반투명 빨강)·시작 안전 영역(초록 와이어)은 Play 중만
 
     private System.Random _random; // 같은 Seed면 같은 결과가 나오도록 모든 랜덤 판정에 이것만 사용
     private CostField _costField;

@@ -22,9 +22,11 @@ public class FlowFieldManager : MonoBehaviour
     [SerializeField] private MapGenerator _mapGenerator;
     [SerializeField] private Transform _player;
     [SerializeField, Min(0f)] private float _updateInterval = 0.2f; // 재계산 최소 간격(초)
-    [SerializeField] private bool _drawTarget;
-    [SerializeField] private bool _drawIntegration; // 전체 칸을 그려 Scene 뷰 부하가 커서 기본값 off
-    [SerializeField] private bool _drawFlow; // 전체 칸을 그려 Scene 뷰 부하가 커서 기본값 off
+    
+    // Scene 뷰 Enemy 이동 경로 검증용 
+    [SerializeField] private bool _drawTarget; // 플레이어 위치 청록색 박스로 표시
+    [SerializeField] private bool _drawIntegration; // 근거리 초록 → 원거리 자홍, 도달 불가 칸 미표시 
+    [SerializeField] private bool _drawFlow; // 흰 선의 끝 큐브 쪽이 Enemy 이동 방향
 
     private CostField _costField;
     private IntegrationField _integrationField;
@@ -81,6 +83,7 @@ public class FlowFieldManager : MonoBehaviour
         _lastCalculateTime = Time.time;
     }
 
+    // 확인 조건 : Scene·Game 뷰 Gizmos 버튼과 항목별 Inspector 토글(_drawTarget·_drawIntegration·_drawFlow)이 켜져 있을 때 표시
     private void OnDrawGizmos()
     {
         // 에디터 비실행 시에는 계산 결과가 없음
@@ -148,6 +151,7 @@ public class FlowFieldManager : MonoBehaviour
             for (int z = 0; z < _costField.Height; z++)
             {
                 Vector2 direction = _flowField.GetDirection(x, z);
+                // 방향 0 칸(목적지·장애물·도달 불가)은 선 없이 중심 큐브만 남아 방향 표시와 혼동되므로 생략
                 if (direction == Vector2.zero)
                 {
                     continue;

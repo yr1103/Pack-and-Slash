@@ -12,10 +12,9 @@
   <component name="ChangeListManager">
     <list default="true" id="c9ab99dc-c127-4891-80fd-7387175a0417" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Pack-em-Sack-em/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Pack-em-Sack-em/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scenes/TestMap.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/TestMap.unity" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scripts/Map/FlowFieldManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Map/FlowFieldManager.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Map/IntegrationField.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Map/IntegrationField.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scripts/Map/MapGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Map/MapGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Docs/Claude/WorkflowRules.md" beforeDir="false" afterPath="$PROJECT_DIR$/Docs/Claude/WorkflowRules.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
