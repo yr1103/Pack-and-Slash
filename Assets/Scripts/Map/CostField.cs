@@ -72,6 +72,13 @@ public class CostField
         return IsInBounds(x, z) && _costs[x, z] != OBSTACLE_COST;
     }
 
+    /// <summary>Corner Cutting 금지 판정 : 대각선을 이루는 두 직선 이웃이 모두 이동 가능한지 (도착 칸은 따로 확인)</summary>
+    /// <param name="direction">대각선 방향 (각 성분이 1 또는 -1)</param>
+    public bool CanPassDiagonal(int x, int z, Vector2Int direction)
+    {
+        return IsWalkable(x + direction.x, z) && IsWalkable(x, z + direction.y);
+    }
+
     /// <summary>타일을 장애물(255)로 설정 (범위 안 좌표만 허용)</summary>
     public void SetObstacle(int x, int z)
     {

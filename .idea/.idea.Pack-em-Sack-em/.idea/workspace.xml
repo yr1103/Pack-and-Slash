@@ -12,32 +12,34 @@
   <component name="ChangeListManager">
     <list default="true" id="c9ab99dc-c127-4891-80fd-7387175a0417" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Pack-em-Sack-em/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Pack-em-Sack-em/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins/NuGet/.nuget-installed.json" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/NuGet/.nuget-installed.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins/NuGet/McpPlugin.Common.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/NuGet/McpPlugin.Common.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins/NuGet/McpPlugin.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/NuGet/McpPlugin.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins/NuGet/R3.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/NuGet/R3.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins/NuGet/R3.dll.meta" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/NuGet/R3.dll.meta" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins/NuGet/ReflectorNet.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/NuGet/ReflectorNet.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins/NuGet/ReflectorNet.dll.meta" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/NuGet/ReflectorNet.dll.meta" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins/NuGet/Rql.Contracts.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/NuGet/Rql.Contracts.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins/NuGet/Rql.Contracts.dll.meta" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/NuGet/Rql.Contracts.dll.meta" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins/NuGet/Rql.Execution.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/NuGet/Rql.Execution.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins/NuGet/Rql.Execution.dll.meta" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/NuGet/Rql.Execution.dll.meta" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins/NuGet/Rql.Parser.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/NuGet/Rql.Parser.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins/NuGet/Rql.Parser.dll.meta" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/NuGet/Rql.Parser.dll.meta" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/Weapon/PFB_MinigunBullet.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/Weapon/PFB_MinigunBullet.prefab" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/Weapon/PFB_PistolBullet.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/Weapon/PFB_PistolBullet.prefab" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/Weapon/PFB_ShotgunPellet.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/Weapon/PFB_ShotgunPellet.prefab" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/FloatingWeaponView.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Weapon/FloatingWeaponView.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/Projectile.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Weapon/Projectile.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/ProjectileHitDetector.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Weapon/ProjectileHitDetector.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Docs/Spec/MonsterMovement.md" beforeDir="false" afterPath="$PROJECT_DIR$/Docs/Spec/MonsterMovement.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Docs/Spec/Roadmap.md" beforeDir="false" afterPath="$PROJECT_DIR$/Docs/Spec/Roadmap.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Docs/TechSpec.md" beforeDir="false" afterPath="$PROJECT_DIR$/Docs/TechSpec.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Packages/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/manifest.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Packages/packages-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/packages-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ProjectSettings/ProjectSettings.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/ProjectSettings.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ProjectSettings/TagManager.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/TagManager.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/TestMap.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/TestMap.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Map/CostField.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Map/CostField.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/FloatingWeaponView.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/FloatingWeaponView.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/IDamageable.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/IDamageable.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/ITargetable.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/ITargetable.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/Projectile.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/Projectile.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/ProjectileHitDetector.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/ProjectileHitDetector.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/ProjectilePool.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/ProjectilePool.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/ProjectileSpawnContext.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/ProjectileSpawnContext.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/WeaponAttackController.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/WeaponAttackController.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/WeaponDefinition.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/WeaponDefinition.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/WeaponInstance.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/WeaponInstance.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/WeaponLoadout.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/WeaponLoadout.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/WeaponTargeting.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/WeaponTargeting.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/WeaponViewController.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Weapon/WeaponViewController.cs.meta" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,61 +56,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.4678087166408624" />
-      <entry key="MS500" value="3.054233285055931" />
-      <entry key="S2" value="4.57479980742845" />
-      <entry key="S5" value="5.692814816833191" />
-      <entry key="S10" value="6.7105546846780735" />
-      <entry key="S30" value="8.787525725276492" />
-      <entry key="S60" value="11.608431173928832" />
-      <entry key="M2" value="18.839802859721154" />
-      <entry key="M5" value="33.871329672206514" />
-      <entry key="M10" value="44.20166102003398" />
-      <entry key="M15" value="48.72471963642489" />
-      <entry key="M30" value="53.94903215925938" />
-      <entry key="H1" value="56.862442737064924" />
-      <entry key="H2" value="58.402022881677006" />
-      <entry key="H4" value="59.19355844207644" />
-      <entry key="D1" value="59.86454463445798" />
-      <entry key="W1" value="59.98062338205861" />
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0" />
+      <entry key="S5" value="1.0" />
+      <entry key="S10" value="1.0" />
+      <entry key="S30" value="1.0" />
+      <entry key="S60" value="1.0" />
+      <entry key="M2" value="1.0" />
+      <entry key="M5" value="1.0000000000163483" />
+      <entry key="M10" value="1.0000307083817306" />
+      <entry key="M15" value="1.0038220371976752" />
+      <entry key="M30" value="1.4778113239985404" />
+      <entry key="H1" value="6.351332085368325" />
+      <entry key="H2" value="18.91620756280699" />
+      <entry key="H4" value="33.785630958295364" />
+      <entry key="D1" value="55.25059839950484" />
+      <entry key="W1" value="60.14277091095652" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="1.275311362066749E-16" />
-      <entry key="MS500" value="6.624044567615583E-4" />
-      <entry key="S2" value="0.160428237195363" />
-      <entry key="S5" value="0.4809637273323873" />
-      <entry key="S10" value="0.6935154845656925" />
-      <entry key="S30" value="0.8851537645795452" />
-      <entry key="S60" value="0.9408261075137876" />
-      <entry key="M2" value="0.9699619103417347" />
-      <entry key="M5" value="0.9878747205095973" />
-      <entry key="M10" value="0.9939188701848843" />
-      <entry key="M15" value="0.995941793407374" />
-      <entry key="M30" value="0.9979688338857954" />
-      <entry key="H1" value="0.9989839007140182" />
-      <entry key="H2" value="0.99949182123418" />
-      <entry key="H4" value="0.9997458783281781" />
-      <entry key="D1" value="0.9999576419027622" />
-      <entry key="W1" value="0.9999939487333994" />
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="0.0" />
+      <entry key="S30" value="6.072751912931669E-124" />
+      <entry key="S60" value="2.4642954191678534E-62" />
+      <entry key="M2" value="1.5698074465258004E-31" />
+      <entry key="M5" value="4.76802533034785E-13" />
+      <entry key="M10" value="6.905088942474129E-7" />
+      <entry key="M15" value="7.812310895836685E-5" />
+      <entry key="M30" value="0.008838727790715522" />
+      <entry key="H1" value="0.09401450840543454" />
+      <entry key="H2" value="0.30661785402261643" />
+      <entry key="H4" value="0.5537308498021548" />
+      <entry key="D1" value="0.9061841325049911" />
+      <entry key="W1" value="0.9860253143012999" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.1711432127273593" />
-      <entry key="MS500" value="2.648365818586197" />
-      <entry key="S2" value="4.423410803917268" />
-      <entry key="S5" value="5.764851613598771" />
-      <entry key="S10" value="6.995379592922525" />
-      <entry key="S30" value="9.417382779407049" />
-      <entry key="S60" value="12.385663675668466" />
-      <entry key="M2" value="19.702499705367753" />
-      <entry key="M5" value="34.798434539295165" />
-      <entry key="M10" value="45.15927739891923" />
-      <entry key="M15" value="49.69474535302753" />
-      <entry key="M30" value="54.93305582836702" />
-      <entry key="H1" value="57.854179347106765" />
-      <entry key="H2" value="59.39781853734681" />
-      <entry key="H4" value="60.1914376032463" />
-      <entry key="D1" value="60.86418852475999" />
-      <entry key="W1" value="60.98057244409446" />
+      <entry key="MS100" value="0.34627736702773115" />
+      <entry key="MS500" value="0.8088813483617391" />
+      <entry key="S2" value="0.9483555831795117" />
+      <entry key="S5" value="0.9790130528262507" />
+      <entry key="S10" value="0.9894508844941474" />
+      <entry key="S30" value="0.996471190314417" />
+      <entry key="S60" value="0.9982340358425057" />
+      <entry key="M2" value="0.999116627747985" />
+      <entry key="M5" value="0.9996465574302627" />
+      <entry key="M10" value="0.9998546367588278" />
+      <entry key="M15" value="1.0037802993338143" />
+      <entry key="M30" value="1.4864676276330004" />
+      <entry key="H1" value="6.444635091958768" />
+      <entry key="H2" value="19.221676800989954" />
+      <entry key="H4" value="34.33832052181554" />
+      <entry key="D1" value="56.15649697579667" />
+      <entry key="W1" value="61.12875179022022" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
