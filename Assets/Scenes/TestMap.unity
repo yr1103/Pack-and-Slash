@@ -11311,6 +11311,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FlowFieldManager
   _mapGenerator: {fileID: 1133224102}
   _player: {fileID: 1136806269}
+  _updateInterval: 0.2
   _drawTarget: 0
   _drawIntegration: 0
   _drawFlow: 0

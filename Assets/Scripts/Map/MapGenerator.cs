@@ -1,4 +1,5 @@
 using System;
+using Unity.Profiling;
 using UnityEngine;
 
 /// <summary>
@@ -24,6 +25,9 @@ public class MapGenerator : MonoBehaviour
     private static readonly Color _boundaryGizmoColor = Color.yellow;
     private static readonly Color _obstacleGizmoColor = new Color(1f, 0f, 0f, 0.5f);
     private static readonly Color _safeZoneGizmoColor = Color.green;
+    private static readonly ProfilerMarker _awakeMarker = new ProfilerMarker("MapGenerator.Awake");
+    private static readonly ProfilerMarker _placeObstaclesMarker = new ProfilerMarker("MapGenerator.PlaceObstacles");
+    private static readonly ProfilerMarker _placeDecorationsMarker = new ProfilerMarker("MapGenerator.PlaceDecorations");
 
     [SerializeField, Range(0f, 1f)] private float _obstacleChance = 0.05f; // 타일당 장애물 생성 확률
     [SerializeField, Range(0f, 1f)] private float _decorationChance = 0.15f; // 타일당 장식 생성 확률
@@ -48,19 +52,31 @@ public class MapGenerator : MonoBehaviour
     // 다른 컴포넌트가 Start에서 CostField를 읽을 수 있도록 Awake에서 생성
     private void Awake()
     {
-        int seed = Environment.TickCount;
-        Debug.LogFormat(SEED_LOG_FORMAT, seed);
+        using (_awakeMarker.Auto())
+        {
+            int seed = Environment.TickCount;
+            Debug.LogFormat(SEED_LOG_FORMAT, seed);
 
-        _random = new System.Random(seed);
-        _costField = new CostField(MAP_WIDTH, MAP_HEIGHT, _gridOrigin);
-        _startTile = _costField.WorldToTile(_playerStartPosition);
-        _obstacleLayer = LayerMask.NameToLayer(OBSTACLE_LAYER_NAME);
+            _random = new System.Random(seed);
+            _costField = new CostField(MAP_WIDTH, MAP_HEIGHT, _gridOrigin);
+            _startTile = _costField.WorldToTile(_playerStartPosition);
+            _obstacleLayer = LayerMask.NameToLayer(OBSTACLE_LAYER_NAME);
 
-        PlaceObstacles();
-        int filledCount = _costField.FillUnreachable(_startTile);
-        Debug.LogFormat(FILLED_LOG_FORMAT, filledCount);
-        PlaceDecorations();
-        CreateBoundaryWalls();
+            using (_placeObstaclesMarker.Auto())
+            {
+                PlaceObstacles();
+            }
+
+            int filledCount = _costField.FillUnreachable(_startTile);
+            Debug.LogFormat(FILLED_LOG_FORMAT, filledCount);
+
+            using (_placeDecorationsMarker.Auto())
+            {
+                PlaceDecorations();
+            }
+
+            CreateBoundaryWalls();
+        }
     }
 
     private void PlaceObstacles()

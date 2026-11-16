@@ -1,7 +1,8 @@
+using Unity.Profiling;
 using UnityEngine;
 
 /// <summary>
-/// 전체 Enemy가 공유하는 Integration Field·Flow Field 보유, 게임 시작 시 플레이어 타일 기준 계산
+/// 전체 Enemy가 공유하는 Integration Field·Flow Field 보유, 플레이어 타일이 바뀌면 최소 간격을 두고 재계산
 /// </summary>
 public class FlowFieldManager : MonoBehaviour
 {
@@ -15,9 +16,12 @@ public class FlowFieldManager : MonoBehaviour
     private static readonly Color _nearCostGizmoColor = new Color(0f, 1f, 0f, 0.4f);
     private static readonly Color _farCostGizmoColor = new Color(1f, 0f, 1f, 0.4f);
     private static readonly Color _flowGizmoColor = Color.white;
+    private static readonly ProfilerMarker _integrationMarker = new ProfilerMarker("FlowFieldManager.CalculateIntegration");
+    private static readonly ProfilerMarker _flowMarker = new ProfilerMarker("FlowFieldManager.CalculateFlow");
 
     [SerializeField] private MapGenerator _mapGenerator;
     [SerializeField] private Transform _player;
+    [SerializeField, Min(0f)] private float _updateInterval = 0.2f; // 재계산 최소 간격(초)
     [SerializeField] private bool _drawTarget;
     [SerializeField] private bool _drawIntegration; // 전체 칸을 그려 Scene 뷰 부하가 커서 기본값 off
     [SerializeField] private bool _drawFlow; // 전체 칸을 그려 Scene 뷰 부하가 커서 기본값 off
@@ -25,6 +29,7 @@ public class FlowFieldManager : MonoBehaviour
     private CostField _costField;
     private IntegrationField _integrationField;
     private FlowField _flowField; // 전체 Enemy 공유, Start 이후 유효(그 전에는 null)
+    private float _lastCalculateTime;
 
     public FlowField FlowField => _flowField;
     public CostField CostField => _costField;
@@ -38,10 +43,42 @@ public class FlowFieldManager : MonoBehaviour
         _costField = _mapGenerator.CostField;
         _integrationField = new IntegrationField(_costField);
         _flowField = new FlowField(_costField);
+        Calculate(_costField.WorldToTile(_player.position));
+    }
 
-        // shortcut: 시작 시 1회만 계산, 작업 E(플레이어 타일 변경 감지·0.2초 갱신)에서 교체
-        _integrationField.Calculate(_costField.WorldToTile(_player.position));
-        _flowField.Calculate(_integrationField);
+    private void Update()
+    {
+        // shortcut: 일시정지 등 게임 시간 관리 연동 전 Time.time 직접 사용, GameState 도입 시 교체
+        float elapsed = Time.time - _lastCalculateTime;
+        Vector2Int playerTile = _costField.WorldToTile(_player.position);
+        if (ShouldRecalculate(playerTile, _integrationField.Target, elapsed, _updateInterval))
+        {
+            Calculate(playerTile);
+        }
+    }
+
+    /// <summary>재계산 필요 여부 : 플레이어 타일이 마지막 목적지와 다르고, 마지막 계산 후 간격 이상 지났을 때 true</summary>
+    /// <param name="elapsed">마지막 계산 후 경과 시간(초)</param>
+    /// <param name="interval">재계산 최소 간격(초), 경과 시간이 같으면 재계산</param>
+    public static bool ShouldRecalculate(Vector2Int playerTile, Vector2Int lastTarget, float elapsed, float interval)
+    {
+        return playerTile != lastTarget && elapsed >= interval;
+    }
+
+    // 단일 스레드 동기 계산, 계산 중 Enemy가 읽지 않으므로 이중 버퍼 미사용
+    private void Calculate(Vector2Int target)
+    {
+        using (_integrationMarker.Auto())
+        {
+            _integrationField.Calculate(target);
+        }
+
+        using (_flowMarker.Auto())
+        {
+            _flowField.Calculate(_integrationField);
+        }
+
+        _lastCalculateTime = Time.time;
     }
 
     private void OnDrawGizmos()
