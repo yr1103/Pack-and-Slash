@@ -47,6 +47,27 @@ public class FlowField
         return _costField.IsInBounds(x, z) ? _directions[x, z] : Vector2.zero;
     }
 
+    /// <summary>월드 위치를 둘러싼 4개 타일 중심 방향의 쌍선형 보간 (8방향 고정 이동 완화)</summary>
+    /// <returns>정규화 방향, 4개 타일 방향이 모두 0이거나 서로 상쇄되면 Vector2.zero</returns>
+    public Vector2 GetInterpolatedDirection(Vector3 position)
+    {
+        Vector2 tilePosition = _costField.WorldToContinuousTile(position);
+        int baseX = Mathf.FloorToInt(tilePosition.x);
+        int baseZ = Mathf.FloorToInt(tilePosition.y);
+        float weightX = tilePosition.x - baseX;
+        float weightZ = tilePosition.y - baseZ;
+
+        // 방향 0 타일(장애물·목적지·격자 밖)은 합에 기여하지 않고, 마지막 정규화로 가중치에서 빠진 것과 같아짐
+        Vector2 weightedSum =
+            GetDirection(baseX, baseZ) * ((1f - weightX) * (1f - weightZ))
+            + GetDirection(baseX + 1, baseZ) * (weightX * (1f - weightZ))
+            + GetDirection(baseX, baseZ + 1) * ((1f - weightX) * weightZ)
+            + GetDirection(baseX + 1, baseZ + 1) * (weightX * weightZ);
+
+        // Vector2.normalized는 길이가 0에 가까우면 Vector2.zero 반환
+        return weightedSum.normalized;
+    }
+
     // 8방향 중 "이웃 누적 비용 + 이동 비용"이 최소인 방향, 동률이면 먼저 확인한 방향 유지
     private Vector2 FindDirection(IntegrationField integrationField, int x, int z)
     {

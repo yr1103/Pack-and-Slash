@@ -13061,6 +13061,56 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 436064, guid: 671cf45c511e43a4aad264fdcf9edf74, type: 3}
   m_PrefabInstance: {fileID: 1975412524}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1979211968
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1979211969}
+  - component: {fileID: 1979211970}
+  m_Layer: 0
+  m_Name: TempEnemySpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1979211969
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1979211968}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.482284, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2097516411}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1979211970
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1979211968}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a2736419b3dbef4e90337f19044b26d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TempEnemySpawner
+  _enemyPrefab: {fileID: 6049091309149543729, guid: 34fe7fac73586a146b8c8c4fbad769c1, type: 3}
+  _flowFieldManager: {fileID: 1756488629}
+  _player: {fileID: 1136806269}
+  _enemyParent: {fileID: 731529641}
+  _spawnCount: 20
+  _spawnRadius: 75
 --- !u!1001 &1981158256
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13905,6 +13955,7 @@ Transform:
   - {fileID: 1187427918}
   - {fileID: 1133224101}
   - {fileID: 1756488628}
+  - {fileID: 1979211969}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2099470029

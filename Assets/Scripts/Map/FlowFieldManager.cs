@@ -27,6 +27,10 @@ public class FlowFieldManager : MonoBehaviour
     private FlowField _flowField; // 전체 Enemy 공유, Start 이후 유효(그 전에는 null)
 
     public FlowField FlowField => _flowField;
+    public CostField CostField => _costField;
+
+    /// <summary>Flow Field가 향하는 목적지 타일 (Start 이전 접근 불가, FlowField null 확인 후 사용)</summary>
+    public Vector2Int TargetTile => _integrationField.Target;
 
     // MapGenerator가 Awake에서 CostField를 만든 뒤 사용
     private void Start()

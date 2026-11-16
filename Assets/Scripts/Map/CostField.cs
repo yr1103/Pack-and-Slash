@@ -54,6 +54,13 @@ public class CostField
         return new Vector2Int(Mathf.FloorToInt(local.x), Mathf.FloorToInt(local.z));
     }
 
+    /// <summary>월드 좌표의 연속 타일 좌표 (타일 중심이 정수, 타일 사이 보간용)</summary>
+    public Vector2 WorldToContinuousTile(Vector3 position)
+    {
+        Vector3 local = position - _origin;
+        return new Vector2(local.x - TILE_CENTER_OFFSET, local.z - TILE_CENTER_OFFSET);
+    }
+
     /// <summary>격자 범위 안의 타일인지 확인</summary>
     public bool IsInBounds(int x, int z)
     {

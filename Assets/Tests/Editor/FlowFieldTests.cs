@@ -2,7 +2,7 @@ using NUnit.Framework;
 using UnityEngine;
 
 /// <summary>
-/// FlowField 직선·대각선 방향, 장애물 우회, Corner Cutting 차단, zero 칸(목적지·장애물·고립·격자 밖), 정규화 검증
+/// FlowField 직선·대각선 방향, 장애물 우회, Corner Cutting 차단, zero 칸(목적지·장애물·고립·격자 밖), 정규화, 보간 조회 검증
 /// </summary>
 public class FlowFieldTests
 {
@@ -26,6 +26,11 @@ public class FlowFieldTests
     {
         new Vector2Int(-1, 0), new Vector2Int(0, -1), new Vector2Int(OPEN_MAP_SIZE, 0), new Vector2Int(0, OPEN_MAP_SIZE)
     };
+
+    // 목적지 (0, 0) 기준 : (1, 0)은 왼쪽, (1, 1)은 왼쪽 아래 대각선
+    private static readonly Vector3 _betweenLeftAndDiagonalPosition = new Vector3(1.5f, 0f, 1f); // (1, 0)·(1, 1) 중심 사이
+    private static readonly Vector3 _betweenTargetAndLeftPosition = new Vector3(1f, 0f, 0.5f);   // (0, 0)·(1, 0) 중심 사이
+    private static readonly Vector3 _gridCornerPosition = Vector3.zero; // 주변 4칸이 목적지와 격자 밖뿐
 
     private CostField _openField;
     private CostField _smallField;
@@ -129,6 +134,31 @@ public class FlowFieldTests
         {
             Assert.AreEqual(Vector2.zero, flowField.GetDirection(tile.x, tile.y), $"({tile.x}, {tile.y})");
         }
+    }
+
+    [Test]
+    public void GetInterpolatedDirection_BetweenTwoDirections_IsBlended()
+    {
+        FlowField flowField = CalculateFlowField(_openField, _cornerTile);
+
+        AssertDirection((Vector2.left + _downLeftDirection).normalized,
+            flowField.GetInterpolatedDirection(_betweenLeftAndDiagonalPosition));
+    }
+
+    [Test]
+    public void GetInterpolatedDirection_ZeroTileNeighbor_IsExcluded()
+    {
+        FlowField flowField = CalculateFlowField(_openField, _cornerTile);
+
+        AssertDirection(Vector2.left, flowField.GetInterpolatedDirection(_betweenTargetAndLeftPosition));
+    }
+
+    [Test]
+    public void GetInterpolatedDirection_AllNeighborsZero_IsZero()
+    {
+        FlowField flowField = CalculateFlowField(_openField, _cornerTile);
+
+        Assert.AreEqual(Vector2.zero, flowField.GetInterpolatedDirection(_gridCornerPosition));
     }
 
     private static FlowField CalculateFlowField(CostField costField, Vector2Int target)
