@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Pool;
 
 /// <summary>
-/// 고정 방향 직진 투사체 (이동, 적중 피해 적용, 화면·거리·수명 경계 반환)
+/// 고정 방향 직진 투사체 (이동, 적중 피해 적용, 장애물·화면·거리·수명 경계 반환)
 /// </summary>
 public class Projectile : MonoBehaviour
 {
@@ -10,6 +10,7 @@ public class Projectile : MonoBehaviour
 
     [SerializeField, Min(0f)] private float _hitRadius = 0.1f;
     [SerializeField] private LayerMask _hitMask; // 플레이어 탄은 Enemy 레이어만 검사해 자기 피격 방지
+    [SerializeField] private LayerMask _blockMask; // 닿으면 탄이 막혀 반환되는 장애물 레이어 (_hitMask와 겹치면 장애물로 처리)
 
     private ProjectileHitDetector _hitDetector;
     private ProjectileSpawnContext _context;
@@ -22,7 +23,7 @@ public class Projectile : MonoBehaviour
 
     private void Awake()
     {
-        _hitDetector = new ProjectileHitDetector(_hitRadius, _hitMask);
+        _hitDetector = new ProjectileHitDetector(_hitRadius, _hitMask, _blockMask);
     }
 
     private void Update()
@@ -104,6 +105,13 @@ public class Projectile : MonoBehaviour
 
         for (int i = 0; i < hitCount; i++)
         {
+            // Cast 결과가 가까운 순이라 여기서 반환하면 장애물 뒤의 적은 맞지 않음
+            if (_hitDetector.IsObstacle(i))
+            {
+                Despawn();
+                return;
+            }
+
             if (!_hitDetector.TryGetNewTarget(i, out IDamageable target, out float hitDistance))
             {
                 continue;

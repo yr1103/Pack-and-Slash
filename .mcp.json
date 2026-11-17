@@ -5,7 +5,7 @@
         "Authorization": "Bearer ${AGD_TOKEN}"
       },
       "type": "http",
-      "url": "https://ai-game.dev/mcp/p/4ce00fca"
+      "url": "https://ai-game.dev/mcp/p/f64890e8"
     }
   }
 }

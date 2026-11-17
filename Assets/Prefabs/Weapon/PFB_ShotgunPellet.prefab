@@ -49,6 +49,9 @@ MonoBehaviour:
   _hitMask:
     serializedVersion: 2
     m_Bits: 64
+  _blockMask:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!1001 &3628617623731761227
 PrefabInstance:
   m_ObjectHideFlags: 0

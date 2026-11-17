@@ -44,6 +44,7 @@ GameObject:
   - component: {fileID: 4303626004697487536}
   - component: {fileID: 3828597724011594749}
   - component: {fileID: 2896576447137926208}
+  - component: {fileID: 6049091309149543729}
   m_Layer: 6
   m_Name: PFB_TempCubeEnemy
   m_TagString: Untagged
@@ -159,3 +160,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TempCubeEnemy
   _aimPoint: {fileID: 7557799312984767102}
   _maxHealth: 30
+  _hitFlashDuration: 1
+--- !u!114 &6049091309149543729
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5060162143255220773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 053e0900924b1d046bf98c245099819e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyMovement
+  _moveSpeed: 3
+  _stopDistance: 1
+  _separationRadius: 1.2
+  _separationWeight: 1
+  _enemyLayer:
+    serializedVersion: 2
+    m_Bits: 64

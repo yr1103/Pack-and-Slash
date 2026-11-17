@@ -110,3 +110,5 @@ InitTestScene*.unity*
 
 # 추가 ignore 처리
 /[Aa]ssets/[Ii]mports/
+.mcp.json
+.idea/

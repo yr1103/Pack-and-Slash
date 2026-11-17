@@ -5,7 +5,7 @@ using UnityEngine;
 /// </summary>
 public class FloatingWeaponView : MonoBehaviour
 {
-    [SerializeField] private Transform _muzzle; // 이 무기의 탄 생성·조준 기준
+    [SerializeField] private Transform _muzzle; // 조준점
 
     public Transform Muzzle => _muzzle;
 
