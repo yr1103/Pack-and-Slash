@@ -7892,20 +7892,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b879e148a578e5146b62dd1f24551147, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapGenerator
-  _obstacleChance: 0.02
-  _decorationChance: 0.03
+  _obstacleChance: 0.01
+  _decorationChance: 0.04
   _obstacles:
   - _prefab: {fileID: 192308, guid: a3f4bc20b0b920c40ac29bb39c18a200, type: 3}
-    _tileSize: 1
+    _tileSize: {x: 1, y: 1}
     _isFreeRotation: 1
   - _prefab: {fileID: 180924, guid: 647853dfe23584a439a653c8139a3b6d, type: 3}
-    _tileSize: 1
+    _tileSize: {x: 1, y: 1}
     _isFreeRotation: 1
-  - _prefab: {fileID: 188138, guid: 5f02e7a8eaf5ebf428decb2982f97c92, type: 3}
-    _tileSize: 2
-    _isFreeRotation: 0
   - _prefab: {fileID: 163212, guid: c4400949e5ce0824d9d5bdc4d08c90a1, type: 3}
-    _tileSize: 2
+    _tileSize: {x: 2, y: 2}
+    _isFreeRotation: 1
+  - _prefab: {fileID: 114532, guid: 2cfb684c74602f2469fe3e7315eb7ad7, type: 3}
+    _tileSize: {x: 5, y: 2}
     _isFreeRotation: 0
   _decorations:
   - {fileID: 155842, guid: af33bf1514ece2845845fbb68d1ca5ff, type: 3}

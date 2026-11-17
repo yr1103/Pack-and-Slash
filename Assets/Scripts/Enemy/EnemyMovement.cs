@@ -1,12 +1,23 @@
+using Unity.Profiling;
 using UnityEngine;
 
 /// <summary>
-/// 공용 Flow Field를 따라 장애물을 우회해 플레이어로 이동 (XZ 평면, Y 고정)
+/// 공용 Flow Field를 따라 장애물을 우회해 플레이어로 이동 (XZ 평면, Y 고정), 주변 Enemy와 겹침을 Separation으로 감소
 /// </summary>
 public class EnemyMovement : MonoBehaviour
 {
+    private const int NEIGHBOR_BUFFER_SIZE = 16; // 자기 자신 포함
+
+    private static readonly ProfilerMarker _separationMarker = new ProfilerMarker("EnemyMovement.Separation");
+    // shortcut: 전체 Enemy 공유 고정 크기 버퍼라 초과 시 이웃 누락, 500마리 측정에서 떨림·누락 확인 시 버퍼 확장 또는 Spatial Hash Grid 전환
+    private static readonly Collider[] _neighborColliders = new Collider[NEIGHBOR_BUFFER_SIZE];
+    private static readonly Vector3[] _neighborPositions = new Vector3[NEIGHBOR_BUFFER_SIZE];
+
     [SerializeField, Min(0f)] private float _moveSpeed = 3f;
     [SerializeField, Min(0f)] private float _stopDistance = 1f; // 플레이어 반지름 0.4 + 큐브 반폭 0.5 + 여유
+    [SerializeField, Min(0f)] private float _separationRadius = 1.2f; // 큐브 폭 1 + 여유
+    [SerializeField, Min(0f)] private float _separationWeight = 1f; // Flow 방향(길이 1) 대비 Separation 비중
+    [SerializeField] private LayerMask _enemyLayer; // Separation 이웃 탐색 대상
 
     private FlowFieldManager _flowFieldManager; // Initialize로 주입, 미주입이면 정지
     private Transform _player;
@@ -25,10 +36,12 @@ public class EnemyMovement : MonoBehaviour
             return;
         }
 
+        CostField costField = _flowFieldManager.CostField;
+        Vector2Int targetTile = _flowFieldManager.TargetTile;
         Vector3 position = transform.position;
         Vector3 playerPosition = _player.position;
-        Vector3 direction = GetMoveDirection(_flowFieldManager.CostField, _flowFieldManager.FlowField,
-            _flowFieldManager.TargetTile, position, playerPosition, _lastDirection, _stopDistance);
+        Vector3 direction = GetMoveDirection(costField, _flowFieldManager.FlowField,
+            targetTile, position, playerPosition, _lastDirection, _stopDistance);
 
         if (direction == Vector3.zero)
         {
@@ -36,17 +49,40 @@ public class EnemyMovement : MonoBehaviour
             return;
         }
 
-        _lastDirection = direction;
-
         Vector3 toPlayer = playerPosition - position;
         toPlayer.y = 0f;
         // 한 프레임 이동량이 (플레이어까지 거리 - 정지 거리) 이하면 어느 방향으로 가도 정지 거리 안으로 들어가지 않음
         // shortcut: 일시정지 등 게임 시간 관리 연동 전 Time.deltaTime 직접 사용, GameState 도입 시 교체
         float moveDistance = Mathf.Min(_moveSpeed * Time.deltaTime, toPlayer.magnitude - _stopDistance);
 
+        // 격자 밖·목적지 타일은 플레이어 방향을 그대로 사용 (GetMoveDirection 분기와 동일 조건)
+        Vector2Int tile = costField.WorldToTile(position);
+        if (costField.IsInBounds(tile.x, tile.y) && tile != targetTile)
+        {
+            using (_separationMarker.Auto())
+            {
+                Vector3 separation = FindSeparation(position);
+                direction = GetSeparatedDirection(costField, position, direction, separation, _separationWeight, moveDistance);
+            }
+        }
+
+        _lastDirection = direction;
+
         transform.position = position + direction * moveDistance;
         transform.rotation = Quaternion.LookRotation(direction);
         _velocity = direction * _moveSpeed;
+    }
+
+    // 물리 탐색으로 주변 Enemy 위치를 모아 Separation 벡터 계산
+    private Vector3 FindSeparation(Vector3 position)
+    {
+        int count = Physics.OverlapSphereNonAlloc(position, _separationRadius, _neighborColliders, _enemyLayer);
+        for (int i = 0; i < count; i++)
+        {
+            _neighborPositions[i] = _neighborColliders[i].transform.position;
+        }
+
+        return CalculateSeparation(position, _neighborPositions, count, _separationRadius);
     }
 
     /// <summary>
@@ -79,6 +115,57 @@ public class EnemyMovement : MonoBehaviour
         }
 
         return new Vector3(flowDirection.x, 0f, flowDirection.y);
+    }
+
+    /// <summary>
+    /// Separation 벡터 계산 : 반경 안 이웃에서 멀어지는 XZ 방향을 가까울수록 크게(반경 경계 0 ~ 최근접 1) 합산
+    /// </summary>
+    /// <param name="neighborPositions">이웃 위치 (자기 자신이 포함돼도 거리 0이라 제외)</param>
+    /// <param name="neighborCount">neighborPositions 중 유효한 앞쪽 개수</param>
+    /// <returns>합산 벡터 (정규화하지 않음, 이웃이 없으면 Vector3.zero)</returns>
+    public static Vector3 CalculateSeparation(Vector3 enemyPosition, Vector3[] neighborPositions, int neighborCount, float radius)
+    {
+        Vector3 separation = Vector3.zero;
+        for (int i = 0; i < neighborCount; i++)
+        {
+            Vector3 away = enemyPosition - neighborPositions[i];
+            away.y = 0f;
+            float distance = away.magnitude;
+            // 거리 0은 방향을 정할 수 없고, OverlapSphere는 Collider 표면 기준이라 중심이 반경 밖인 이웃도 들어옴
+            if (distance <= 0f || distance >= radius)
+            {
+                continue;
+            }
+
+            separation += away / distance * (1f - distance / radius);
+        }
+
+        return separation;
+    }
+
+    /// <summary>
+    /// 최종 방향 결정 : (Flow 방향 + Separation × 가중치) 정규화, 그 방향으로 이동한 위치가 이동 불가 타일이거나 합성 결과가 0이면 Flow 방향
+    /// </summary>
+    /// <param name="flowDirection">GetMoveDirection 결과 (XZ 정규화 방향)</param>
+    /// <param name="moveDistance">이번 프레임 이동 거리 (다음 위치 판정용)</param>
+    /// <returns>XZ 평면 정규화 방향</returns>
+    public static Vector3 GetSeparatedDirection(CostField costField, Vector3 enemyPosition, Vector3 flowDirection,
+        Vector3 separation, float weight, float moveDistance)
+    {
+        Vector3 combined = (flowDirection + separation * weight).normalized;
+        if (combined == Vector3.zero)
+        {
+            return flowDirection;
+        }
+
+        // shortcut: 다음 위치 타일만 확인해 ㄱ자 모서리 대각 통과 미처리, 모서리 끼임 확인 시 CanPassDiagonal 판정 추가
+        Vector2Int nextTile = costField.WorldToTile(enemyPosition + combined * moveDistance);
+        if (!costField.IsWalkable(nextTile.x, nextTile.y))
+        {
+            return flowDirection;
+        }
+
+        return combined;
     }
 
     /// <summary>생성 직후 호출해 공용 Flow Field 관리자와 플레이어 참조 주입</summary>

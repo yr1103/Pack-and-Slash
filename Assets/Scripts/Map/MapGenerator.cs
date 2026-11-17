@@ -13,8 +13,10 @@ public class MapGenerator : MonoBehaviour
     private const float FULL_ROTATION_DEGREES = 360f;
     private const float RIGHT_ANGLE_DEGREES = 90f;
     private const int RIGHT_ANGLE_STEP_COUNT = 4; // 0/90/180/270
+    private const int AXIS_SWAP_PERIOD = 2; // 90° 단위 회전 횟수가 홀수면 가로·세로 교환
     private const string OBSTACLE_LAYER_NAME = "Obstacle";
     private const string BOUNDARY_WALL_NAME_FORMAT = "BoundaryWall_{0:00}";
+    private const string OBSTACLE_BLOCKER_NAME_FORMAT = "ObstacleBlocker_{0:00}_{1:00}"; // 좌하단 타일 (x, z)
     private const string SEED_LOG_FORMAT = "[MapGenerator] Seed : {0}";
     private const string FILLED_LOG_FORMAT = "[MapGenerator] 고립 영역 채움 : {0}칸";
 
@@ -36,7 +38,7 @@ public class MapGenerator : MonoBehaviour
     [SerializeField] private int _safeZoneRadius = 5; // 시작 타일 기준 정사각형 반경(타일), 장애물 금지
     [SerializeField] private int _edgeClearWidth = 2; // 격자 가장자리에서 장애물 금지 폭(타일), 격자 밖 스폰 Enemy 진입로
     [SerializeField] private Transform _generatedRoot; // Environment/GeneratedMap
-    [SerializeField] private float _boundaryWallHeight = 3f;
+    [SerializeField] private float _boundaryWallHeight = 3f; // 장애물 차단 Box 높이로도 사용
     [SerializeField] private float _boundaryWallThickness = 1f;
     [SerializeField] private bool _drawGizmos = true; // Scene 뷰 맵 확인용, 경계(노랑 와이어)는 항상, 이동 불가 칸(반투명 빨강)·시작 안전 영역(초록 와이어)은 Play 중만
 
@@ -96,41 +98,60 @@ public class MapGenerator : MonoBehaviour
         }
     }
 
-    // (x, z)를 좌하단으로 TileSize×TileSize 칸을 점유, 한 칸이라도 불가하면 건너뜀
+    // (x, z)를 좌하단으로 회전 반영한 가로×세로 칸을 점유, 한 칸이라도 불가하면 건너뜀
     private void TryPlaceObstacle(ObstacleEntry entry, int x, int z)
     {
-        int size = entry.TileSize;
-        for (int dx = 0; dx < size; dx++)
+        // 점유 크기가 회전에 따라 달라지므로 회전을 먼저 결정
+        Vector2Int size = entry.TileSize;
+        float angle;
+        if (entry.IsFreeRotation)
         {
-            for (int dz = 0; dz < size; dz++)
+            angle = (float)(_random.NextDouble() * FULL_ROTATION_DEGREES);
+        }
+        else
+        {
+            int rightAngleSteps = _random.Next(RIGHT_ANGLE_STEP_COUNT);
+            angle = rightAngleSteps * RIGHT_ANGLE_DEGREES;
+            if (rightAngleSteps % AXIS_SWAP_PERIOD == 1)
             {
-                if (!CanPlaceObstacle(x + dx, z + dz))
+                size = new Vector2Int(size.y, size.x);
+            }
+        }
+
+        for (int offsetX = 0; offsetX < size.x; offsetX++)
+        {
+            for (int offsetZ = 0; offsetZ < size.y; offsetZ++)
+            {
+                if (!CanPlaceObstacle(x + offsetX, z + offsetZ))
                 {
                     return;
                 }
             }
         }
 
-        for (int dx = 0; dx < size; dx++)
+        for (int offsetX = 0; offsetX < size.x; offsetX++)
         {
-            for (int dz = 0; dz < size; dz++)
+            for (int offsetZ = 0; offsetZ < size.y; offsetZ++)
             {
-                _costField.SetObstacle(x + dx, z + dz);
+                _costField.SetObstacle(x + offsetX, z + offsetZ);
             }
         }
 
-        float centerOffset = (size - 1) * HALF; // 점유 칸들의 중심
-        Vector3 position = _costField.TileToWorld(x, z) + new Vector3(centerOffset, 0f, centerOffset);
-        float angle = entry.IsFreeRotation
-            ? (float)(_random.NextDouble() * FULL_ROTATION_DEGREES)
-            : _random.Next(RIGHT_ANGLE_STEP_COUNT) * RIGHT_ANGLE_DEGREES;
+        // 점유 칸들의 중심
+        Vector3 centerOffset = new Vector3((size.x - 1) * HALF, 0f, (size.y - 1) * HALF);
+        Vector3 position = _costField.TileToWorld(x, z) + centerOffset;
 
         GameObject obstacle = Instantiate(entry.Prefab, position, Quaternion.Euler(0f, angle, 0f), _generatedRoot);
-        // 탄환 막힘·플레이어 충돌 판정에 Layer를 쓰므로 하위 Collider까지 지정
+        // 장애물 식별용 Layer, 하위 Collider까지 지정
         foreach (Transform child in obstacle.GetComponentsInChildren<Transform>(true))
         {
             child.gameObject.layer = _obstacleLayer;
         }
+
+        // 모델 Collider가 타일보다 작아 플레이어가 장애물 타일에 들어가지 않도록 점유 타일 전체 차단
+        Vector3 blockerMin = _costField.TileToWorld(x, z) - _halfTile;
+        Vector3 blockerMax = _costField.TileToWorld(x + size.x - 1, z + size.y - 1) + _halfTile + Vector3.up * _boundaryWallHeight;
+        CreateBlockingBox(string.Format(OBSTACLE_BLOCKER_NAME_FORMAT, x, z), blockerMin, blockerMax);
     }
 
     private bool CanPlaceObstacle(int x, int z)
@@ -161,7 +182,6 @@ public class MapGenerator : MonoBehaviour
         }
     }
 
-    // 플레이어만 막는 Collider, Default Layer라 탄환은 통과
     private void CreateBoundaryWalls()
     {
         float left = _gridOrigin.x;
@@ -181,14 +201,20 @@ public class MapGenerator : MonoBehaviour
 
     private void CreateBoundaryWall(Vector3 min, Vector3 max)
     {
+        _boundaryWallCount++;
+        CreateBlockingBox(string.Format(BOUNDARY_WALL_NAME_FORMAT, _boundaryWallCount), min, max);
+    }
+
+    // 플레이어만 막는 보이지 않는 축 정렬 Box, Default Layer라 탄환은 통과
+    private void CreateBlockingBox(string boxName, Vector3 min, Vector3 max)
+    {
         Bounds bounds = new Bounds();
         bounds.SetMinMax(min, max);
 
-        _boundaryWallCount++;
-        GameObject wall = new GameObject(string.Format(BOUNDARY_WALL_NAME_FORMAT, _boundaryWallCount));
-        wall.transform.SetParent(_generatedRoot, false);
-        wall.transform.position = bounds.center;
-        wall.AddComponent<BoxCollider>().size = bounds.size;
+        GameObject box = new GameObject(boxName);
+        box.transform.SetParent(_generatedRoot, false);
+        box.transform.position = bounds.center;
+        box.AddComponent<BoxCollider>().size = bounds.size;
     }
 
     // 10,000칸 대상이라 장애물 칸만 그림, CostField가 없으면(에디터 비실행) 경계만 그림
@@ -233,11 +259,11 @@ public class MapGenerator : MonoBehaviour
     private class ObstacleEntry
     {
         [SerializeField] private GameObject _prefab;
-        [SerializeField, Range(1, 2)] private int _tileSize = 1; // 1이면 1×1, 2면 2×2 점유
-        [SerializeField] private bool _isFreeRotation; // true면 Y축 자유 회전(Capsule Collider), false면 90° 단위(Box Collider)
+        [SerializeField, Min(1)] private Vector2Int _tileSize = Vector2Int.one; // 점유 칸 수, x = 가로, y = Z방향 세로 (회전 0° 기준)
+        [SerializeField] private bool _isFreeRotation; // false면 90° 단위 회전, 가로≠세로면 반드시 false
 
         public GameObject Prefab => _prefab;
-        public int TileSize => _tileSize;
+        public Vector2Int TileSize => _tileSize;
         public bool IsFreeRotation => _isFreeRotation;
     }
 }

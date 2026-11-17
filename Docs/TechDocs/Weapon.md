@@ -29,8 +29,8 @@
 | `TempLoadoutTester` (MonoBehaviour, 임시) | 인벤토리 연동 전 검증 도구. `Start`에서 `_extraWeapons`를 순서대로 `Equip`, 컨텍스트 메뉴 `Unequip Primary`로 현재 주무기 해제 | `WeaponLoadout` |
 | `ProjectileSpawnContext` (readonly struct) | 발사 시점에 확정되는 값 묶음 (생성 위치, 방향, 탄속, 피해, 최대 거리·생존 시간, 화면 판정 여부, 고유 적중 한도) | 없음 |
 | `ProjectilePool` (MonoBehaviour) | 탄 프리팹마다 `UnityEngine.Pool.ObjectPool<Projectile>`을 따로 두고(`Dictionary<Projectile, ObjectPool<Projectile>>`) 탄 생성·재사용. 프리팹의 풀은 그 프리팹의 첫 `Fire(prefab, context)` 호출 시 생성한다. 반환용 `Release` 메서드는 없다 | `Projectile`, 출력 카메라 |
-| `Projectile` (MonoBehaviour) | 고정 방향 직진, 구간 SphereCast 적중·피해 적용, 화면 밖·최대 거리·최대 생존 시간 초과 시 `Launch`로 받은 `IObjectPool<Projectile>`(자신을 꺼낸 프리팹별 풀)에 직접 반환 | `ProjectileHitDetector`, `IObjectPool<Projectile>`, `IDamageable`, `Camera` |
-| `ProjectileHitDetector` | 구간 SphereCast(최대 16개) 후 거리순 정렬, 같은 적 중복 제외, 죽은 적 제외, 고유 적중 한도 판정 | `IDamageable`, `Physics` |
+| `Projectile` (MonoBehaviour) | 고정 방향 직진, 구간 SphereCast 적중·피해 적용, 장애물(`_blockMask`) 적중·화면 밖·최대 거리·최대 생존 시간 초과 시 `Launch`로 받은 `IObjectPool<Projectile>`(자신을 꺼낸 프리팹별 풀)에 직접 반환 | `ProjectileHitDetector`, `IObjectPool<Projectile>`, `IDamageable`, `Camera` |
+| `ProjectileHitDetector` | 구간 SphereCast(최대 16개, `_hitMask`와 `_blockMask`를 합친 마스크) 후 거리순 정렬, 장애물 판정(`IsObstacle`), 같은 적 중복 제외, 죽은 적 제외, 고유 적중 한도 판정 | `IDamageable`, `Physics` |
 | `IDamageable` | 피해 수신 계약 (`IsAlive`, `TakeDamage`) | 없음 |
 | `ITargetable` | 탐색 대상 계약 (`AimPoint`, `IsTargetable`, `SpawnId`) | 없음 |
 | `PlayerAimController` (MonoBehaviour) | `LateUpdate`에서 모델(`_visualRoot`)만 회전. 주무기 표적 → 이동 방향 → 정지 시 유지 | `WeaponLoadout`, `WeaponTargeting`, `CharacterController`(`RequireComponent`, `Awake` 캐싱) |
@@ -161,7 +161,12 @@
 - 그 밖의 반환 조건 : 누적 이동 거리 > `MaxDistance`, 경과 시간 > `MaxLifetime`, 고유 적중 한도 도달.
 - `MaxDistance`를 넘는 구간의 적은 맞지 않도록 SphereCast 길이를 남은 거리로 제한한다.
 - XZ 성분이 0인 방향으로 `Launch`하면 경고 로그를 남기고 즉시 반환한다 (탄마다 1번씩 기록).
-- 충돌 마스크 : `PFB_PistolBullet`, `PFB_ShotgunPellet`의 `_hitMask`는 `Enemy` 레이어(6)만 검사한다.
+- 충돌 마스크 : `PFB_PistolBullet`, `PFB_ShotgunPellet`, `PFB_MinigunBullet`의 `_hitMask`는 `Enemy` 레이어(6)만 검사한다.
+- 장애물 막힘 (`_blockMask`)
+    - 동작 : `_blockMask`에 포함된 레이어의 Collider에 닿으면 피해 없이 즉시 반환한다. SphereCast 결과를 가까운 순으로 처리하므로 장애물 뒤의 적은 맞지 않는다. `_hitMask`와 겹치는 레이어는 장애물로 처리한다.
+    - 현재 설정 : 탄 Prefab 3종 모두 `_blockMask` = Nothing(0)이다. 따라서 탄은 장애물·차단 Box·경계 벽을 모두 통과한다 (이슈 #7 결정. 맵 쪽 상세는 `Docs/TechDocs/Map.md`).
+    - 막힘 기능(`ProjectileHitDetector.IsObstacle`과 `Projectile`의 분기)은 코드에 유지한다. 초반 설계에서 적용한 기능이고 코드 양이 크지 않으며, 맵·캐릭터·무기 추가 시 쓸 수 있어서다 (사용자 판단).
+    - `Projectile.cs`의 `_blockMask` 주석은 "닿으면 탄이 막혀 반환되는 장애물 레이어"라고 설명하지만, 현재 Prefab에는 지정된 레이어가 없다.
 
 ## 호출 순서 또는 데이터 흐름
 
@@ -211,7 +216,7 @@ for 장착 무기마다
   └─ 표적 없음 || 재장전 중 → weapon.ClearOverdueShotCooldown()   음수 쿨다운만 0으로
 
 [매 프레임 Update] Projectile (활성 탄마다)
-  ├─ 이번 이동 구간 SphereCast → 가까운 순으로 적중 처리 (화면 밖 적중이면 반환)
+  ├─ 이번 이동 구간 SphereCast → 가까운 순으로 적중 처리 (장애물(_blockMask)이면 반환, 화면 밖 적중이면 반환)
   ├─ 한도 도달 → _pool.Release(this)   (Launch로 받은 프리팹별 풀)
   └─ 이동 → 화면 밖·최대 거리·최대 생존 시간 초과 → _pool.Release(this)
 
@@ -305,18 +310,18 @@ PFB_Player                    (Layer : Player, CharacterController, PlayerMoveme
 
 ### `Assets/Prefabs/Weapon/PFB_PistolBullet.prefab`
 
-- 루트 : `Projectile` (`_hitRadius` = 0.1, `_hitMask` = Enemy).
+- 루트 : `Projectile` (`_hitRadius` = 0.1, `_hitMask` = Enemy, `_blockMask` = Nothing).
 - 자식 : `SM_Bullet_05` (표시 전용, 로컬 스케일 5).
 
 ### `Assets/Prefabs/Weapon/PFB_ShotgunPellet.prefab`
 
-- 루트 : `Projectile` (`_hitRadius` = 0.1, `_hitMask` = Enemy).
+- 루트 : `Projectile` (`_hitRadius` = 0.1, `_hitMask` = Enemy, `_blockMask` = Nothing).
 - 자식 : `SM_Bullet_09` (표시 전용, 로컬 스케일 5, 로컬 회전 X 90°).
 
 ### `Assets/Prefabs/Weapon/PFB_MinigunBullet.prefab`
 
 - `PFB_PistolBullet`을 복제해 만들었다 (루트 GameObject·Transform·`Projectile`의 fileID가 같음).
-- 루트 : `Projectile` (`_hitRadius` = 0.1, `_hitMask` = Enemy).
+- 루트 : `Projectile` (`_hitRadius` = 0.1, `_hitMask` = Enemy, `_blockMask` = Nothing).
 - 자식 : `SM_Bullet_06` (표시 전용, 로컬 스케일 5, 로컬 회전 X 90°).
 
 ### 부유 총기 Prefab (`Assets/Prefabs/Weapon/PFB_FloatingPistol|Shotgun|Minigun.prefab`)

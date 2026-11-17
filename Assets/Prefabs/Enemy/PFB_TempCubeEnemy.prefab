@@ -174,3 +174,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovement
   _moveSpeed: 3
+  _stopDistance: 1
+  _separationRadius: 1.2
+  _separationWeight: 1
+  _enemyLayer:
+    serializedVersion: 2
+    m_Bits: 64

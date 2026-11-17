@@ -24,14 +24,16 @@ Flow Field를 공유하는 Enemy들이 동일한 방향으로 이동하면서 �
 - Spatial Grid의 셀 크기는 Enemy의 크기와 Separation 반경을 기준으로 결정한다.
 - 필요하지 않은 Job System, Burst 및 전체 Flocking 알고리즘은 추가하지 않는다.
 
+> 측정 결과와 Spatial Hash Grid 미적용 결정은 `Docs/TechDocs/Map.md`를 따른다.
+
 ### 검증 항목
 
-- [ ] Enemy들이 서로 겹치는 현상이 감소하는가?
-- [ ] 다수 Enemy가 플레이어를 자연스럽게 포위하는가?
-- [ ] 장애물 근처에서도 이동이 안정적인가?
-- [ ] Separation이 Flow Field 추적을 방해하지 않는가?
-- [ ] Enemy 수가 증가해도 프레임이 안정적인가?
-- [ ] 기존 Enemy 이동 및 넉백 로직과 충돌하지 않는가?
+- [x] Enemy들이 서로 겹치는 현상이 감소하는가?
+- [x] 다수 Enemy가 플레이어를 자연스럽게 포위하는가?
+- [x] 장애물 근처에서도 이동이 안정적인가?
+- [x] Separation이 Flow Field 추적을 방해하지 않는가?
+- [x] Enemy 수가 증가해도 프레임이 안정적인가? (500마리 측정, Grid 미적용 결정)
+- [ ] 기존 Enemy 이동 및 넉백 로직과 충돌하지 않는가? (넉백 미구현으로 해당 없음, 넉백 구현 시 확인)
 
 ### 구현 시점
 
