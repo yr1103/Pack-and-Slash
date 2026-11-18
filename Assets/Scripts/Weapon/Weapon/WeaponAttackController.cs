@@ -16,8 +16,8 @@ public class WeaponAttackController : MonoBehaviour
 
     private void Update()
     {
-        // shortcut: 표적 후보를 임시 Cube 적 목록에서 공급, EnemyManager/Spatial Hash 연동 시 교체
-        IReadOnlyList<ITargetable> candidates = TempCubeEnemy.ActiveEnemies;
+        // shortcut: 표적 후보를 Enemy static 활성 목록에서 공급, EnemyManager/Spatial Hash 연동 시 교체
+        IReadOnlyList<ITargetable> candidates = Enemy.ActiveEnemies;
         IReadOnlyList<WeaponInstance> weapons = _loadout.Weapons;
 
         for (int i = 0; i < weapons.Count; i++)

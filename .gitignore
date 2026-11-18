@@ -112,3 +112,5 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ii]mports/
 .mcp.json
 .idea/
+/[Aa]ssets/[Tt]extMesh [Pp]ro/
+Assets/TextMesh Pro.meta

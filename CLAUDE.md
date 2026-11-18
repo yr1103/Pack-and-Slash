@@ -53,6 +53,14 @@
 
 `@Docs\TechDocs\Character.md`
 
+### Enemy·스폰·피격·젬 코드 수정 시
+
+`@Docs\TechDocs\Enemy.md`
+
+### 게임 흐름·플레이어 상태·HUD 코드 수정 시
+
+`@Docs\TechDocs\GameFlow.md`
+
 ### 브랜치 생성 시
 
 `@Docs\Documentation\GitBranchRules.md`

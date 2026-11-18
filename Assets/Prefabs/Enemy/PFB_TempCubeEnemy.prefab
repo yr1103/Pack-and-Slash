@@ -43,8 +43,8 @@ GameObject:
   - component: {fileID: 5753448059225125666}
   - component: {fileID: 4303626004697487536}
   - component: {fileID: 3828597724011594749}
-  - component: {fileID: 2896576447137926208}
   - component: {fileID: 6049091309149543729}
+  - component: {fileID: 7604447681250071089}
   m_Layer: 6
   m_Name: PFB_TempCubeEnemy
   m_TagString: Untagged
@@ -146,21 +146,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &2896576447137926208
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5060162143255220773}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 604be5929287c0c4b95aaaacf8e7f434, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TempCubeEnemy
-  _aimPoint: {fileID: 7557799312984767102}
-  _maxHealth: 30
-  _hitFlashDuration: 1
 --- !u!114 &6049091309149543729
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -180,3 +165,18 @@ MonoBehaviour:
   _enemyLayer:
     serializedVersion: 2
     m_Bits: 64
+--- !u!114 &7604447681250071089
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5060162143255220773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc3bfbd953fa4b94db94cdf0e6732e9f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  _aimPoint: {fileID: 7557799312984767102}
+  _maxHealth: 30
+  _deathDuration: 1
