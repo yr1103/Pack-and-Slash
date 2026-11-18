@@ -29,6 +29,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     /// <summary>무적 게이트를 통과해 피해가 적용될 때마다 발생 (사망하는 피해 포함)</summary>
     public event Action Damaged;
 
+    /// <summary>사망 확정 시 1회 발생 (게임 오버 판정 구독 지점)</summary>
+    public event Action Died;
+
     private void Awake()
     {
         _health = new Health(_maxHealth);
@@ -89,5 +92,6 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         }
 
         Debug.Log(DEATH_LOG);
+        Died?.Invoke();
     }
 }
