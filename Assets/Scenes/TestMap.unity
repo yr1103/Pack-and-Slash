@@ -3416,6 +3416,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 492010, guid: c3299fb619492784c9ac6ec6340ef271, type: 3}
   m_PrefabInstance: {fileID: 401058831}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &409528393
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 409528394}
+  m_Layer: 0
+  m_Name: Gems
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &409528394
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 409528393}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 502910929}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &419171676
 GameObject:
   m_ObjectHideFlags: 0
@@ -4167,6 +4198,7 @@ Transform:
   m_Children:
   - {fileID: 1136806269}
   - {fileID: 731529641}
+  - {fileID: 409528394}
   - {fileID: 1075857157}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -8002,6 +8034,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 475670136092952611, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
   m_PrefabInstance: {fileID: 1136806268}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1136806270 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1094472140150749644, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
+  m_PrefabInstance: {fileID: 1136806268}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e91d6508e38dbd49b12152dbee9846e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerExperience
 --- !u!1001 &1143060838
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10438,6 +10481,56 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 405068, guid: 2d038e7286f6589488fbae504d5f2c82, type: 3}
   m_PrefabInstance: {fileID: 1532642473}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1549893829
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1549893830}
+  - component: {fileID: 1549893831}
+  m_Layer: 0
+  m_Name: ExperienceGemPool
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1549893830
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1549893829}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2097516411}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1549893831
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1549893829}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14563bfd87301fd4ea305c9a104cfd87, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ExperienceGemPool
+  _gemPrefab: {fileID: 5322722869455467960, guid: 36ef2b12ea2d9a149aed8d90d1db125f, type: 3}
+  _gemParent: {fileID: 409528394}
+  _playerExperience: {fileID: 1136806270}
+  _defaultCapacity: 64
+  _maxSize: 512
+  _spawnHeight: 0.3
 --- !u!1001 &1556314536
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -14007,6 +14100,7 @@ Transform:
   - {fileID: 1133224101}
   - {fileID: 1756488628}
   - {fileID: 1331288338}
+  - {fileID: 1549893830}
   - {fileID: 1979211969}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

@@ -230,6 +230,7 @@ GameObject:
   - component: {fileID: 2418925160230007888}
   - component: {fileID: 4987172323217831464}
   - component: {fileID: 6562338230825440349}
+  - component: {fileID: 1094472140150749644}
   m_Layer: 7
   m_Name: PFB_Player
   m_TagString: Untagged
@@ -346,6 +347,19 @@ MonoBehaviour:
   - {fileID: 399098494473839989}
   - {fileID: 2418925160230007888}
   - {fileID: 2418071731837275373}
+--- !u!114 &1094472140150749644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9151649186774323212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e91d6508e38dbd49b12152dbee9846e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerExperience
+  _collectRadius: 0.4
 --- !u!1001 &4587042763216714343
 PrefabInstance:
   m_ObjectHideFlags: 0

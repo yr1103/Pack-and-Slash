@@ -61,6 +61,7 @@
 | 무기 상세 (조준·발사·투사체·배치·주무기 승계·고유 아이템 탈착) | `Docs/Spec/Weapon/WeaponSystem.md` | §3 ~ §6 |
 | 무기 작업 지시서 (W00 ~ W13) | `Docs/Spec/Weapon/WeaponAgentTasks/README_weapon.md` | - |
 | 보스 | `Docs/Spec/Boss.md` | §13 |
+| 사운드 (필요 상황·이벤트 연결) | `Docs/Spec/Audio.md` | - |
 | 작업 순서 (로드맵) | `Docs/Spec/Roadmap.md` | §16 |
 
 - 기능 문서는 `데이터 / 계약 / 테스트 기준 / 미정 파라미터` 순서로 작성한다. (`Roadmap.md`는 작업 순서 문서, `WeaponSystem.md`는 상세 설계서, `README_weapon.md`·`Map_prototype.md`는 작업 지시서로 예외)
