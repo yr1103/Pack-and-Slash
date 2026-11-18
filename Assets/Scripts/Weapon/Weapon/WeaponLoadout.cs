@@ -3,19 +3,23 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 장착 무기 목록과 주무기 소유 (시작 시 고유 무기 장착, 인벤토리 연결 전 임시 구현)
+/// 장착 무기 목록과 주무기 소유 (시작 시 선택 캐릭터의 고유 무기 장착, 인벤토리 연결 전 임시 구현)
 /// </summary>
 public class WeaponLoadout : MonoBehaviour
 {
     private const int START_LEVEL = 1;
 
-    // shortcut: 카우보이 고유 무기(권총) 임시 지정, 캐릭터 데이터 추가 시 이전
-    [SerializeField] private WeaponDefinition _signatureWeapon;
+    [SerializeField] private CharacterDefinition _defaultCharacter; // 타이틀을 거치지 않고 GameScene 단독 실행 시 사용
 
     private readonly List<WeaponInstance> _weapons = new List<WeaponInstance>();
     private int _nextInstanceId = 1;
 
-    public WeaponDefinition SignatureWeapon => _signatureWeapon;
+    // 캐시하지 않고 매번 계산 : Awake 실행 순서·EditMode 테스트의 Awake 미호출과 무관하게 동작
+    /// <summary>타이틀 선택 캐릭터, 선택이 없으면 기본 캐릭터</summary>
+    public CharacterDefinition Character => CharacterSelection.Selected != null ? CharacterSelection.Selected : _defaultCharacter;
+
+    /// <summary>현재 캐릭터의 고유 무기 (주무기 재선정 우선순위에 사용)</summary>
+    public WeaponDefinition SignatureWeapon => Character.StartWeapon;
 
     /// <summary>현재 장착 중인 무기 인스턴스 목록</summary>
     public IReadOnlyList<WeaponInstance> Weapons => _weapons;
@@ -32,7 +36,7 @@ public class WeaponLoadout : MonoBehaviour
     // 다른 컴포넌트가 Start·Update에서 장착 목록을 읽기 전에 고유 무기를 채움
     private void Awake()
     {
-        Equip(_signatureWeapon);
+        Equip(SignatureWeapon);
     }
 
     /// <summary>새 인스턴스 ID를 발급해 레벨 1 무기를 장착 (주무기가 없으면 주무기로 지정)</summary>
@@ -65,7 +69,7 @@ public class WeaponLoadout : MonoBehaviour
                 // 해제한 주무기는 목록에 없으므로 재선정 결과는 항상 다른 값
                 if (removed == Primary)
                 {
-                    Primary = SelectPrimary(_weapons, _signatureWeapon);
+                    Primary = SelectPrimary(_weapons, SignatureWeapon);
                     PrimaryChanged?.Invoke();
                 }
 

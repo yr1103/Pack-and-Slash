@@ -109,7 +109,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13631e8eb8ceb6947a0962e8fb5a2e79, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponLoadout
-  _signatureWeapon: {fileID: 11400000, guid: c8428468fe4d08940ba664176b113bc1, type: 2}
+  _defaultCharacter: {fileID: 11400000, guid: e9cea3f0353de8d498b8928c997b49de, type: 2}
 --- !u!114 &2418071731837275373
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -156,13 +156,13 @@ MonoBehaviour:
     _muzzle: {fileID: 943468369287452973}
     _animatorController: {fileID: 9100000, guid: 13e3797c3e306434696364d4459e3a45, type: 2}
   _appearances:
-  - _signatureType: 0
+  - _character: {fileID: 11400000, guid: e9cea3f0353de8d498b8928c997b49de, type: 2}
     _body: {fileID: 4275349771686871857}
     _head: {fileID: 4275349772347906524}
-  - _signatureType: 1
+  - _character: {fileID: 11400000, guid: dd1661192f699f64fa33bca546a09690, type: 2}
     _body: {fileID: 4275349772246667759}
     _head: {fileID: 4275349772653182908}
-  - _signatureType: 2
+  - _character: {fileID: 11400000, guid: fd54db1f572da244ebaa578f9570a9db, type: 2}
     _body: {fileID: 4275349771317729789}
     _head: {fileID: 4275349772038352327}
   _orbitRadius: 1.5

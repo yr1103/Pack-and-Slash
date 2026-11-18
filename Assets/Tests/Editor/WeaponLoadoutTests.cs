@@ -14,10 +14,12 @@ public class WeaponLoadoutTests
     private const int EARLIER_INSTANCE_ID = 1;
     private const int LATER_INSTANCE_ID = 2;
     private const int UNKNOWN_INSTANCE_ID = 999;
-    private const string SIGNATURE_WEAPON_FIELD = "_signatureWeapon";
+    private const string START_WEAPON_FIELD = "_startWeapon";
+    private const string DEFAULT_CHARACTER_FIELD = "_defaultCharacter";
 
     private WeaponDefinition _signatureWeapon;
     private WeaponDefinition _otherWeapon;
+    private CharacterDefinition _character;
     private GameObject _loadoutObject;
     private WeaponLoadout _loadout;
 
@@ -26,12 +28,19 @@ public class WeaponLoadoutTests
     {
         _signatureWeapon = ScriptableObject.CreateInstance<WeaponDefinition>();
         _otherWeapon = ScriptableObject.CreateInstance<WeaponDefinition>();
+        _character = ScriptableObject.CreateInstance<CharacterDefinition>();
+        SerializedObject serializedCharacter = new SerializedObject(_character);
+        serializedCharacter.FindProperty(START_WEAPON_FIELD).objectReferenceValue = _signatureWeapon;
+        serializedCharacter.ApplyModifiedPropertiesWithoutUndo();
+
+        // 다른 테스트·Play 세션이 남긴 선택이 있으면 기본 캐릭터 대신 쓰이므로 비움
+        CharacterSelection.Selected = null;
 
         // EditMode에서는 AddComponent 시 Awake가 호출되지 않아 고유 무기 자동 장착 없이 빈 목록으로 시작
         _loadoutObject = new GameObject();
         _loadout = _loadoutObject.AddComponent<WeaponLoadout>();
         SerializedObject serializedLoadout = new SerializedObject(_loadout);
-        serializedLoadout.FindProperty(SIGNATURE_WEAPON_FIELD).objectReferenceValue = _signatureWeapon;
+        serializedLoadout.FindProperty(DEFAULT_CHARACTER_FIELD).objectReferenceValue = _character;
         serializedLoadout.ApplyModifiedPropertiesWithoutUndo();
     }
 
@@ -39,6 +48,7 @@ public class WeaponLoadoutTests
     public void TearDown()
     {
         Object.DestroyImmediate(_loadoutObject);
+        Object.DestroyImmediate(_character);
         Object.DestroyImmediate(_signatureWeapon);
         Object.DestroyImmediate(_otherWeapon);
     }

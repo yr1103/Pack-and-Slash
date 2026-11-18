@@ -15,7 +15,7 @@ public class WeaponViewController : MonoBehaviour
     [SerializeField] private Transform _visualRoot; // 슬롯 0° 기준 (모델 정면)
     [SerializeField] private Animator _animator; // 모델(CowboyDefault)의 Animator
     [SerializeField] private HandWeaponEntry[] _handWeapons; // 등록한 손 무기만 켜고 끔
-    [SerializeField] private AppearanceEntry[] _appearances; // 고유 무기 종류별 생김새 (ApplyAppearance 참고)
+    [SerializeField] private AppearanceEntry[] _appearances; // 캐릭터별 생김새 (ApplyAppearance 참고)
     [SerializeField] private float _orbitRadius = 1.5f;
     [SerializeField] private float _orbitHeight = 1.2f;
     [SerializeField] private float _slotMoveSpeed = 6f; // 초당 슬롯 이동 거리
@@ -155,14 +155,14 @@ public class WeaponViewController : MonoBehaviour
         return _playerRoot.position + direction * _orbitRadius + Vector3.up * _orbitHeight;
     }
 
-    // shortcut: 고유 무기 종류로 생김새를 시작 시 한 번 정함 (주무기 승계 시 유지), 캐릭터 데이터 추가 시 이전
+    // 캐릭터 기준으로 생김새를 시작 시 한 번 정함 (주무기 승계 시 유지)
     private void ApplyAppearance()
     {
-        WeaponType signatureType = _loadout.SignatureWeapon.WeaponType;
+        CharacterDefinition character = _loadout.Character;
         for (int i = 0; i < _appearances.Length; i++)
         {
             AppearanceEntry entry = _appearances[i];
-            bool isActive = entry.SignatureType == signatureType;
+            bool isActive = entry.Character == character;
             entry.Body.SetActive(isActive);
             entry.Head.SetActive(isActive);
         }
@@ -183,15 +183,15 @@ public class WeaponViewController : MonoBehaviour
         public RuntimeAnimatorController AnimatorController => _animatorController;
     }
 
-    /// <summary>고유 무기 종류별 캐릭터 생김새 (Body·Head)</summary>
+    /// <summary>캐릭터별 생김새 (Body·Head)</summary>
     [Serializable]
     private class AppearanceEntry
     {
-        [SerializeField] private WeaponType _signatureType;
+        [SerializeField] private CharacterDefinition _character;
         [SerializeField] private GameObject _body;
         [SerializeField] private GameObject _head;
 
-        public WeaponType SignatureType => _signatureType;
+        public CharacterDefinition Character => _character;
         public GameObject Body => _body;
         public GameObject Head => _head;
     }
