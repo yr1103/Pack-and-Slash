@@ -1,6 +1,8 @@
 # 무기 시스템 (Weapon)
 
-> 근거 : `Assets/Scripts/Weapon/*`, `Assets/Scripts/Player/*`, `Assets/Scripts/Enemy/TempCubeEnemy.cs`, `Assets/Scripts/Character/*`(`WeaponLoadout`·`WeaponViewController`가 읽는 부분), `Assets/Tests/Editor/*`, 관련 Prefab·Scene·에셋 파일
+> 근거 : `Assets/Scripts/Weapon/*`, `Assets/Scripts/Player/*`, `Assets/Scripts/Enemy/Enemy.cs`(표적·피해 대상 부분), `Assets/Scripts/Character/*`(`WeaponLoadout`·`WeaponViewController`가 읽는 부분), `Assets/Tests/Editor/*`, `Assets/Animations/Player/*`, 관련 Prefab·Scene·에셋 파일
+>
+> 관련 문서 : 적(`Enemy`)의 체력·사망·풀 반환은 `Docs/TechDocs/Enemy.md`, `PlayerHealth`·`PlayerExperience`는 `Docs/TechDocs/GameFlow.md`
 >
 > 설계 원본 : `Docs/Spec/Weapon/WeaponSystem.md` (이 문서는 현재 구현 상태만 기술한다)
 
@@ -13,8 +15,8 @@
 
 | 범위 | 내용 |
 |---|---|
-| 포함 | Issue #5의 W01(무기 설정 SO·장착 인스턴스 분리), W02(최근접 적 탐색·조준 방향), W03(공통 투사체·풀·피격 판정·화면 경계 무효화·임시 Cube 적), W04(무기별 쿨다운·발사 루프, W07에서 앞당긴 주무기 몸통 회전), W05(샷건 기본 발사 : 부채꼴 다중 탄·탄 프리팹별 풀), W06(미니건 기본 연사·재장전·랜덤 퍼짐), W07(부유 총기, 원형 배치, 주무기 변경 이벤트, 손 무기·Animator 교체, 고유 무기 기준 생김새). Issue #10에서 고유 무기·생김새의 기준을 캐릭터로 변경 |
-| 제외 (후속) | 주무기 수동 지정, 2중 원 배치·총기 수 상한, Animator 파라미터(달리기·사격) 연동 |
+| 포함 | Issue #5의 W01(무기 설정 SO·장착 인스턴스 분리), W02(최근접 적 탐색·조준 방향), W03(공통 투사체·풀·피격 판정·화면 경계 무효화·임시 Cube 적), W04(무기별 쿨다운·발사 루프, W07에서 앞당긴 주무기 몸통 회전), W05(샷건 기본 발사 : 부채꼴 다중 탄·탄 프리팹별 풀), W06(미니건 기본 연사·재장전·랜덤 퍼짐), W07(부유 총기, 원형 배치, 주무기 변경 이벤트, 손 무기·Animator 교체, 고유 무기 기준 생김새). Issue #10에서 고유 무기·생김새의 기준을 캐릭터로 변경. Issue #8에서 표적 후보를 실제 적(`Enemy`)으로 교체, 플레이어 애니메이션(PA : 이동 방향·사격·피격·사망 Animator 파라미터, 무기별 Animator Controller) 추가 |
+| 제외 (후속) | 주무기 수동 지정, 2중 원 배치·총기 수 상한 |
 
 ## 주요 클래스와 역할
 
@@ -24,7 +26,7 @@
 | `WeaponInstance` | 장착한 무기 하나의 런타임 상태 (`InstanceId`, `Definition`, `Level`, `IsEvolved`, `ShotCooldown`, `CurrentAmmo`, `IsReloading`, `ReloadRemaining`, `CurrentTarget`). 쿨다운·재장전 시간 감소(`Tick`), 다음 발사 예약(`ScheduleNextShot` : `ShotCooldown += Definition.FireInterval`), 넘긴 시간 버리기(`ClearOverdueShotCooldown`), 잔탄 소모와 재장전 시작(`ConsumeAmmo`). 이벤트 `AmmoChanged`, `ReloadStarted`, `ReloadFinished`. 발사 간격·탄창 용량·재장전 시간은 `Definition`(`WeaponDefinition`)에서 읽는다 | `WeaponDefinition`, `ITargetable` |
 | `WeaponLoadout` (MonoBehaviour) | 장착 목록과 주무기(`Primary`) 소유. 캐릭터 읽기 프로퍼티 `Character`(`CharacterSelection.Selected`가 있으면 그것, 없으면 `_defaultCharacter`), 고유 무기 읽기 프로퍼티 `SignatureWeapon`(= `Character.StartWeapon`). 둘 다 캐시하지 않고 읽을 때마다 계산한다. `Awake`에서 `SignatureWeapon` 장착, `Equip`/`Unequip`, 주무기 선정(`SelectPrimary`). 이벤트 `PrimaryChanged`, `WeaponsChanged` | `WeaponDefinition`, `WeaponInstance`, `CharacterDefinition`, `CharacterSelection` |
 | `WeaponTargeting` (static) | 상태 없는 계산. `FindNearest`(XZ 반경 내 최근접 표적), `GetAimDirection`(XZ 정규화 방향), `GetFireDirection`(발사 중심 방향, 총구 기준이 0이면 플레이어 중심 기준), `GetSpreadDirection`(부채꼴 안 n번째 탄 방향), `GetRandomSpreadDirection(centerDirection, spreadAngle, randomRatio)`(부채꼴 안 랜덤 위치 탄 방향, 비율은 호출부가 공급) | `ITargetable` |
-| `WeaponAttackController` (MonoBehaviour) | 매 프레임 장착 무기별 쿨다운 감소 → 표적 탐색·`CurrentTarget` 기록 → 발사. 총구는 `_views.GetMuzzle(weapon)`으로 무기마다 받는다 (W06까지의 단일 `_muzzle` 필드는 제거됨) | `WeaponLoadout`, `ProjectilePool`, `WeaponViewController`(`_views`, 무기별 총구), `WeaponTargeting`, `WeaponDefinition`(발사 값), `ProjectileSpawnContext`(탄마다 생성), `TempCubeEnemy.ActiveEnemies`(임시 후보 공급) |
+| `WeaponAttackController` (MonoBehaviour) | 매 프레임 장착 무기별 쿨다운 감소 → 표적 탐색·`CurrentTarget` 기록 → 발사. 총구는 `_views.GetMuzzle(weapon)`으로 무기마다 받는다 (W06까지의 단일 `_muzzle` 필드는 제거됨) | `WeaponLoadout`, `ProjectilePool`, `WeaponViewController`(`_views`, 무기별 총구), `WeaponTargeting`, `WeaponDefinition`(발사 값), `ProjectileSpawnContext`(탄마다 생성), `Enemy.ActiveEnemies`(후보 공급, 코드의 `shortcut` 주석 : `EnemyManager`/Spatial Hash 연동 시 교체) |
 | `WeaponViewController` (MonoBehaviour) | 무기 외형 표시. 주무기 종류의 손 무기만 켜고 Animator Controller 교체, 주무기가 아닌 장착 무기마다 부유 총기(`FloatingWeaponView`) 생성·파괴·원형 슬롯 이동·조준, 무기별 총구 제공(`GetMuzzle`), 시작 시 캐릭터(`_loadout.Character`)로 생김새(Body·Head) 선택. 슬롯 각도 계산 `GetSlotAngle`(static) | `WeaponLoadout`(이벤트 구독, `Character`), `CharacterDefinition`(`_appearances` 키), `FloatingWeaponView`, `Animator`, `WeaponDefinition.FloatingViewPrefab` |
 | `FloatingWeaponView` (MonoBehaviour) | 부유 총기 하나의 외형. 총구 `Muzzle` 노출, 슬롯 위치로 `Vector3.MoveTowards` 이동(`MoveTowardsSlot`), 표적 방향(XZ)으로 `Quaternion.RotateTowards` 회전(`TurnTowards`, 표적이 없거나 방향이 영벡터면 현재 방향 유지). 속도·시간은 호출부가 공급 | `WeaponTargeting`, `ITargetable` |
 | `TempLoadoutTester` (MonoBehaviour, 임시) | 인벤토리 연동 전 검증 도구. `Start`에서 `_extraWeapons`를 순서대로 `Equip`, 컨텍스트 메뉴 `Unequip Primary`로 현재 주무기 해제 | `WeaponLoadout` |
@@ -35,7 +37,8 @@
 | `IDamageable` | 피해 수신 계약 (`IsAlive`, `TakeDamage`) | 없음 |
 | `ITargetable` | 탐색 대상 계약 (`AimPoint`, `IsTargetable`, `SpawnId`) | 없음 |
 | `PlayerAimController` (MonoBehaviour) | `LateUpdate`에서 모델(`_visualRoot`)만 회전. 주무기 표적 → 이동 방향 → 정지 시 유지 | `WeaponLoadout`, `WeaponTargeting`, `CharacterController`(`RequireComponent`, `Awake` 캐싱) |
-| `TempCubeEnemy` (MonoBehaviour, 임시) | 무기 검증용 적. `ITargetable`·`IDamageable` 구현, static 목록 `ActiveEnemies`에 활성화 시 등록·비활성화 시 제거, 피격 시 체력 감소·빨간색 표시, `_hitFlashDuration`(기본 1초, Min 0) 뒤 원래 색 복귀(재피격 시 남은 시간을 다시 채움, `Update`에서 `Time.deltaTime`으로 감소). 사망 시 노란색 유지. `OnEnable`에서 `SpawnId`·체력·색·남은 표시 시간 초기화. 사망 시 파괴·반환하지 않음 | 없음 |
+| `Enemy` (MonoBehaviour) | 적. `ITargetable`·`IDamageable` 구현, static 목록 `ActiveEnemies`에 활성화 시 등록·비활성화 시 제거(사망 연출 중에도 반환 전까지 포함). `IsTargetable => IsAlive`, `IsAlive` = 사망 아님 && `isActiveAndEnabled`. 사망 시 Collider를 끄고 `_deathDuration` 뒤 풀 반환. 상세는 `Docs/TechDocs/Enemy.md` | `Health`, `EnemyMovement`, `IObjectPool<Enemy>` |
+| `PlayerAnimator` (MonoBehaviour) | 매 `Update`에 Animator 파라미터 설정 : `MoveX`·`MoveZ`(모델 정면 기준 로컬 이동 방향), `IsShooting`(주무기 표적 있음 && 재장전 아님), `IsDead`(`PlayerHealth.IsDead`). `PlayerHealth.Damaged`마다 `Hit` 트리거. 변환 함수 `GetLocalMoveDirection`(static) | `Animator`, `CharacterController`(`RequireComponent`, `Awake` 캐싱), `WeaponLoadout`(`Primary`), `PlayerHealth` |
 | `PlayerMovement` | 이동만 담당. 이번 작업에서 회전 코드가 제거되었고 회전은 `PlayerAimController`가 맡는다. Move 액션의 `Enable`/`Disable`을 이 컴포넌트가 직접 맡는다 (`OnEnable`/`OnDisable`, 이 액션을 쓰는 컴포넌트가 하나뿐이라서) | `CharacterController`, `InputActionReference`(`_moveAction`) |
 
 ## API / 이벤트 / 데이터 계약
@@ -120,6 +123,28 @@
 
 - `_loadout.Character`(현재 캐릭터 SO)와 같은 `_appearances` 항목(`_character` 참조 비교)의 Body·Head를 켜고, 나머지 항목의 Body·Head를 끈다.
 - `Start`에서 한 번만 실행한다. 주무기가 승계되어도 생김새는 바뀌지 않는다.
+
+### 플레이어 애니메이션 (`PlayerAnimator`, Issue #8 PA)
+
+| 파라미터 | 종류 | 설정 값 |
+|---|---|---|
+| `MoveX` / `MoveZ` | Float | `GetLocalMoveDirection(CharacterController.velocity, _visualRoot.rotation, 0.1)`의 x / y |
+| `IsShooting` | Bool | 주무기가 있고 `CurrentTarget != null`이고 재장전 중이 아님 |
+| `IsDead` | Bool | `PlayerHealth.IsDead` |
+| `Hit` | Trigger | `PlayerHealth.Damaged`마다 (`OnEnable` 구독, `OnDisable` 해제) |
+
+- `GetLocalMoveDirection` : 월드 속도의 XZ 성분을 모델 회전의 역회전으로 로컬 방향으로 바꿔 (x = 로컬 오른쪽, y = 로컬 정면) 길이 1로 정규화한다. XZ 속력이 `STOP_SPEED_THRESHOLD`(0.1) 이하이면 `Vector2.zero`. Y 성분은 무시한다. 몸통이 표적을 보고 이동 방향과 다르게 향하면 옆·뒤 걸음 블렌드가 된다.
+- 설정 시점 : 매 `Update`. Animator가 `Update` 이후·`LateUpdate` 이전에 평가되므로 같은 프레임에 반영되게 하기 위해서다. 표적(`WeaponAttackController.Update`)·몸통 회전(`PlayerAimController.LateUpdate`)은 최대 1프레임 이전 값을 읽는다 (코드 주석).
+- 값이 바뀌지 않아도 매 프레임 모두 설정한다. 주무기가 바뀌면 `WeaponViewController`가 Animator Controller를 교체해 파라미터가 초기화되기 때문이다 (코드 주석, `IsDead` 포함).
+
+Animator Controller (`Assets/Animations/Player/`)
+
+- `PlayerPistol.controller` (기본, 권총)
+    - Base Layer (마스크 없음) : 기본 상태 `Locomotion`(2D 블렌드 트리, 파라미터 `MoveX`·`MoveZ`, 위치 (0,0)·(0,1)·(0,−1)·(−1,0)·(1,0)에 클립 5개). Any State → `Die` (`IsDead` true).
+    - UpperBody (마스크 `PlayerUpperBody.mask`, 가중치 1, Override) : 기본 상태 `Empty`(클립 없음). `Empty` → `Shoot` (`IsShooting` true), `Shoot` → `Empty` (`IsShooting` false). Any State → `GetHit` (`Hit` && `IsDead` false), `GetHit` → `Empty` (Exit Time 1). Any State → `Die` (`IsDead` true).
+- `PlayerShotgun.overrideController`, `PlayerMinigun.overrideController` : `PlayerPistol.controller`를 원본으로 클립 8개(Locomotion 5개, `Shoot`, `GetHit`, `Die`)를 무기별 클립으로 교체한다.
+- `PlayerUpperBody.mask` : 상체 레이어용 Avatar Mask.
+- `Assets/Imports/` 아래 원본 Animator Controller(`PistolAnimator` 등)는 수정하지 않았다 (`Assets/Imports/`가 Git 추적 제외라 변경 여부는 저장소에서 확인 불가, 작업 보고 기준).
 
 ### 표적 (`WeaponInstance.CurrentTarget`)
 
@@ -209,7 +234,7 @@ WeaponViewController.OnEnable
 [매 프레임 Update] WeaponAttackController
 for 장착 무기마다
   ├─ weapon.Tick(Time.deltaTime)                   쿨다운 감소 (음수까지), 재장전 중이면 남은 시간 감소 → 0 이하면 잔탄 채움·재장전 종료
-  ├─ FindNearest(플레이어 루트, DetectionRange, TempCubeEnemy.ActiveEnemies)
+  ├─ FindNearest(플레이어 루트, DetectionRange, Enemy.ActiveEnemies)
   ├─ weapon.CurrentTarget = 탐색 결과
   ├─ 총구 = _views.GetMuzzle(weapon)                주무기 = 손 무기 총구, 그 외 = 부유 총기 총구
   ├─ while (표적 있음 && 재장전 중 아님 && 쿨다운 <= 0)
@@ -225,6 +250,12 @@ for 장착 무기마다
   │    ├─ weapon.ConsumeAmmo()                     발사 1회당 1번 (탄창 무기만 소모, 0발이면 재장전 시작)
   │    └─ weapon.ScheduleNextShot()                쿨다운 += FireInterval
   └─ 표적 없음 || 재장전 중 → weapon.ClearOverdueShotCooldown()   음수 쿨다운만 0으로
+
+[매 프레임 Update] PlayerAnimator   (WeaponAttackController.Update와의 순서는 지정되지 않음)
+  ├─ MoveX·MoveZ = GetLocalMoveDirection(velocity, _visualRoot.rotation, 0.1)
+  ├─ IsShooting = Primary 있음 && Primary.CurrentTarget != null && !Primary.IsReloading
+  └─ IsDead = PlayerHealth.IsDead
+[이벤트] PlayerHealth.Damaged → PlayerAnimator : Hit 트리거
 
 [매 프레임 Update] Projectile (활성 탄마다)
   ├─ 이번 이동 구간 SphereCast → 가까운 순으로 적중 처리 (장애물(_blockMask)이면 반환, 화면 밖 적중이면 반환)
@@ -252,16 +283,17 @@ for 장착 무기마다 (주무기 제외, 슬롯 번호 1부터)
 ### `Assets/Prefabs/Player/PFB_Player.prefab`
 
 ```
-PFB_Player                    (Layer : Player, CharacterController, PlayerMovement, PlayerAimController)
-├─ CowboyDefault              (모델 Prefab 인스턴스, 회전 대상, Animator)
+PFB_Player                    (Layer : Player, CharacterController, PlayerMovement, PlayerAimController, PlayerAnimator, PlayerHealth, PlayerExperience)
+├─ CowboyDefault              (모델 Prefab 인스턴스, 회전 대상, Animator(Controller = PlayerPistol, Apply Root Motion 끔))
 │  ├─ … / PistolDefault
 │  │      └─ MuzzlePoint      (추가 오브젝트, 로컬 위치 (0, 0.15, 0.47))
 │  ├─ … / ShotgunDefault
 │  │      └─ MuzzlePoint      (추가 오브젝트, 로컬 위치 (0, 0.031, 0.928))
 │  └─ … / MiniGunDefault
 │         └─ MuzzlePoint      (추가 오브젝트, 로컬 위치 (0, 0, 1.066))
-└─ Weapon                     (WeaponLoadout, WeaponAttackController, WeaponViewController, TempLoadoutTester)
-   └─ PFB_Floating…(Clone)    (런타임 생성 부유 총기, Prefab에는 없음)
+├─ Weapon                     (WeaponLoadout, WeaponAttackController, WeaponViewController, TempLoadoutTester)
+│  └─ PFB_Floating…(Clone)    (런타임 생성 부유 총기, Prefab에는 없음)
+└─ HealthBarCanvas            (플레이어 체력바, Docs/TechDocs/GameFlow.md)
 ```
 
 | 컴포넌트 | 필드 | 연결 값 |
@@ -269,6 +301,10 @@ PFB_Player                    (Layer : Player, CharacterController, PlayerMoveme
 | `PlayerAimController` (루트) | `_visualRoot` | `CowboyDefault` |
 | | `_loadout` | `Weapon`의 `WeaponLoadout` |
 | | `_turnSpeed` | 720 (초당 각도) |
+| `PlayerAnimator` (루트) | `_animator` | `CowboyDefault`의 Animator |
+| | `_visualRoot` | `CowboyDefault` |
+| | `_loadout` | `Weapon`의 `WeaponLoadout` |
+| | `_health` | 루트 `PlayerHealth` |
 | `WeaponLoadout` (Weapon) | `_defaultCharacter` | `SO_Cowboy` (`StartWeapon` = `SO_Pistol`) |
 | `WeaponAttackController` (Weapon) | `_loadout` | `Weapon`의 `WeaponLoadout` |
 | | `_pool` | Prefab에서는 비어 있음. `GameScene`의 Prefab 인스턴스 오버라이드로 `Managers/ProjectilePool` 연결 |
@@ -281,7 +317,7 @@ PFB_Player                    (Layer : Player, CharacterController, PlayerMoveme
 | | `_handWeapons` | 아래 표 (3항목) |
 | | `_appearances` | 아래 표 (3항목) |
 | | `_orbitRadius` | 1.5 (임시값) |
-| | `_orbitHeight` | 1.2 (임시값) |
+| | `_orbitHeight` | 0.5 (임시값, 코드 기본값 1.2. 1.2에서는 부유 총기 탄이 y≈1.2로 날아 적(임시 큐브 상단 약 0.98) 위를 지나가 적중하지 않아 Issue #8에서 낮춤. 큐브 상단 수치는 작업 보고 기준) |
 | | `_slotMoveSpeed` | 6 (초당 거리, 임시값) |
 | | `_floatingTurnSpeed` | 720 (초당 각도, 임시값) |
 | `TempLoadoutTester` (Weapon, 임시) | `_loadout` | `Weapon`의 `WeaponLoadout` |
@@ -291,11 +327,11 @@ PFB_Player                    (Layer : Player, CharacterController, PlayerMoveme
 
 | `_weaponType` | `_weapon` | `_muzzle` | `_animatorController` |
 |---|---|---|---|
-| Pistol | `PistolDefault` | `PistolDefault/MuzzlePoint` | `PistolAnimator` |
-| Shotgun | `ShotgunDefault` | `ShotgunDefault/MuzzlePoint` | `ShotGunAnimator` |
-| Minigun | `MiniGunDefault` | `MiniGunDefault/MuzzlePoint` | `MiniGunAnimator` |
+| Pistol | `PistolDefault` | `PistolDefault/MuzzlePoint` | `PlayerPistol` (`.controller`) |
+| Shotgun | `ShotgunDefault` | `ShotgunDefault/MuzzlePoint` | `PlayerShotgun` (`.overrideController`) |
+| Minigun | `MiniGunDefault` | `MiniGunDefault/MuzzlePoint` | `PlayerMinigun` (`.overrideController`) |
 
-- Animator Controller 경로 : `Assets/Imports/Player/BattleRoyaleHeroesPBR/Animator/`.
+- Animator Controller 경로 : `Assets/Animations/Player/` (`.meta` guid로 확인). Issue #8 전에는 `Assets/Imports/Player/BattleRoyaleHeroesPBR/Animator/`의 `PistolAnimator`·`ShotGunAnimator`·`MiniGunAnimator`를 썼다. 구조는 `플레이어 애니메이션` 절 참고.
 
 `_appearances`
 
@@ -318,7 +354,7 @@ PFB_Player                    (Layer : Player, CharacterController, PlayerMoveme
 | `Managers/ProjectilePool` | `ProjectilePool` | `_outputCamera` = `MainCamera`의 Camera, `_projectileParent` = `Gameplay/Projectiles`, `_defaultCapacity` = 64, `_maxSize` = 512 (두 값은 프리팹별 풀마다 각각 적용) |
 
 - 탄 프리팹은 `ProjectilePool`이 아닌 무기 SO의 `_projectilePrefab`에 연결한다.
-- Issue #10에서 `GameScene.unity`의 내용을 `TestMap.unity`로 교체했다 (`GameScene.unity.meta`의 GUID `ab62dbbf98b697d40b7d51d532785cf4`는 유지). 바이트 동일 여부는 메인 세션 보고 기준이며, 이 문서 작성 시 두 파일의 줄 수(14404)가 같고 위 `ProjectilePool` 값과 `PFB_Player` 인스턴스 오버라이드(`_pool`, 모델 내부 오브젝트 2개 비활성)가 `GameScene`에 있음을 확인했다. 맵·Flow Field 쪽 구성은 `Docs/TechDocs/Map.md`의 `TestMap.unity` 절 참고.
+- Issue #10에서 `GameScene.unity`의 내용을 `TestMap.unity`로 교체했다 (`GameScene.unity.meta`의 GUID `ab62dbbf98b697d40b7d51d532785cf4`는 유지). Issue #8 이후 두 Scene은 다르다 (상세는 `Docs/TechDocs/Map.md`의 `TestMap.unity` 절 머리말). 위 `ProjectilePool` 값과 `PFB_Player` 인스턴스 오버라이드(`_pool`, 모델 내부 오브젝트 2개 비활성)가 `GameScene`에 있음을 확인했다. 맵·Flow Field 쪽 구성은 `Docs/TechDocs/Map.md`의 `TestMap.unity` 절 참고.
 - `GameScene`(및 `TestMap`)의 `PFB_Player` 인스턴스에는 이전 필드 `_signatureWeapon`(값 `SO_Pistol`) 오버라이드가 남아 있다. `WeaponLoadout`에 이 필드가 없으므로 사용되지 않는다.
 
 ### `Assets/Prefabs/Weapon/PFB_PistolBullet.prefab`
@@ -425,22 +461,22 @@ PFB_Floating…                 (FloatingWeaponView, _muzzle = MuzzlePoint)
 | # | 내용 | 후속 시점 |
 |---|---|---|
 | a | (해결) 장착 무기 전체가 `WeaponAttackController._muzzle` 하나를 함께 쓰던 문제. W07에서 `_muzzle`을 제거하고 `WeaponViewController.GetMuzzle(weapon)`으로 무기별 총구(손 무기 또는 부유 총기)를 쓴다 | 해결 (W07) |
-| b | `CurrentTarget`은 다음 `Update`에서 덮어쓸 때까지 이전 값을 유지한다. `PlayerAimController`는 `ITargetable` 타입(interface)으로 `null`을 비교하므로 Unity의 파괴된 오브젝트 판정(`UnityEngine.Object`의 `==`)이 적용되지 않는다. 표적이 파괴된 뒤 읽으면 `AimPoint` 접근에서 예외가 날 수 있다 (재현 미검증). 코드 수정은 보류 항목이다 | 적 사망·풀 반환 구현 시 |
-| c | 무기마다 매 프레임 후보 전체를 탐색한다. 간격 탐색·이벤트 방식은 측정 근거가 없어 채택하지 않았다 | 실제 적 연동 시 Profiler 측정 |
+| b | `CurrentTarget`은 다음 `Update`에서 덮어쓸 때까지 이전 값을 유지한다. `PlayerAimController`는 `ITargetable` 타입(interface)으로 `null`을 비교하므로 Unity의 파괴된 오브젝트 판정(`UnityEngine.Object`의 `==`)이 적용되지 않는다. 표적이 파괴된 뒤 읽으면 `AimPoint` 접근에서 예외가 날 수 있다 (재현 미검증). Issue #8 이후 Enemy는 사망 연출 후 풀로 반환(비활성화)되며, `EnemyPool`의 `_maxSize`를 넘겨 반환될 때만 `Destroy`된다 (`Docs/TechDocs/Enemy.md` 주의사항 k). 코드 수정은 보류 항목이다 | 풀 한도 초과가 확인될 때 |
+| c | 무기마다 매 프레임 후보 전체를 탐색한다. 간격 탐색·이벤트 방식은 측정 근거가 없어 채택하지 않았다. 실제 적 연동(#8)은 완료됐으나 Profiler 측정은 하지 않았다 | 성능 측정 단계 |
 | d | (해결) 고유 무기를 `WeaponLoadout._signatureWeapon`에 카우보이 권총으로 임시 지정하던 문제. Issue #10에서 필드를 제거하고 `SignatureWeapon` = `Character.StartWeapon`(캐릭터 SO)으로 바꿨다 | 해결 (#10) |
-| e | `WeaponAttackController`, `Projectile`, `PlayerAimController`, `TempCubeEnemy`가 `Time.deltaTime`을 직접 쓴다. 일시정지와 연동되어 있지 않다 | GameFlow(GameState) 연동 시 교체 |
+| e | `WeaponAttackController`, `Projectile`, `PlayerAimController`, `WeaponViewController`, `Enemy`가 `Time.deltaTime`을 직접 쓴다. 일시정지와 연동되어 있지 않다 | GameFlow(GameState) 연동 시 교체 |
 | f | 손 무기 `MuzzlePoint` 로컬 위치 3종 `PistolDefault` (0, 0.15, 0.47), `ShotgunDefault` (0, 0.031, 0.928), `MiniGunDefault` (0, 0, 1.066)은 애니메이션이 없는 모델 메시 기준으로 총신 끝을 산출한 값이다. W05 Play 모드에서 애니메이션 재생 중 `MuzzlePoint`가 움직여 탄이 가끔 빗나가는 것을 사용자가 관찰했다 (발사 로직은 정상 동작) | 애니메이션(idle/running/피격) 적용 후 Play 모드로 조정 |
-| g | `TempCubeEnemy.TakeDamage`는 `IsAlive`가 아닌 `IsTargetable`로 사망 여부를 검사한다. 현재는 `IsTargetable => IsAlive`라 결과가 같지만, 두 값의 의미가 달라지면 결과도 달라진다 | 실제 적 구현 시 |
+| g | (해결) 임시 적 `TempCubeEnemy.TakeDamage`가 `IsAlive`가 아닌 `IsTargetable`로 사망 여부를 검사하던 문제. Issue #8에서 `TempCubeEnemy`를 삭제했고, `Enemy.TakeDamage`는 `IsAlive`로 검사한다 | 해결 (#8) |
 | h | W03 이월 항목 (아래 표) | 각 항목 참고 |
 | i | 펠릿마다 개별 피해라서 가까운 적 하나에 펠릿이 여러 발 맞으면 피해가 그만큼 누적된다 (현재 임시값 기준 최대 5발 × 5). 근접 피해 상한은 구현되지 않았다 | W08에서 검토 |
 | j | `_spreadAngle`이 360이면 양 끝 탄의 각도가 -180°·+180°라서 같은 방향으로 겹친다 | 밸런스 조정 시 |
 | k | `PFB_ShotgunPellet`의 탄 외형(`SM_Bullet_09`, 스케일 5)은 Play 확인 후 다시 검토하기로 했다 | Play 확인 후 재검토 |
 | l | (해결) 손 무기 외형이 장착 무기에 따라 자동으로 바뀌지 않던 문제 (W05 Play 확인은 손 무기를 `ShotgunDefault`로 수동 전환해 진행). W07에서 `WeaponViewController`가 주무기 종류의 손 무기를 켜고 Animator Controller를 교체한다 | 해결 (W07) |
-| m | 탄은 총구 위치(`_views.GetMuzzle(weapon)`이 반환한 총구 `Transform`의 `position`)에서 탄 방향으로 넘어간 시간 × 탄속만큼 앞당긴 위치에서 생성되고(발사 절, 주의사항 r 참고), 중심 방향은 총구→표적 `AimPoint`의 XZ 방향이고, 총구와 표적의 XZ 위치가 겹치면 플레이어 루트→표적 방향이다 (코드 확인, 발사 절 `중심 방향` 참고). 플레이어 몸과 총구 사이에 낀 적이 맞는지는 확인하지 않았다 (미검증) | 실제 적 연동 시 사용자 Play 검증 후 AI agent Play 모드 검증으로 2차 확인 |
+| m | 탄은 총구 위치(`_views.GetMuzzle(weapon)`이 반환한 총구 `Transform`의 `position`)에서 탄 방향으로 넘어간 시간 × 탄속만큼 앞당긴 위치에서 생성되고(발사 절, 주의사항 r 참고), 중심 방향은 총구→표적 `AimPoint`의 XZ 방향이고, 총구와 표적의 XZ 위치가 겹치면 플레이어 루트→표적 방향이다 (코드 확인, 발사 절 `중심 방향` 참고). 플레이어 몸과 총구 사이에 낀 적이 맞는지는 확인하지 않았다 (미검증). 실제 적 연동(#8)은 완료됐으나 이 항목의 2차 확인은 하지 않았다 | 성능 측정 단계 |
 | n | `PlayerAimController.GetLookDirection`은 여전히 `GetAimDirection(_visualRoot.position, AimPoint)`를 쓴다. 표적과 `_visualRoot`의 XZ 위치가 겹치면 영벡터가 되어 `LateUpdate`에서 회전하지 않는다 (이동 방향으로 대체하지 않음). 겹침 시 기대 동작은 정해지지 않았다 | 미정 |
 | o | SO의 `_projectilePrefab`이 비어 있으면(`null`) 그 무기의 첫 발사 때 `Dictionary`의 `null` 키 예외가 난다. `null` 검사는 없다 (의도) | 무기 SO 작성 시 연결 필수 |
 | p | `ProjectilePool`의 `_defaultCapacity`·`_maxSize`는 프리팹별 풀마다 각각 적용된다. 전체 탄 상한은 `_maxSize` × 프리팹 수다 | 참고 |
-| q | `TempCubeEnemy._hitFlashDuration`이 0이면 피격 색(빨강)이 원래 색으로 돌아오지 않는다. 임시 도구라 그대로 둔다 (사용자 결정) | 실제 적 구현 시 임시 적과 함께 정리 |
+| q | (해결) `TempCubeEnemy._hitFlashDuration`이 0이면 피격 색이 원래 색으로 돌아오지 않던 문제. Issue #8에서 `TempCubeEnemy`를 삭제했고, 피격 연출은 `EnemyHitFeedback`이 맡는다 (`_flashDuration`이 0이면 반짝임 생략, `Docs/TechDocs/Enemy.md`) | 해결 (#8) |
 | r | 넘긴 시간만큼 앞당겨 생성한 탄은 총구 기준 사거리가 `ProjectileSpeed × overshoot`만큼 늘어난다. `Projectile`이 생성 위치부터 이동 거리·경과 시간을 세기 때문이다. 또 긴 프레임 끊김 시 총구~생성 위치 구간의 적은 판정하지 않는다 (코드의 `shortcut` 주석) | 누락이 문제되면 생성 구간 SphereCast 추가 |
 | s | `ReloadDuration`이 0이어도 재장전이 시작된 프레임에는 더 발사하지 않는다. 재장전은 다음 프레임 `Tick`에서 끝나므로 최소 1프레임 발사가 멈춘다 | 참고 |
 | t | 표적이 없다가 다시 찾은 첫 프레임에도, `ClearOverdueShotCooldown`으로 0이 된 쿨다운이 그 프레임 `Tick`에서 `-deltaTime`이 되어 생성 위치가 `deltaTime`만큼 앞당겨진다 | 참고 |
@@ -457,7 +493,7 @@ PFB_Floating…                 (FloatingWeaponView, _muzzle = MuzzlePoint)
 | z6 | Inspector·SO 연결 누락 시 `null` 검사 없이 예외·오동작이 난다. `_handWeapons`에 주무기 `WeaponType` 항목이 없으면 `GetMuzzle`에서 `NullReferenceException`. `_appearances`에 현재 캐릭터(`_loadout.Character`) 항목이 없으면 등록된 Body·Head가 모두 꺼진다. SO의 `_floatingViewPrefab`이 비면 `Instantiate`에서 예외 | 무기·캐릭터 추가 시 연결 필수 |
 | z7 | 런타임 부유 총기 오브젝트 이름에 `(Clone)` 접미사가 붙는다. `UnityHierarchyRules.md` 이름 규칙을 런타임 생성 오브젝트에도 적용하는지는 정해지지 않았다 | 미정 |
 | z8 | `TempLoadoutTester`는 `PFB_Player`에 붙은 임시 검증 도구다 (`_extraWeapons` = `SO_Shotgun`, `SO_Minigun`). 이 Prefab을 쓰는 모든 Scene에서 시작 시 무기 3개가 장착된다 | 인벤토리 연동 시 제거 |
-| z9 | Animator 파라미터(달리기·사격) 연동이 없다. 교체한 Animator Controller의 기본 상태만 재생한다 | 애니메이션 연동 시 |
+| z9 | (해결) Animator 파라미터(달리기·사격) 연동이 없던 문제. Issue #8 PA에서 `PlayerAnimator`가 `MoveX`·`MoveZ`·`IsShooting`·`IsDead`·`Hit`을 설정하고, 무기별 Controller를 `Assets/Animations/Player/`로 교체했다 | 해결 (#8) |
 | z10 | W07 reviewer 권고 중 코드에 반영하지 않은 항목 (기록만) : `WeaponViewController.Start` 주석이 실행 순서를 단정함, 이름 `gunCount`·`_views`의 의미 명확성, `WeaponLoadoutTests` 요약 주석, 이벤트 순서(`PrimaryChanged` → `WeaponsChanged`)와 `Unequip` 성공 시 `WeaponsChanged` 발생을 검증하는 테스트 부재 | 미정 |
 | z11 | `WeaponLoadout._defaultCharacter`가 비어 있고 `CharacterSelection.Selected`도 `null`이면 `Character`가 `null`이라 `SignatureWeapon`(`Character.StartWeapon`) 접근에서 `NullReferenceException`이 난다. `Awake`가 `SignatureWeapon`을 읽으므로 시작 시점에 발생한다. 캐릭터 SO의 `_startWeapon`이 비면 `Equip(null)`의 `WeaponInstance` 생성자(`definition.MagazineCapacity`)에서 같은 예외가 난다. `null` 검사는 없다 | `PFB_Player`·캐릭터 SO 연결 필수 |
 | z12 | 탄창 무기의 마지막 탄을 `ConsumeAmmo`하면 `AmmoChanged`가 `IsReloading = true`보다 먼저 발생한다 (`CurrentAmmo--` → `AmmoChanged` → `StartReload`). 이 시점의 `AmmoChanged` 구독자는 잔탄 0·재장전 아님 상태를 읽는다. 현재 구독자는 테스트뿐이다 (W06 reviewer 권고, 코드 미수정) | 잔탄 UI 등 구독자 추가 시 |
@@ -478,7 +514,7 @@ PFB_Floating…                 (FloatingWeaponView, _muzzle = MuzzlePoint)
 
 - 표적 후보 목록이 비면 `FindNearest`는 `null`을 반환한다. 후보 목록 자체가 `null`이면 안 된다 (공급하는 쪽 책임).
 - `ObjectPool`이 비면 새로 생성한다. `_maxSize`(512)를 넘겨 반환된 탄은 파괴한다.
-- `TempCubeEnemy`는 사망 후에도 활성 상태로 남아 `ActiveEnemies`에 있다. `IsTargetable == false`이므로 탐색에서 제외되고, `IsAlive == false`이므로 탄이 통과한다.
+- `Enemy`는 사망 후 `_deathDuration`(Prefab 값 1초) 동안 활성 상태로 남아 `ActiveEnemies`에 있다. `IsTargetable == false`이므로 탐색에서 제외되고, Collider가 꺼지고 `IsAlive == false`이므로 탄이 통과한다. 이후 풀 반환(비활성화)으로 목록에서 빠진다.
 
 ### 검증 방법
 
@@ -488,6 +524,8 @@ PFB_Floating…                 (FloatingWeaponView, _muzzle = MuzzlePoint)
     - `ProjectileTests` : 뷰포트 경계, XZ 성분 0 방향, 비스듬한 방향 정규화, 중복 기록 1회, 죽은 적 미기록, 고유 적중 한도, 재사용 시 기록 초기화
     - `WeaponLoadoutTests` : 주무기 우선순위 4단계, 빈 목록, 장착 시 지정·유지, 해제 시 유지·재선정·`null`, 이벤트 (주무기 없을 때 장착 시 `PrimaryChanged` 1회(`Equip_NoPrimary_RaisesPrimaryChangedOnce`), 주무기 있을 때 장착 시 `WeaponsChanged`만(`Equip_HasPrimary_RaisesOnlyWeaponsChanged`), 비주무기 해제 시 `PrimaryChanged` 없음(`Unequip_NonPrimary_DoesNotRaisePrimaryChanged`), 주무기 해제 시 `PrimaryChanged` 1회(`Unequip_Primary_RaisesPrimaryChangedOnce`), 없는 ID 해제 시 이벤트 없음(`Unequip_UnknownId_RaisesNoEvents`)). `SetUp`에서 `_startWeapon`을 넣은 임시 `CharacterDefinition`을 `_defaultCharacter`에 주입하고 `CharacterSelection.Selected`를 `null`로 비운다 (Issue #10). `WeaponInstanceTests`의 `Loadout_SameDefinitionTwice_GetsDistinctIdsAndUnequipRemoves`도 `_startWeapon`이 빈 `CharacterDefinition`을 `_defaultCharacter`에 주입한다
     - `WeaponViewSlotTests` : 슬롯 각도가 총 수만큼 원을 균등 분할하고 슬롯 0이 0°인지 (`GetSlotAngle_DividesCircleEvenly`, N = 1~4의 10개 케이스)
+    - `PlayerAnimatorTests` (Issue #8) : `GetLocalMoveDirection` 월드 정면·후면·오른쪽, 모델이 오른쪽으로 돈 상태의 월드 정면(→ 로컬 왼쪽)·월드 오른쪽(→ 로컬 정면), 임계 속도 이하 0, 수직 속도만 있으면 0, 수직 성분 섞인 정면 이동은 정면
+- 결과 (Issue #8) : EditMode 161/161 통과 (2026-11-18, RP 단계 기준). Play 모드는 사용자가 전체 게임 루프를 확인했다 (항목별 결과는 `Docs/TechDocs/Enemy.md`·`Docs/TechDocs/GameFlow.md`의 검증 방법 참고, 항목 m은 미검증). `_orbitHeight` 1.2에서 부유 총기 탄이 적 위를 지나간 현상은 작업 보고 기준이다.
 - 결과 (Issue #10) : EditMode 104/104 통과 (메인 세션 확인 기준, `Assets/Tests/Editor/` 전체이며 `Docs/TechDocs/Map.md`의 맵 테스트 포함).
 - 결과 (W07) : EditMode 66/66 통과 (W07 메인 세션 확인 기준, W07에서 `WeaponLoadoutTests` 이벤트 5개·`WeaponViewSlotTests` 10개 추가. W06 기준은 51/51, W05 기준은 41/41).
 - Play 모드 : 조준·발사·죽은 적 탄 통과·몸통 회전이 정상임을 사용자가 확인했다. 화면 밖 무효화, 풀 한도 초과, 항목 b의 위험 상황, 항목 h 중 적 풀링 시 `HashSet` 중복 판정 위험은 Play 모드로 확인하지 않았다 (미검증). 항목 h 중 SphereCast 시작점 겹침은 W05 메인 세션 실측과 사용자 Play 확인이 있다 (W03 이월 항목 표 참고).
@@ -503,3 +541,4 @@ PFB_Floating…                 (FloatingWeaponView, _muzzle = MuzzlePoint)
 - Issue #5 (무기 시스템 W01~W07)
 - Issue #3 (탑다운 카메라·플레이어 이동. `PlayerMovement`의 `CharacterController.SimpleMove` 이동과 `InputActionReference` Move 입력이 이 이슈에서 확정됐다. `Docs/Spec/Roadmap.md`의 확정 사항 참고)
 - Issue #10 (TitleScene·캐릭터 선택. 고유 무기·생김새를 캐릭터 기준으로 변경, `Docs/TechDocs/Character.md`)
+- Issue #8 (몬스터 프로토타입. 표적 후보를 `Enemy`로 교체, `_orbitHeight` 조정, 플레이어 애니메이션 PA. `Docs/TechDocs/Enemy.md`, `Docs/TechDocs/GameFlow.md`). PR : 미정

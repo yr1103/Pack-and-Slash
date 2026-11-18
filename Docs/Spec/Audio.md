@@ -14,17 +14,17 @@
 | 무기 | 발사 (권총·샷건·미니건) | 발사 1회마다 | `WeaponInstance.AmmoChanged` (잔탄 소모 = 발사 1회) | 이벤트 있음 |
 | 무기 | 재장전 시작 | 탄창 소진 | `WeaponInstance.ReloadStarted` | 이벤트 있음 |
 | 무기 | 재장전 완료 | 재장전 종료 | `WeaponInstance.ReloadFinished` | 이벤트 있음 |
-| 무기 | 탄 적중 | 적 피격 | 미정 (`Projectile` 적중 지점) | 없음 |
-| 적 | 사망 | 사망 확정 | `Enemy.Died` | M04에서 추가 |
+| 무기 | 탄 적중 | 적 피격 (피해 적용 시마다) | `Enemy.Damaged` (인스턴스 이벤트, 인자 피해량) | 이벤트 있음 |
+| 적 | 사망 | 사망 확정 | `Enemy.Died` | 이벤트 있음 |
 | 플레이어 | 피격 | 피해 적용 | `PlayerHealth.Damaged` | 이벤트 있음 |
-| 플레이어 | 사망 | 체력 0 | 미정 (`PlayerHealth` 사망 처리) | 없음 |
-| 성장 | 경험치 젬 획득 | 젬이 중심에 도착 | `PlayerExperience.ExperienceGained` | M04에서 추가 |
-| 성장 | 레벨업 | 레벨 조건 충족 | 미정 (레벨 시스템) | 구현 예정 |
+| 플레이어 | 사망 | 체력 0 | `PlayerHealth.Died` | 이벤트 있음 |
+| 성장 | 경험치 젬 획득 | 젬이 중심에 도착 | `PlayerExperience.ExperienceGained` | 이벤트 있음 |
+| 성장 | 레벨업 | 레벨 조건 충족 (레벨업 1회마다) | `PlayerExperience.LevelChanged` (인자 새 레벨) | 이벤트 있음 |
 | 보상 | 보물상자 획득 | 상자 접촉 | 미정 (M09) | 구현 예정 |
 | 보스 | 등장 | 보스 생성 | 미정 (M06) | 구현 예정 |
 | 보스 | 돌진 예고 | 경고선 표시 | 미정 (M07) | 구현 예정 |
 | 보스 | 탄 발사 | 보스 발사 | 미정 (M08·M10) | 구현 예정 |
-| 게임 흐름 | 클리어·게임 오버 | 결과 확정 | 미정 (GameFlow) | 구현 예정 |
+| 게임 흐름 | 클리어·게임 오버 | 결과 확정 (종료 후 정지 시점) | `GameSession.Ended` (인자 클리어 여부 `bool`) | 이벤트 있음 |
 | UI | 버튼·아이템 배치·회전·판매·리롤 | 입력 처리 | 미정 (인벤토리·보상 UI) | 구현 예정 |
 
 ## 계약

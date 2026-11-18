@@ -1,6 +1,6 @@
 # 맵·Flow Field 시스템 (Map)
 
-> 근거 : `Assets/Scripts/Map/*`, `Assets/Scripts/Enemy/EnemyMovement.cs`, `Assets/Scripts/Enemy/TempEnemySpawner.cs`, `Assets/Tests/Editor/*`, `Assets/Scenes/TestMap.unity`, `Assets/Prefabs/Enemy/PFB_TempCubeEnemy.prefab`, `ProjectSettings/*`
+> 근거 : `Assets/Scripts/Map/*`, `Assets/Scripts/Enemy/EnemyMovement.cs`, `Assets/Scripts/Enemy/TempEnemySpawner.cs`, `Assets/Scripts/Enemy/EnemyPool.cs`, `Assets/Tests/Editor/*`, `Assets/Scenes/TestMap.unity`, `Assets/Prefabs/Enemy/PFB_TempCubeEnemy.prefab`, `ProjectSettings/*`
 >
 > 설계 원본 : `Docs/Spec/Map/Map_prototype.md`, `Docs/Spec/Map/Map_prototype_separation.md` (이 문서는 현재 구현 상태만 기술한다)
 
@@ -13,7 +13,7 @@
 | 범위 | 내용 |
 |---|---|
 | 포함 | Issue #7의 작업 A(맵 생성·Cost Field), B(Integration Field), C(Flow Field·Gizmos), D(Enemy 이동), E(목적지 갱신·성능 측정), F(Separation) |
-| 제외 (후속) | Spatial Hash Grid(아래 `Spatial Hash Grid` 절), 고정 Seed, Chunk·Local Flow Field·Job System 등 `Map_prototype.md` §1.4 항목, 실제 Enemy 스폰·풀링 |
+| 제외 (후속) | Spatial Hash Grid(아래 `Spatial Hash Grid` 절), 고정 Seed, Chunk·Local Flow Field·Job System 등 `Map_prototype.md` §1.4 항목. 실제 Enemy 스폰·풀링은 Issue #8에서 구현했다 (`Docs/TechDocs/Enemy.md`) |
 
 ## 주요 클래스와 역할
 
@@ -25,7 +25,7 @@
 | `FlowFieldManager` (MonoBehaviour) | `IntegrationField`·`FlowField`를 하나씩 소유하고 전체 Enemy에 공유. `Start`에서 1회 계산, `Update`에서 갱신 조건(`ShouldRecalculate`)을 만족하면 재계산. Profiler 구간 `FlowFieldManager.CalculateIntegration`, `FlowFieldManager.CalculateFlow`. Gizmos(목적지·누적 비용·방향) | `MapGenerator`(`_mapGenerator`), 플레이어 `Transform`(`_player`) |
 | `MapGenerator` (MonoBehaviour) | `Awake`에서 `CostField` 생성 → 장애물 배치 → 고립 영역 채움 → 장식 배치 → 경계 벽 생성. 장애물마다 차단 Box 생성. Profiler 구간 `MapGenerator.Awake`, `MapGenerator.PlaceObstacles`, `MapGenerator.PlaceDecorations` | 장애물·장식 Prefab, `_generatedRoot` |
 | `EnemyMovement` (MonoBehaviour) | 매 `Update`에 `FlowFieldManager`에서 Flow Field를 조회해 이동 방향 결정(`GetMoveDirection`), 주변 Enemy로 Separation 계산(`CalculateSeparation`)·합성(`GetSeparatedDirection`) 후 `transform.position` 직접 이동. `Velocity` 노출. Profiler 구간 `EnemyMovement.Separation` | `FlowFieldManager`, 플레이어 `Transform` (둘 다 `Initialize`로 주입), `Physics` |
-| `TempEnemySpawner` (MonoBehaviour, 임시) | `Start`에서 `_spawnCount`마리를 자기 위치 기준 반경 `_spawnRadius` 원 위 랜덤 각도에 생성하고 `Initialize` 호출. 풀링·시간차 생성 없음 | `EnemyMovement` Prefab, `FlowFieldManager`, 플레이어 `Transform` |
+| `TempEnemySpawner` (MonoBehaviour, 임시, `TestMap` 전용) | `Start`에서 `_spawnCount`마리를 자기 위치 기준 반경 `_spawnRadius` 원 위 랜덤 각도에 `EnemyPool.Spawn`으로 생성 (풀이 `Enemy.Initialize` → `EnemyMovement.Initialize` 호출). 프리팹은 `_enemyPrefabs` 배열에서 생성마다 균등 랜덤. 시간차 생성 없음. `GameScene`은 대신 `EnemySpawner`를 쓴다 (`Docs/TechDocs/Enemy.md`) | `Enemy` Prefab, `EnemyPool`, `FlowFieldManager`, 플레이어 `Transform` |
 
 ## API / 이벤트 / 데이터 계약
 
@@ -135,8 +135,10 @@ FlowFieldManager.Start
   ├─ _costField = _mapGenerator.CostField   (Awake에서 생성되어 있음)
   ├─ IntegrationField·FlowField 생성
   └─ Calculate(플레이어 타일)                Integration → Flow
-TempEnemySpawner.Start (임시)
-  └─ _spawnCount마리 Instantiate → enemy.Initialize(FlowFieldManager, 플레이어)
+TempEnemySpawner.Start (임시, TestMap)
+  └─ _spawnCount마리 EnemyPool.Spawn(랜덤 프리팹, 위치, FlowFieldManager, 플레이어)
+       → Enemy.Initialize → EnemyMovement.Initialize(FlowFieldManager, 플레이어)
+(GameScene은 EnemySpawner가 진행 시간에 따라 생성, Docs/TechDocs/Enemy.md)
 
 [매 프레임 Update] FlowFieldManager
   ShouldRecalculate(플레이어 타일, 마지막 목적지, 경과 시간, _updateInterval)
@@ -160,7 +162,7 @@ TempEnemySpawner.Start (임시)
 
 > 아래 값은 `Assets/Scenes/TestMap.unity`, `PFB_TempCubeEnemy.prefab`에 저장된 값이다. 코드의 필드 기본값과 다르면 Scene·Prefab 값이 실제 동작 기준이다.
 >
-> Issue #10에서 `Assets/Scenes/GameScene.unity`의 내용을 `TestMap.unity`로 교체했으므로 현재 `GameScene`도 같은 구성·값이다 (GUID는 `GameScene` 것을 유지, `TestMap`은 Build Settings에서 제외되고 파일은 유지).
+> Issue #10에서 `Assets/Scenes/GameScene.unity`의 내용을 `TestMap.unity`로 교체했다 (GUID는 `GameScene` 것을 유지, `TestMap`은 Build Settings에서 제외되고 파일은 유지). Issue #8 이후 두 Scene은 다르다. `GameScene`은 `TempEnemySpawner` 대신 `EnemySpawner`를 쓰고 `GameSession`·HUD를 가진다 (`Docs/TechDocs/Enemy.md`, `Docs/TechDocs/GameFlow.md`). 맵·Flow Field 쪽(`MapGenerator`, `FlowFieldManager`) 값의 일치 여부는 이 문서 작성 시 다시 비교하지 않았다.
 
 ### `Assets/Scenes/TestMap.unity`
 
@@ -168,11 +170,17 @@ TempEnemySpawner.Start (임시)
 Environment
 └─ GeneratedMap               (_generatedRoot, 런타임 생성 오브젝트의 부모)
 Gameplay
-└─ Enemies                    (_enemyParent, Scene 배치 PFB_TempCubeEnemy 3개 포함)
+├─ (플레이어 Prefab 인스턴스)
+├─ Enemies                    (EnemyPool._enemyParent, Scene 배치 PFB_TempCubeEnemy 3개 포함)
+├─ Gems                       (ExperienceGemPool._gemParent)
+└─ Projectiles
 Managers
+├─ ProjectilePool
 ├─ MapGenerator               (MapGenerator)
 ├─ FlowFieldManager           (FlowFieldManager)
-└─ TempEnemySpawner           (TempEnemySpawner, 로컬 위치 (0, 0.482284, 0))
+├─ EnemyPool                  (EnemyPool)
+├─ ExperienceGemPool          (ExperienceGemPool)
+└─ TempEnemySpawner           (TempEnemySpawner, 로컬 위치 (0, 0, 0))
 ```
 
 | 컴포넌트 | 필드 | 값 |
@@ -190,12 +198,23 @@ Managers
 | | `_player` | 플레이어 Prefab 인스턴스 |
 | | `_updateInterval` | 0.2 |
 | | `_drawTarget` / `_drawIntegration` / `_drawFlow` | false / false / false |
-| `TempEnemySpawner` (임시) | `_enemyPrefab` | `PFB_TempCubeEnemy` |
+| `TempEnemySpawner` (임시) | `_enemyPrefabs` | `PFB_EnemyMushroom`, `PFB_EnemyCactus`, `PFB_EnemyBat` (생성마다 균등 랜덤) |
+| | `_enemyPool` | `Managers/EnemyPool` |
 | | `_flowFieldManager` | `Managers/FlowFieldManager` |
 | | `_player` | 플레이어 Prefab 인스턴스 |
-| | `_enemyParent` | `Gameplay/Enemies` |
-| | `_spawnCount` | 20 (성능 측정 시 500으로 변경해 측정) |
+| | `_spawnCount` | 20 (Issue #7 성능 측정 시 500으로 변경해 측정) |
 | | `_spawnRadius` | 75 (격자 모서리까지 약 70.7보다 커서 격자 밖에 생성) |
+| `EnemyPool` | `_enemyParent` | `Gameplay/Enemies` |
+| | `_defaultCapacity` / `_maxSize` | 64 / 512 (프리팹별 풀마다) |
+| `ExperienceGemPool` | `_gemPrefab` | `PFB_ExperienceGem` |
+| | `_gemParent` | `Gameplay/Gems` |
+| | `_playerExperience` | 플레이어 Prefab 인스턴스의 `PlayerExperience` |
+| | `_defaultCapacity` / `_maxSize` | 64 / 512 |
+| | `_spawnHeight` | 0.3 |
+
+- `TempEnemySpawner`의 위치 Y가 0이므로 생성 위치 Y도 0이다 (이전 값 0.482284에서 변경).
+- 이전 필드 `_enemyPrefab`(단일)·`_enemyParent`는 `_enemyPrefabs`(배열)·`_enemyPool`로 바뀌었다. 생성 부모는 `EnemyPool._enemyParent`가 정한다.
+- `TestMap`에는 `GameSession`이 없어 처치 수·종료 판정이 없다. 각 컴포넌트의 상세는 `Docs/TechDocs/Enemy.md`.
 
 `_obstacles`
 
@@ -211,7 +230,8 @@ Managers
 
 ### `Assets/Prefabs/Enemy/PFB_TempCubeEnemy.prefab`
 
-- 루트 : Layer `Enemy`(6), `BoxCollider`(크기 1, 트리거 아님), `TempCubeEnemy`, `EnemyMovement`. 자식 `AimPoint`.
+- 루트 : Layer `Enemy`(6), `BoxCollider`(크기 1, 트리거 아님), `Enemy`, `EnemyMovement`. 자식 `AimPoint`.
+- Issue #8에서 `TempCubeEnemy` 컴포넌트(스크립트 삭제됨)를 `Enemy`로 대체했다 (`_maxHealth` 30, `_deathDuration` 1, `_animator` 없음). `Enemy` 상세와 실제 몬스터 Prefab 3종은 `Docs/TechDocs/Enemy.md`.
 - `EnemyMovement`의 Collider는 같은 루트 오브젝트에 있다 (자기 자신 제외 조건의 전제, 주의사항 c).
 
 | `EnemyMovement` 필드 | 값 |
@@ -284,3 +304,4 @@ Managers
 ## 관련 Issue/PR
 
 - Issue #7 (맵 프로토타입, 작업 A~F)
+- Issue #8 (몬스터 프로토타입. `TempEnemySpawner`의 풀 사용·프리팹 배열, `PFB_TempCubeEnemy`의 `Enemy` 대체, `TestMap`의 `EnemyPool`·`ExperienceGemPool` 추가). PR : 미정

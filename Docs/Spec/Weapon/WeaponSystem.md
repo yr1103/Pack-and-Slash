@@ -402,9 +402,27 @@ GDD/Roadmap에서 Flow Field·Spatial Hash·Separation과 넉백의 결합은 **
 7. **진화 부가 정책:** 샷건 방사탄에 넉백을 적용할지, 진화 직후 특수 공격 첫 발동 시점.
 8. **고유 아이템 탈착 최종 밸런스:** 제안 수치의 유효 손해량 검증, 전투 조끼 +2칸 회수 대상/충돌 처리 승인, 효과 중첩 순서.
 
+## 의견 (플레이 피드백)
+
+### 2026-11-18 / 이슈 #8 플레이 피드백 — 광역 공격 무기 필요
+
+- 몬스터가 몰려드는 상황에서 단일 대상 무기(권총·샷건·미니건)만으로는 부족하다. 프로토타입 마무리 전 광역 공격 무기가 필요하다.
+- 후보 3종의 구현 복잡도 (현재 코드 기준). 공통 작업 : `WeaponType` 추가, `WeaponDefinition` 에셋, 손/부유 무기 외형 프리팹, 무기별 플레이어 Animator Override Controller.
+
+| 순위 | 무기 (캐릭터 에셋) | 동작 | 기존 재사용 | 신규 | 복잡도 |
+|---|---|---|---|---|---|
+| 1 | SawGun (`BearDefault`) | 직선 일정 거리 관통 | `ProjectileSpawnContext.MaxUniqueTargetsHit`, `ProjectileHitDetector` 고유 적중 기록, `MaxDistance`, 메시 `Saw.fbx` | `WeaponAttackController`의 상수 `MAX_UNIQUE_TARGETS_HIT`(= 1)를 `WeaponDefinition` 필드로 이전 (W10 미니건 진화 관통과 동일 작업) | 낮음 |
+| 2 | Bazooka (`SoldierDefault`) | 착탄 지점 원형 광역 | 적중 판정, Enemy 레이어, 메시 `BazookaMissile.fbx` | `Projectile` 적중 후 동작 분리 (현재 `target.TakeDamage` 고정), `OverlapSphereNonAlloc` 범위 피해, 폭발 연출 (VFX 에셋 없음) | 중간 |
+| 3 | ElectricGun (`AlienDefault`) | 착탄 지점 인접 N마리 전기 피해 | 적중 판정, `Enemy.ActiveEnemies`, `WeaponTargeting.FindNearest` (1마리) | 적중 후 동작 분리 (Bazooka와 공통), k-최근접 선택, 전기 연출 (LineRenderer 등, 탄 메시·VFX 없음) | 높음 |
+
+- **결정 필요:** GDD 무기 범위 변경 승인, 광역 피해의 화면 밖 적용 규칙 (권총·미니건은 화면 밖 무효, §4), ElectricGun 동시 방사 vs 연쇄, SawGun 관통 수 한도.
+- **추천 순서:** SawGun → Bazooka → ElectricGun (적중 후 동작 구조 재사용).
+
 ---
 
 ### 변경 이력
+
+- **2026-11-18 / 플레이 피드백 기록(#8):** `## 의견 (플레이 피드백)` 절 신설. 광역 공격 무기 후보 3종의 구현 복잡도·결정 필요 항목·추천 순서 기록. 설계 본문 변경 없음.
 
 - **2026-11-11 / 구현 반영(#5 W07):** §11 "부유 무기 조준 연출"·"원형 배치" 행에 구현 소유 위치(`WeaponViewController._floatingTurnSpeed`·`_orbitRadius`·`_orbitHeight`·`_slotMoveSpeed`)와 초깃값을 표기. 구현 차이 : §3.5 설계 제안 `PrimaryWeaponChanged`는 `WeaponLoadout.PrimaryChanged`(인자 없는 이벤트)로 구현, 슬롯 재배치는 보간 시간(`slotRepositionDuration`)이 아닌 이동 속도 방식, 캐릭터 생김새는 고유 무기 종류 기준 임시 구현. 설계 본문 변경 없음.
 

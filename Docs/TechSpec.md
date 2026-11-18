@@ -54,6 +54,7 @@
 |---|---|---|
 | 게임 흐름 (상태·일시정지·연속 레벨업) | `Docs/Spec/GameFlow.md` | §2, §9.1, §9.5 |
 | 몬스터 이동 | `Docs/Spec/MonsterMovement.md` | §12 |
+| 몬스터 시스템 (일반 몬스터·보스·스폰·보상) | `Docs/Spec/Enemy/MonsterSystem.md` | §12, §13 |
 | 맵 생성·Flow Field (작업 지시서, Separation·최소 힙 예시 포함) | `Docs/Spec/Map/Map_prototype.md` | §12 |
 | 인벤토리 (장착 격자·Storage·합성·확장) | `Docs/Spec/Inventory.md` | §7, §8, §10 |
 | 보상·판매·리롤·재화 | `Docs/Spec/Reward.md` | §9.2 ~ §9.4, §11 |
