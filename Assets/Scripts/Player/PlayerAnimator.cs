@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 이동 방향(모델 정면 기준)과 주무기 사격 여부를 매 프레임 Animator 파라미터로 설정
+/// 이동 방향(모델 정면 기준)·주무기 사격 여부·사망 상태를 매 프레임 Animator 파라미터로 설정, 피격 시 Hit 트리거
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class PlayerAnimator : MonoBehaviour
@@ -11,10 +11,13 @@ public class PlayerAnimator : MonoBehaviour
     private static readonly int _moveXHash = Animator.StringToHash("MoveX");
     private static readonly int _moveZHash = Animator.StringToHash("MoveZ");
     private static readonly int _isShootingHash = Animator.StringToHash("IsShooting");
+    private static readonly int _isDeadHash = Animator.StringToHash("IsDead");
+    private static readonly int _hitHash = Animator.StringToHash("Hit");
 
     [SerializeField] private Animator _animator; // CowboyDefault의 Animator
     [SerializeField] private Transform _visualRoot; // 몸통 회전 대상 모델 (CowboyDefault)
     [SerializeField] private WeaponLoadout _loadout;
+    [SerializeField] private PlayerHealth _health;
 
     private CharacterController _characterController;
 
@@ -23,14 +26,30 @@ public class PlayerAnimator : MonoBehaviour
         CacheComponents();
     }
 
+    private void OnEnable()
+    {
+        _health.Damaged += PlayHit;
+    }
+
+    private void OnDisable()
+    {
+        _health.Damaged -= PlayHit;
+    }
+
     // Animator는 Update 이후·LateUpdate 이전에 평가되므로 Update에서 설정해야 같은 프레임에 반영 (표적·몸통 회전은 최대 1프레임 이전 값)
-    // 주무기 변경 시 Controller가 교체되어 파라미터가 초기화되므로 변경 여부와 무관하게 매 프레임 설정
+    // 주무기 변경 시 Controller가 교체되어 파라미터가 초기화되므로 변경 여부와 무관하게 매 프레임 설정 (IsDead 포함)
     private void Update()
     {
         Vector2 moveDirection = GetLocalMoveDirection(_characterController.velocity, _visualRoot.rotation, STOP_SPEED_THRESHOLD);
         _animator.SetFloat(_moveXHash, moveDirection.x);
         _animator.SetFloat(_moveZHash, moveDirection.y);
         _animator.SetBool(_isShootingHash, IsShooting());
+        _animator.SetBool(_isDeadHash, _health.IsDead);
+    }
+
+    private void PlayHit()
+    {
+        _animator.SetTrigger(_hitHash);
     }
 
     /// <summary>월드 속도를 모델 정면 기준 로컬 이동 방향으로 변환 (Y 성분 무시)</summary>

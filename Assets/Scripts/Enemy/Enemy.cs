@@ -9,10 +9,13 @@ public class Enemy : MonoBehaviour, ITargetable, IDamageable
 {
     // shortcut: 임시 static 목록, EnemyManager 도입 시 이관
     private static readonly List<ITargetable> _activeEnemies = new List<ITargetable>();
+    private static readonly int _dieHash = Animator.StringToHash("Die");
 
     [SerializeField] private Transform _aimPoint; // 자식 AimPoint 빈 오브젝트
+    [SerializeField] private Animator _animator; // 외형 자식의 Animator, 외형 없는 Enemy(임시 Cube)는 비워 둠
     [SerializeField, Min(1f)] private float _maxHealth = 30f;
-    [SerializeField, Min(0f)] private float _deathDuration = 1f; // 사망 후 풀 반환까지 시간(초), M03에서 Death 클립 길이에 맞춤
+    [SerializeField, Min(0f)] private float _deathDuration = 1f; // 사망 연출 후 풀 반환까지 시간(초)
+    [SerializeField, Min(0f)] private float _contactDamage = 10f; // 플레이어 접촉 시 1회 피해량
 
     private static int _nextSpawnId;
     private Health _health;
@@ -35,6 +38,8 @@ public class Enemy : MonoBehaviour, ITargetable, IDamageable
 
     /// <inheritdoc/>
     public bool IsAlive => !_health.IsDead && isActiveAndEnabled;
+
+    public float ContactDamage => _contactDamage;
 
     private void Awake()
     {
@@ -94,6 +99,12 @@ public class Enemy : MonoBehaviour, ITargetable, IDamageable
         _movement.enabled = false;
         _collider.enabled = false;
         _deathRemaining = _deathDuration;
+
+        // 재활성화 시 Animator가 기본 상태(Move)로 돌아가므로 OnEnable에서 되돌리지 않음
+        if (_animator != null)
+        {
+            _animator.SetTrigger(_dieHash);
+        }
     }
 
     // Release·SetActive(false) 후에는 Update가 돌지 않아 중복 반환 없음
