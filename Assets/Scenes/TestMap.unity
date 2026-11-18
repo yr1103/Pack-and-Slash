@@ -8016,6 +8016,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6737784910260388892, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
+      propertyPath: _camera
+      value: 
+      objectReference: {fileID: 836134593}
     - target: {fileID: 8765907936762248209, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
       propertyPath: _signatureWeapon
       value: 

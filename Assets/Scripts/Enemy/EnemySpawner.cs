@@ -143,7 +143,7 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
-    // 시야 사다리꼴 경계 + 여유 거리 위치를 랜덤 방향으로 찾고, 격자 밖·통행 불가면 다른 방향으로 재시도
+    // 시야 사다리꼴 경계 + 여유 거리 위치를 랜덤 방향으로 찾고, 경계 미교차·격자 밖·통행 불가면 다른 방향으로 재시도
     private bool TryFindSpawnPosition(out Vector3 position)
     {
         float groundHeight = _player.position.y;
@@ -155,8 +155,14 @@ public class EnemySpawner : MonoBehaviour
         {
             float angle = Random.Range(0f, FULL_CIRCLE_RADIANS);
             Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-            float distance = GetDistanceToBoundary(origin, direction, _groundCorners) + _spawnMargin;
-            Vector2 point = origin + direction * distance;
+            float boundaryDistance = GetDistanceToBoundary(origin, direction, _groundCorners);
+            // 경계와 만나지 않는 방향(원점이 시야 밖)은 생성 위치가 화면 안일 수 있어 다른 방향으로 재시도
+            if (boundaryDistance <= 0f)
+            {
+                continue;
+            }
+
+            Vector2 point = origin + direction * (boundaryDistance + _spawnMargin);
 
             position = new Vector3(point.x, groundHeight, point.y);
             Vector2Int tile = costField.WorldToTile(position);

@@ -82,4 +82,13 @@ public class EnemySpawnerTests
         Assert.AreEqual(15f, point.x, TOLERANCE);
         Assert.AreEqual(15f, point.y, TOLERANCE);
     }
+
+    [Test]
+    public void GetDistanceToBoundary_OutsideOriginFacingAway_ReturnsZero()
+    {
+        // 사다리꼴 아래(z = -10)에서 뒤쪽을 보면 경계와 만나지 않음 → 스폰 시도 실패 처리 조건
+        Vector2 outsideOrigin = new Vector2(0f, -10f);
+
+        Assert.AreEqual(0f, EnemySpawner.GetDistanceToBoundary(outsideOrigin, Vector2.down, _trapezoid), TOLERANCE);
+    }
 }

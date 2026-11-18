@@ -20,6 +20,11 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private Health _health;
     private DamageGate _damageGate;
 
+    public float MaxHealth => _maxHealth;
+
+    /// <summary>현재 체력 (체력바 표시용)</summary>
+    public float CurrentHealth => _health.CurrentHealth;
+
     /// <summary>사망 상태 여부 (Animator 표시용)</summary>
     public bool IsDead => _health.IsDead;
 
