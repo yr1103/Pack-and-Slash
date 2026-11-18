@@ -69,6 +69,12 @@ public class GameSession : MonoBehaviour
         _playerHealth.Died -= HandlePlayerDied;
     }
 
+    // 정지 상태로 타이틀 등 GameSession이 없는 Scene으로 이동해도 정지가 남지 않도록 복구
+    private void OnDestroy()
+    {
+        Time.timeScale = 1f;
+    }
+
     /// <summary>클리어 판정 (생존 시간이 클리어 시간 이상이면 클리어)</summary>
     public static bool IsCleared(float elapsedTime, float clearTime)
     {
