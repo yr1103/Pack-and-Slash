@@ -146,15 +146,15 @@ MonoBehaviour:
   - _weaponType: 0
     _weapon: {fileID: 8128391263078509493}
     _muzzle: {fileID: 5367105361327588808}
-    _animatorController: {fileID: 9100000, guid: ba2c554850e76d040bd78ea95e5572b7, type: 2}
+    _animatorController: {fileID: 9100000, guid: 3e498ecbb0aa85e4c93aac8eddaaa5e2, type: 2}
   - _weaponType: 1
     _weapon: {fileID: 379040912017640710}
     _muzzle: {fileID: 7789499806051010475}
-    _animatorController: {fileID: 9100000, guid: 0d57f98eeee801d4c9f4ba0744339ce7, type: 2}
+    _animatorController: {fileID: 22100000, guid: a8eee9f07801ac847ab986da86bb0fd4, type: 2}
   - _weaponType: 2
     _weapon: {fileID: 1654366521174476649}
     _muzzle: {fileID: 943468369287452973}
-    _animatorController: {fileID: 9100000, guid: 13e3797c3e306434696364d4459e3a45, type: 2}
+    _animatorController: {fileID: 22100000, guid: 8088bdd2ef50cd74386f2d09b1850a62, type: 2}
   _appearances:
   - _character: {fileID: 11400000, guid: e9cea3f0353de8d498b8928c997b49de, type: 2}
     _body: {fileID: 4275349771686871857}
@@ -166,7 +166,7 @@ MonoBehaviour:
     _body: {fileID: 4275349771317729789}
     _head: {fileID: 4275349772038352327}
   _orbitRadius: 1.5
-  _orbitHeight: 1.2
+  _orbitHeight: 0.5
   _slotMoveSpeed: 6
   _floatingTurnSpeed: 720
 --- !u!114 &7179500189625430858
@@ -228,6 +228,7 @@ GameObject:
   - component: {fileID: 207504727636867411}
   - component: {fileID: 399098494473839989}
   - component: {fileID: 2418925160230007888}
+  - component: {fileID: 4987172323217831464}
   m_Layer: 7
   m_Name: PFB_Player
   m_TagString: Untagged
@@ -306,6 +307,21 @@ MonoBehaviour:
   _visualRoot: {fileID: 4275349771585225114}
   _loadout: {fileID: 8765907936762248209}
   _turnSpeed: 720
+--- !u!114 &4987172323217831464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9151649186774323212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dfb10e088996d8d44b62ba1bb022062a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimator
+  _animator: {fileID: 4275349771585225093}
+  _visualRoot: {fileID: 4275349771585225114}
+  _loadout: {fileID: 8765907936762248209}
 --- !u!1001 &4587042763216714343
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -314,6 +330,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 475670136092952611}
     m_Modifications:
+    - target: {fileID: 359554459282209762, guid: 586bab38c75b5b147b9c1df83c23142b, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 3e498ecbb0aa85e4c93aac8eddaaa5e2, type: 2}
+    - target: {fileID: 359554459282209762, guid: 586bab38c75b5b147b9c1df83c23142b, type: 3}
+      propertyPath: m_ApplyRootMotion
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 359554459282209763, guid: 586bab38c75b5b147b9c1df83c23142b, type: 3}
       propertyPath: m_Name
       value: CowboyDefault
