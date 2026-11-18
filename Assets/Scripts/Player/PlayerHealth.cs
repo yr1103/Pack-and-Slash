@@ -13,7 +13,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     [SerializeField, Min(1f)] private float _maxHealth = 100f;
     [SerializeField, Min(0f)] private float _invulnerabilityDuration = 0.5f; // 피해 후 무적 시간(초)
-    [SerializeField, Min(0f)] private float _contactRadius = 0.6f; // Enemy 정지 거리 1.0 - 큐브 반폭 0.5 = 표면 0.5 + 여유
+    [SerializeField, Min(0f)] private float _contactRadius = 0.6f; // Enemy 정지 거리 1.0 - 캡슐 반지름 0.5 = 표면 0.5 + 여유
     [SerializeField] private LayerMask _enemyLayer; // 접촉 검사 대상
     [SerializeField] private Behaviour[] _disableOnDeath; // 사망 시 정지할 이동·조준·사격 컴포넌트
 
