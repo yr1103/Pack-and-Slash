@@ -13,6 +13,7 @@ public class WeaponInstanceTests
     private const float RELOAD_DURATION = 2f;
     private const float OVERDUE_TICK_DELTA_TIME = 0.7f; // 발사 간격보다 긴 프레임
     private const float TOLERANCE = 0.0001f;
+    private const string DEFAULT_CHARACTER_FIELD = "_defaultCharacter";
 
     private WeaponDefinition _definition;
 
@@ -154,6 +155,11 @@ public class WeaponInstanceTests
     {
         GameObject loadoutObject = new GameObject("WeaponLoadoutTest");
         WeaponLoadout loadout = loadoutObject.AddComponent<WeaponLoadout>();
+        // 주무기 해제 시 재선정이 캐릭터의 고유 무기를 읽으므로 기본 캐릭터 주입 (고유 무기는 비워 둠)
+        CharacterDefinition character = ScriptableObject.CreateInstance<CharacterDefinition>();
+        SerializedObject serializedLoadout = new SerializedObject(loadout);
+        serializedLoadout.FindProperty(DEFAULT_CHARACTER_FIELD).objectReferenceValue = character;
+        serializedLoadout.ApplyModifiedPropertiesWithoutUndo();
 
         WeaponInstance first = loadout.Equip(_definition);
         WeaponInstance second = loadout.Equip(_definition);
@@ -165,6 +171,7 @@ public class WeaponInstanceTests
         Assert.AreSame(second, loadout.Weapons[0]);
 
         Object.DestroyImmediate(loadoutObject);
+        Object.DestroyImmediate(character);
     }
 
     private static void ConsumeWholeMagazine(WeaponInstance weapon)

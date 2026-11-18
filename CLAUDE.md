@@ -49,6 +49,10 @@
 
 `@Docs\TechDocs\Map.md`
 
+### 캐릭터 선택·타이틀 UI 코드 수정 시
+
+`@Docs\TechDocs\Character.md`
+
 ### 브랜치 생성 시
 
 `@Docs\Documentation\GitBranchRules.md`

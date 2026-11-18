@@ -159,6 +159,8 @@ TempEnemySpawner.Start (임시)
 ## Scene·Prefab·Inspector 사용 방법
 
 > 아래 값은 `Assets/Scenes/TestMap.unity`, `PFB_TempCubeEnemy.prefab`에 저장된 값이다. 코드의 필드 기본값과 다르면 Scene·Prefab 값이 실제 동작 기준이다.
+>
+> Issue #10에서 `Assets/Scenes/GameScene.unity`의 내용을 `TestMap.unity`로 교체했으므로 현재 `GameScene`도 같은 구성·값이다 (GUID는 `GameScene` 것을 유지, `TestMap`은 Build Settings에서 제외되고 파일은 유지).
 
 ### `Assets/Scenes/TestMap.unity`
 
