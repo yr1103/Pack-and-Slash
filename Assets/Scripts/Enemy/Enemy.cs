@@ -47,6 +47,9 @@ public class Enemy : MonoBehaviour, ITargetable, IDamageable
     /// <summary>Enemy 사망 확정 시 1회 발생 (젬 드롭 등 구독 지점, 경험치는 직접 지급하지 않음)</summary>
     public static event Action<Enemy> Died;
 
+    /// <summary>피해 적용 시마다 발생, 인자는 이번 피해량 (사망하는 피해 포함, 피격 연출·적중 사운드 구독 지점)</summary>
+    public event Action<float> Damaged;
+
     private void Awake()
     {
         _health = new Health(_maxHealth);
@@ -93,7 +96,10 @@ public class Enemy : MonoBehaviour, ITargetable, IDamageable
             return;
         }
 
-        if (_health.ApplyDamage(damage))
+        bool isDeadByDamage = _health.ApplyDamage(damage);
+        Damaged?.Invoke(damage);
+
+        if (isDeadByDamage)
         {
             Die();
         }

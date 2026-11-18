@@ -43,6 +43,7 @@ GameObject:
   - component: {fileID: 460508440920728881}
   - component: {fileID: 8781981149591656067}
   - component: {fileID: 4268184432913942235}
+  - component: {fileID: 7084415186446271958}
   m_Layer: 6
   m_Name: PFB_EnemyMushroom
   m_TagString: Untagged
@@ -126,6 +127,25 @@ MonoBehaviour:
   _maxHealth: 30
   _deathDuration: 1
   _contactDamage: 10
+  _experienceValue: 1
+--- !u!114 &7084415186446271958
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7530722014948690248}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee413c78942670e4799ebe166fac381b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitFeedback
+  _enemy: {fileID: 4268184432913942235}
+  _renderer: {fileID: 1481611789908166886}
+  _flashMaterial: {fileID: 2100000, guid: 3aac1d48b7eab464381a2198ba94a740, type: 2}
+  _damageNumberPrefab: {fileID: 7046046755336388211, guid: 4091d3b6d485a014baff852cf81b8918, type: 3}
+  _numberPoint: {fileID: 8373200349068620165}
+  _flashDuration: 0.1
 --- !u!1001 &3653920824572520195
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -187,6 +207,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b19e63ffa2bd4f06a137cd7dd4b83a15, type: 3}
+--- !u!137 &1481611789908166886 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 2754773279386234853, guid: b19e63ffa2bd4f06a137cd7dd4b83a15, type: 3}
+  m_PrefabInstance: {fileID: 3653920824572520195}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3880527689289518616 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 535702951195797787, guid: b19e63ffa2bd4f06a137cd7dd4b83a15, type: 3}
