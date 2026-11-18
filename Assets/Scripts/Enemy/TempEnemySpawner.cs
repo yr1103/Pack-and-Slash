@@ -7,7 +7,7 @@ public class TempEnemySpawner : MonoBehaviour
 {
     private const float FULL_CIRCLE_RADIANS = Mathf.PI * 2f;
 
-    [SerializeField] private Enemy _enemyPrefab;
+    [SerializeField] private Enemy[] _enemyPrefabs; // 생성마다 균등 랜덤 선택
     [SerializeField] private EnemyPool _enemyPool;
     [SerializeField] private FlowFieldManager _flowFieldManager;
     [SerializeField] private Transform _player;
@@ -21,7 +21,9 @@ public class TempEnemySpawner : MonoBehaviour
             float angle = Random.Range(0f, FULL_CIRCLE_RADIANS);
             Vector3 offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * _spawnRadius;
 
-            _enemyPool.Spawn(_enemyPrefab, transform.position + offset, _flowFieldManager, _player);
+            Enemy prefab = _enemyPrefabs[Random.Range(0, _enemyPrefabs.Length)];
+
+            _enemyPool.Spawn(prefab, transform.position + offset, _flowFieldManager, _player);
         }
     }
 }
