@@ -1,0 +1,269 @@
+using System;
+using Unity.Profiling;
+using UnityEngine;
+
+/// <summary>
+/// 게임 시작 시 Seed 기반으로 장애물·장식을 배치하고 Cost Field를 확정, 맵 경계 벽 생성
+/// </summary>
+public class MapGenerator : MonoBehaviour
+{
+    private const int MAP_WIDTH = 100;
+    private const int MAP_HEIGHT = 100;
+    private const float HALF = 0.5f;
+    private const float FULL_ROTATION_DEGREES = 360f;
+    private const float RIGHT_ANGLE_DEGREES = 90f;
+    private const int RIGHT_ANGLE_STEP_COUNT = 4; // 0/90/180/270
+    private const int AXIS_SWAP_PERIOD = 2; // 90° 단위 회전 횟수가 홀수면 가로·세로 교환
+    private const string OBSTACLE_LAYER_NAME = "Obstacle";
+    private const string BOUNDARY_WALL_NAME_FORMAT = "BoundaryWall_{0:00}";
+    private const string OBSTACLE_BLOCKER_NAME_FORMAT = "ObstacleBlocker_{0:00}_{1:00}"; // 좌하단 타일 (x, z)
+    private const string SEED_LOG_FORMAT = "[MapGenerator] Seed : {0}";
+    private const string FILLED_LOG_FORMAT = "[MapGenerator] 고립 영역 채움 : {0}칸";
+
+    private static readonly Vector3 _gridOrigin = new Vector3(-50f, 0f, -50f); // 기존 바닥(100×100, 원점 중심)의 좌하단
+    private static readonly Vector3 _playerStartPosition = Vector3.zero;
+    private static readonly Vector3 _halfTile = new Vector3(HALF, 0f, HALF);
+    private static readonly Vector3 _obstacleGizmoSize = new Vector3(1f, 0.1f, 1f);
+    private static readonly Color _boundaryGizmoColor = Color.yellow;
+    private static readonly Color _obstacleGizmoColor = new Color(1f, 0f, 0f, 0.5f);
+    private static readonly Color _safeZoneGizmoColor = Color.green;
+    private static readonly ProfilerMarker _awakeMarker = new ProfilerMarker("MapGenerator.Awake");
+    private static readonly ProfilerMarker _placeObstaclesMarker = new ProfilerMarker("MapGenerator.PlaceObstacles");
+    private static readonly ProfilerMarker _placeDecorationsMarker = new ProfilerMarker("MapGenerator.PlaceDecorations");
+
+    [SerializeField, Range(0f, 1f)] private float _obstacleChance = 0.05f; // 타일당 장애물 생성 확률
+    [SerializeField, Range(0f, 1f)] private float _decorationChance = 0.15f; // 타일당 장식 생성 확률
+    [SerializeField] private ObstacleEntry[] _obstacles;
+    [SerializeField] private GameObject[] _decorations;
+    [SerializeField] private int _safeZoneRadius = 5; // 시작 타일 기준 정사각형 반경(타일), 장애물 금지
+    [SerializeField] private int _edgeClearWidth = 2; // 격자 가장자리에서 장애물 금지 폭(타일), 격자 밖 스폰 Enemy 진입로
+    [SerializeField] private Transform _generatedRoot; // Environment/GeneratedMap
+    [SerializeField] private float _boundaryWallHeight = 3f; // 장애물 차단 Box 높이로도 사용
+    [SerializeField] private float _boundaryWallThickness = 1f;
+    [SerializeField] private bool _drawGizmos = true; // Scene 뷰 맵 확인용, 경계(노랑 와이어)는 항상, 이동 불가 칸(반투명 빨강)·시작 안전 영역(초록 와이어)은 Play 중만
+
+    private System.Random _random; // 같은 Seed면 같은 결과가 나오도록 모든 랜덤 판정에 이것만 사용
+    private CostField _costField;
+    private Vector2Int _startTile;
+    private int _obstacleLayer;
+    private int _boundaryWallCount;
+
+    /// <summary>생성이 끝난 Cost Field (Awake 이후 유효, 에디터 비실행 시 null)</summary>
+    public CostField CostField => _costField;
+
+    // 다른 컴포넌트가 Start에서 CostField를 읽을 수 있도록 Awake에서 생성
+    private void Awake()
+    {
+        using (_awakeMarker.Auto())
+        {
+            int seed = Environment.TickCount;
+            Debug.LogFormat(SEED_LOG_FORMAT, seed);
+
+            _random = new System.Random(seed);
+            _costField = new CostField(MAP_WIDTH, MAP_HEIGHT, _gridOrigin);
+            _startTile = _costField.WorldToTile(_playerStartPosition);
+            _obstacleLayer = LayerMask.NameToLayer(OBSTACLE_LAYER_NAME);
+
+            using (_placeObstaclesMarker.Auto())
+            {
+                PlaceObstacles();
+            }
+
+            int filledCount = _costField.FillUnreachable(_startTile);
+            Debug.LogFormat(FILLED_LOG_FORMAT, filledCount);
+
+            using (_placeDecorationsMarker.Auto())
+            {
+                PlaceDecorations();
+            }
+
+            CreateBoundaryWalls();
+        }
+    }
+
+    private void PlaceObstacles()
+    {
+        for (int x = 0; x < MAP_WIDTH; x++)
+        {
+            for (int z = 0; z < MAP_HEIGHT; z++)
+            {
+                if (_random.NextDouble() >= _obstacleChance)
+                {
+                    continue;
+                }
+
+                ObstacleEntry entry = _obstacles[_random.Next(_obstacles.Length)];
+                TryPlaceObstacle(entry, x, z);
+            }
+        }
+    }
+
+    // (x, z)를 좌하단으로 회전 반영한 가로×세로 칸을 점유, 한 칸이라도 불가하면 건너뜀
+    private void TryPlaceObstacle(ObstacleEntry entry, int x, int z)
+    {
+        // 점유 크기가 회전에 따라 달라지므로 회전을 먼저 결정
+        Vector2Int size = entry.TileSize;
+        float angle;
+        if (entry.IsFreeRotation)
+        {
+            angle = (float)(_random.NextDouble() * FULL_ROTATION_DEGREES);
+        }
+        else
+        {
+            int rightAngleSteps = _random.Next(RIGHT_ANGLE_STEP_COUNT);
+            angle = rightAngleSteps * RIGHT_ANGLE_DEGREES;
+            if (rightAngleSteps % AXIS_SWAP_PERIOD == 1)
+            {
+                size = new Vector2Int(size.y, size.x);
+            }
+        }
+
+        for (int offsetX = 0; offsetX < size.x; offsetX++)
+        {
+            for (int offsetZ = 0; offsetZ < size.y; offsetZ++)
+            {
+                if (!CanPlaceObstacle(x + offsetX, z + offsetZ))
+                {
+                    return;
+                }
+            }
+        }
+
+        for (int offsetX = 0; offsetX < size.x; offsetX++)
+        {
+            for (int offsetZ = 0; offsetZ < size.y; offsetZ++)
+            {
+                _costField.SetObstacle(x + offsetX, z + offsetZ);
+            }
+        }
+
+        // 점유 칸들의 중심
+        Vector3 centerOffset = new Vector3((size.x - 1) * HALF, 0f, (size.y - 1) * HALF);
+        Vector3 position = _costField.TileToWorld(x, z) + centerOffset;
+
+        GameObject obstacle = Instantiate(entry.Prefab, position, Quaternion.Euler(0f, angle, 0f), _generatedRoot);
+        // 장애물 식별용 Layer, 하위 Collider까지 지정
+        foreach (Transform child in obstacle.GetComponentsInChildren<Transform>(true))
+        {
+            child.gameObject.layer = _obstacleLayer;
+        }
+
+        // 모델 Collider가 타일보다 작아 플레이어가 장애물 타일에 들어가지 않도록 점유 타일 전체 차단
+        Vector3 blockerMin = _costField.TileToWorld(x, z) - _halfTile;
+        Vector3 blockerMax = _costField.TileToWorld(x + size.x - 1, z + size.y - 1) + _halfTile + Vector3.up * _boundaryWallHeight;
+        CreateBlockingBox(string.Format(OBSTACLE_BLOCKER_NAME_FORMAT, x, z), blockerMin, blockerMax);
+    }
+
+    private bool CanPlaceObstacle(int x, int z)
+    {
+        bool isInsideEdge = x >= _edgeClearWidth && x < MAP_WIDTH - _edgeClearWidth
+                            && z >= _edgeClearWidth && z < MAP_HEIGHT - _edgeClearWidth;
+        bool isInSafeZone = Mathf.Abs(x - _startTile.x) <= _safeZoneRadius
+                            && Mathf.Abs(z - _startTile.y) <= _safeZoneRadius;
+        return isInsideEdge && !isInSafeZone && _costField.IsWalkable(x, z);
+    }
+
+    // 장애물·고립 영역 채움 칸은 IsWalkable이 false라 장식과 겹치지 않음
+    private void PlaceDecorations()
+    {
+        for (int x = 0; x < MAP_WIDTH; x++)
+        {
+            for (int z = 0; z < MAP_HEIGHT; z++)
+            {
+                if (!_costField.IsWalkable(x, z) || _random.NextDouble() >= _decorationChance)
+                {
+                    continue;
+                }
+
+                GameObject prefab = _decorations[_random.Next(_decorations.Length)];
+                float angle = (float)(_random.NextDouble() * FULL_ROTATION_DEGREES);
+                Instantiate(prefab, _costField.TileToWorld(x, z), Quaternion.Euler(0f, angle, 0f), _generatedRoot);
+            }
+        }
+    }
+
+    private void CreateBoundaryWalls()
+    {
+        float left = _gridOrigin.x;
+        float right = left + MAP_WIDTH;
+        float bottom = _gridOrigin.z;
+        float top = bottom + MAP_HEIGHT;
+        float floor = _gridOrigin.y;
+        float ceiling = floor + _boundaryWallHeight;
+        float thickness = _boundaryWallThickness;
+
+        // 남·북 벽이 모서리까지 덮도록 두께만큼 길게 생성
+        CreateBoundaryWall(new Vector3(left - thickness, floor, bottom - thickness), new Vector3(right + thickness, ceiling, bottom));
+        CreateBoundaryWall(new Vector3(left - thickness, floor, top), new Vector3(right + thickness, ceiling, top + thickness));
+        CreateBoundaryWall(new Vector3(left - thickness, floor, bottom), new Vector3(left, ceiling, top));
+        CreateBoundaryWall(new Vector3(right, floor, bottom), new Vector3(right + thickness, ceiling, top));
+    }
+
+    private void CreateBoundaryWall(Vector3 min, Vector3 max)
+    {
+        _boundaryWallCount++;
+        CreateBlockingBox(string.Format(BOUNDARY_WALL_NAME_FORMAT, _boundaryWallCount), min, max);
+    }
+
+    // 플레이어만 막는 보이지 않는 축 정렬 Box, Default Layer라 탄환은 통과
+    private void CreateBlockingBox(string boxName, Vector3 min, Vector3 max)
+    {
+        Bounds bounds = new Bounds();
+        bounds.SetMinMax(min, max);
+
+        GameObject box = new GameObject(boxName);
+        box.transform.SetParent(_generatedRoot, false);
+        box.transform.position = bounds.center;
+        box.AddComponent<BoxCollider>().size = bounds.size;
+    }
+
+    // 10,000칸 대상이라 장애물 칸만 그림, CostField가 없으면(에디터 비실행) 경계만 그림
+    private void OnDrawGizmos()
+    {
+        if (!_drawGizmos)
+        {
+            return;
+        }
+
+        Vector3 mapSize = new Vector3(MAP_WIDTH, 0f, MAP_HEIGHT);
+        Gizmos.color = _boundaryGizmoColor;
+        Gizmos.DrawWireCube(_gridOrigin + mapSize * HALF, mapSize);
+
+        if (_costField == null)
+        {
+            return;
+        }
+
+        Gizmos.color = _obstacleGizmoColor;
+        for (int x = 0; x < MAP_WIDTH; x++)
+        {
+            for (int z = 0; z < MAP_HEIGHT; z++)
+            {
+                if (!_costField.IsWalkable(x, z))
+                {
+                    Gizmos.DrawCube(_costField.TileToWorld(x, z), _obstacleGizmoSize);
+                }
+            }
+        }
+
+        Bounds safeZone = new Bounds();
+        safeZone.SetMinMax(
+            _costField.TileToWorld(_startTile.x - _safeZoneRadius, _startTile.y - _safeZoneRadius) - _halfTile,
+            _costField.TileToWorld(_startTile.x + _safeZoneRadius, _startTile.y + _safeZoneRadius) + _halfTile);
+        Gizmos.color = _safeZoneGizmoColor;
+        Gizmos.DrawWireCube(safeZone.center, safeZone.size);
+    }
+
+    /// <summary>장애물 Prefab과 점유 크기·회전 방식</summary>
+    [Serializable]
+    private class ObstacleEntry
+    {
+        [SerializeField] private GameObject _prefab;
+        [SerializeField, Min(1)] private Vector2Int _tileSize = Vector2Int.one; // 점유 칸 수, x = 가로, y = Z방향 세로 (회전 0° 기준)
+        [SerializeField] private bool _isFreeRotation; // false면 90° 단위 회전, 가로≠세로면 반드시 false
+
+        public GameObject Prefab => _prefab;
+        public Vector2Int TileSize => _tileSize;
+        public bool IsFreeRotation => _isFreeRotation;
+    }
+}

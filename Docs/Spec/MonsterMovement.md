@@ -1,6 +1,6 @@
 # Monster Movement Spec
 
-> 몬스터 추적 이동과 밀집 완화, Enemy 생명주기와 이동 시스템의 경계. **Flow Field / Vector Field · Spatial Hash의 내부 설계·구현은 개발자 담당** (`TechSpec.md` › `담당 경계`)
+> 몬스터 추적 이동과 밀집 완화, Enemy 생명주기와 이동 시스템의 경계. **Flow Field / Vector Field · Spatial Hash의 내부 설계·구현은 `Map/Map_prototype.md` 범위에서 AI Agent가 구현하고 개발자가 검수** (`TechSpec.md` › `담당 경계`)
 > 관련 GDD : §12
 
 ---
@@ -9,7 +9,7 @@
 
 | 데이터 범주 | 최소 필요 정보 | 사용처 |
 |---|---|---|
-| 맵 격자 데이터 | Flow Field가 요구하는 맵 정보 (구체 형식은 개발자 확정) | `MapGridProvider` → Flow Field |
+| 맵 격자 데이터 | Flow Field가 요구하는 맵 정보 (형식은 `Map/Map_prototype.md`) | `CostField` → Flow Field |
 | Enemy 이동 정보 | 위치, 개별 speed, 이동 상태 | 이동 로직 선택 |
 
 ## 계약
@@ -38,12 +38,11 @@
 - 무기의 대상 탐색은 Spatial Hash 조회를 사용한다.
 
 ### 맵 데이터
-- Scene 단계에서는 Flow Field를 완성하지 않고, Flow Field가 필요로 하는 맵 데이터를 `MapGridProvider`가 정확히 제공하도록 만든다.
-- 개발자가 데이터 형식을 확정하기 전까지 `MapGridProvider`는 **임시 형식**으로 작성한다. 임시 형식은 개발자 확정 후 **반드시 수정해야 하는 대상**이며, 코드에도 임시임을 표시한다.
+- Flow Field가 필요로 하는 맵 데이터(이동 비용·좌표 변환)는 `CostField`가 제공한다. 형식은 `Map/Map_prototype.md`를 따른다.
 
 ### 작업 경계
-- Flow Field 및 Spatial Hash 알고리즘의 내부 자료구조와 갱신 방식은 개발자가 직접 설계한다.
-- AI Agent는 개발자 승인 없이 알고리즘 구현 영역을 변경하거나 해당 영역에 직접적인 의존성을 추가하지 않는다.
+- Flow Field 및 Spatial Hash 알고리즘은 `Map/Map_prototype.md` 범위에서 AI Agent가 구현하고 개발자가 검수한다.
+- AI Agent는 이 범위를 벗어나 알고리즘 구현 영역을 변경하거나 해당 영역에 직접적인 의존성을 추가하지 않는다.
 - 시스템 간 인터페이스 변경이 필요하면 구현 전에 변경안을 제시한다.
 
 ## 테스트 기준
@@ -54,6 +53,5 @@
 
 ## 미정 파라미터
 
-- 내부 자료구조·갱신 주기·이동 처리 방식 : 개발자가 실험을 통해 결정
-- `MapGridProvider`의 데이터 형식 : 개발자 확정 후 Agent가 임시 형식을 수정한다
+- 내부 자료구조·갱신 주기·이동 처리 방식 : `Map/Map_prototype.md` 기준으로 구현 후 Profiler 측정으로 조정
 - lerp 이동 몬스터의 장애물 처리 및 등장 빈도 : Roadmap 7단계 브리핑에서 결정

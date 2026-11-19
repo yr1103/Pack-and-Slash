@@ -13,6 +13,7 @@
 - Unity MCP의 읽기 작업(Hierarchy 조회, 콘솔 로그, 컴파일 결과 확인)은 승인 없이 수행할 수 있다.
 - Unity MCP로 Scene·Prefab을 변경(오브젝트 생성·배치·이동·이름 변경, Inspector 연결)하는 것은 구현 브리핑에 대상이 기재되고 승인된 경우에만 수행한다.
 - 브리핑에 없는 Scene·Prefab·에셋은 변경하지 않고 보고한다.
+- 인벤토리·UI 작업은 `GameScene`을 복제한 Scene에서 검증한 뒤 `GameScene`에 덮어쓴다.
 
 ## 1. 최상위 구조
 

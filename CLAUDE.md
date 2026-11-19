@@ -41,6 +41,26 @@
 `@Docs\Code\CommentConvention.md`
 `@Docs\Code\CsharpCodeConvention.md`
 
+### 무기 코드 수정 시
+
+`@Docs\TechDocs\Weapon.md`
+
+### 맵·Flow Field·Enemy 이동 코드 수정 시
+
+`@Docs\TechDocs\Map.md`
+
+### 캐릭터 선택·타이틀 UI 코드 수정 시
+
+`@Docs\TechDocs\Character.md`
+
+### Enemy·스폰·피격·젬 코드 수정 시
+
+`@Docs\TechDocs\Enemy.md`
+
+### 게임 흐름·플레이어 상태·HUD·일시정지·설정 코드 수정 시
+
+`@Docs\TechDocs\GameFlow.md`
+
 ### 브랜치 생성 시
 
 `@Docs\Documentation\GitBranchRules.md`

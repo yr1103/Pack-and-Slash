@@ -14,6 +14,7 @@
 | 프로퍼티·이벤트 | PascalCase | `CurrentHealth`, `OnHealthChanged` |
 | 지역 변수·매개변수 | camelCase | `damageAmount`, `targetEnemy` |
 | private·protected 인스턴스 필드 | `_camelCase` | `_currentHealth` |
+| `private static readonly` 필드 | `_camelCase` | `_tieLeft` |
 | const | UPPER_SNAKE_CASE | `MAX_WEAPON_LEVEL` |
 | 파일명 | 해당 타입명과 일치 | `PlayerController.cs` |
 
@@ -62,6 +63,8 @@
 | 비교·증감에 쓰는 `0`, `1`, `-1` | `if (damage <= 0)`, `count + 1`, `index == -1` |
 | 루프 경계 | `i = 0; i < arr.Length; i++` |
 | 0이 아닌 루프 초기값 | `i = 2; i < arr.Length; i++` — 시작 값을 쓴 이유를 주석으로 설명한다 |
+| 다른 시스템 연동 전 임시로 쓰는 값·API | GameState 연동 전 `Time.deltaTime` — `shortcut:` 주석에 한계와 교체 시점을 적는다 |
+| 테스트 코드의 기대값·입력 예시 리터럴 | `Assert.AreEqual(10, GetRequiredExperience(2))` |
 
 ```csharp
 // 앞의 두 칸은 고정 블록이라 검사에서 제외
@@ -107,6 +110,15 @@ for (int i = 2; i < cells.Length; i++)
 
 - **Coroutine은 무조건 `Update()`보다 가볍지 않다.** 매 프레임 `yield return null`인 반복으로 단순 치환하는 것은 피한다.
 - 여러 Coroutine이 동시에 시작되는 경우 중복 실행 방지 및 종료 조건을 검토한다.
+
+### 이벤트·주기 갱신 적용 전 점검
+
+`Update` 처리를 이벤트·주기 갱신으로 바꾸기 전에 아래를 확인한다.
+
+- [ ] 캐시한 참조가 사용 시점에 유효한가? (사망·비활성화, 풀 재사용으로 다른 개체가 된 경우)
+- [ ] 갱신 지연이 계약을 어기지 않는가? (예 : "발사 순간 최근접 적" 판정)
+- [ ] 구독·해제 시점이 명확한가? (풀 재사용, 해제·판매 시 중복 구독·누수)
+- [ ] 변경 전후 비용을 Profiler로 측정했는가? 측정 근거 없이 바꾸지 않는다.
 
 ## 6. Object Pool 구현 검토
 
