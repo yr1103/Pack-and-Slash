@@ -45,8 +45,13 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     private void Update()
     {
-        // shortcut: 일시정지 등 게임 시간 관리 연동 전 Time.deltaTime 직접 사용, GameState 도입 시 교체
         _damageGate.Tick(Time.deltaTime);
+
+        // 일시정지 중 사망하면 GameSession 종료 지연이 진행되지 않아 결과 판넬 없이 멈춤
+        if (Time.timeScale == 0f)
+        {
+            return;
+        }
 
         // 무적 중에는 접촉해도 피해가 없으므로 물리 검사 생략
         if (!IsAlive || !_damageGate.IsOpen)

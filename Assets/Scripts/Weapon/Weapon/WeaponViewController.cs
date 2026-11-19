@@ -48,7 +48,6 @@ public class WeaponViewController : MonoBehaviour
     private void LateUpdate()
     {
         IReadOnlyList<WeaponInstance> weapons = _loadout.Weapons;
-        // shortcut: 일시정지 등 게임 시간 관리 연동 전 Time.deltaTime 직접 사용, GameState 도입 시 교체
         float maxDistance = _slotMoveSpeed * Time.deltaTime;
         float maxAngle = _floatingTurnSpeed * Time.deltaTime;
         int slotIndex = FIRST_FLOATING_SLOT;

@@ -62,7 +62,6 @@ public class ExperienceGem : MonoBehaviour
 
     private void UpdateScatter()
     {
-        // shortcut: 일시정지 등 게임 시간 관리 연동 전 Time.deltaTime 직접 사용, GameState 도입 시 교체
         _scatterElapsed += Time.deltaTime;
         float progress = Mathf.Clamp01(_scatterElapsed / _scatterDuration);
         // ease-out (2차) : 처음 빠르게 튕긴 뒤 감속
@@ -78,7 +77,6 @@ public class ExperienceGem : MonoBehaviour
     private void UpdateAttract()
     {
         Vector3 playerPosition = _playerExperience.transform.position;
-        // shortcut: 일시정지 등 게임 시간 관리 연동 전 Time.deltaTime 직접 사용, GameState 도입 시 교체
         transform.position = Vector3.MoveTowards(transform.position, playerPosition, _attractSpeed * Time.deltaTime);
 
         if ((playerPosition - transform.position).sqrMagnitude <= _arriveDistance * _arriveDistance)

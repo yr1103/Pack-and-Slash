@@ -288,7 +288,7 @@ Managers
 | f | 이웃 위치는 Physics 쪽 Transform 기준이라 최대 약 0.02초 늦을 수 있다 (`DynamicsManager` `m_AutoSyncTransforms` 0, `Fixed Timestep` 0.02, Enemy는 `transform.position`으로 이동) | 참고 |
 | g | 갱신 비용 개선(`SortedSet` GC 등)은 이슈 #7 범위 밖 별도 작업이다 (`IntegrationField.Relax`의 TODO 주석) | 별도 작업 |
 | h | 성능 측정 때 Enemy가 503마리였다 (`_spawnCount` 500). 원인은 확인하지 않았다. 참고로 `TestMap`의 `Gameplay/Enemies`에 Scene 배치 `PFB_TempCubeEnemy` 3개가 있어 500 + 3일 가능성이 있다 (추정, 미검증). 이 3개는 `Initialize`를 받지 않아 정지한다 | 미정 |
-| i | `EnemyMovement`, `FlowFieldManager`는 `Time.deltaTime`·`Time.time`을 직접 쓴다. 일시정지와 연동되어 있지 않다 (코드의 `shortcut` 주석) | GameState 도입 시 교체 |
+| i | (해결) `EnemyMovement`, `FlowFieldManager`가 `Time.deltaTime`·`Time.time`을 직접 쓰던 일시정지 미연동 `shortcut` 주석은 Issue #13에서 삭제됐다. 일시정지는 `GameSession`이 `Time.timeScale` 0으로 구현하므로(`Docs/TechDocs/GameFlow.md`) Enemy 이동과 Flow Field 갱신 주기가 일시정지와 함께 멈추는 것이 의도된 동작이다 | 해결 (#13) |
 | j | `_isFreeRotation`의 "가로≠세로면 false" 규칙은 코드가 검사하지 않는다 (`장애물 점유 크기와 회전` 절) | 참고 |
 
 ### 검증 방법

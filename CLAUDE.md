@@ -57,7 +57,7 @@
 
 `@Docs\TechDocs\Enemy.md`
 
-### 게임 흐름·플레이어 상태·HUD 코드 수정 시
+### 게임 흐름·플레이어 상태·HUD·일시정지·설정 코드 수정 시
 
 `@Docs\TechDocs\GameFlow.md`
 

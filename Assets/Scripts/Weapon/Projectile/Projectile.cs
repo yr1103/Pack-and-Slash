@@ -33,7 +33,6 @@ public class Projectile : MonoBehaviour
             return;
         }
 
-        // shortcut: GameState 일시정지 미연동, GameFlow 통합 시 전투 deltaTime으로 교체
         float deltaTime = Time.deltaTime;
         float stepDistance = _context.Speed * deltaTime;
         Vector3 startPosition = transform.position;

@@ -52,7 +52,6 @@ public class EnemyMovement : MonoBehaviour
         Vector3 toPlayer = playerPosition - position;
         toPlayer.y = 0f;
         // 한 프레임 이동량이 (플레이어까지 거리 - 정지 거리) 이하면 어느 방향으로 가도 정지 거리 안으로 들어가지 않음
-        // shortcut: 일시정지 등 게임 시간 관리 연동 전 Time.deltaTime 직접 사용, GameState 도입 시 교체
         float moveDistance = Mathf.Min(_moveSpeed * Time.deltaTime, toPlayer.magnitude - _stopDistance);
 
         // 격자 밖·목적지 타일은 플레이어 방향을 그대로 사용 (GetMoveDirection 분기와 동일 조건)

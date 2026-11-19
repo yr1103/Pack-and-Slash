@@ -1,6 +1,6 @@
 # Enemy·스폰·피격·경험치 젬 (Enemy)
 
-> 근거 : `Assets/Scripts/Enemy/Enemy.cs`, `Assets/Scripts/Enemy/EnemyPool.cs`, `Assets/Scripts/Enemy/EnemySpawner.cs`, `Assets/Scripts/Enemy/TempEnemySpawner.cs`, `Assets/Scripts/Enemy/EnemyHitFeedback.cs`, `Assets/Scripts/Combat/Health.cs`, `Assets/Scripts/Combat/DamageGate.cs`, `Assets/Scripts/Combat/ExperienceGem.cs`, `Assets/Scripts/Combat/ExperienceGemPool.cs`, `Assets/Tests/Editor/{HealthTests,DamageGateTests,ExperienceGemTests,EnemySpawnerTests}.cs`, `Assets/Prefabs/Enemy/*.prefab`, `Assets/Prefabs/Combat/PFB_ExperienceGem.prefab`, `Assets/Prefabs/FX/PFB_DamageNumberComic.prefab`, `Assets/Animations/Enemy/*`, `Assets/Scenes/GameScene.unity`, `Assets/Scenes/TestMap.unity`, `Assets/Imports/Other/BTM_Assets/BTM_Items_Gems/Scripts/SimpleGemsAnim.cs`, `Assets/Imports/Fonts/DamageNumbersPro/Scripts/Internal/DamageNumber.cs`(`Spawn` 시그니처)
+> 근거 : `Assets/Scripts/Enemy/Enemy.cs`, `Assets/Scripts/Enemy/EnemyPool.cs`, `Assets/Scripts/Enemy/EnemySpawner.cs`, `Assets/Scripts/Enemy/TempEnemySpawner.cs`, `Assets/Scripts/Enemy/EnemyHitFeedback.cs`, `Assets/Scripts/UI/GameSettings.cs`, `Assets/Scripts/Combat/Health.cs`, `Assets/Scripts/Combat/DamageGate.cs`, `Assets/Scripts/Combat/ExperienceGem.cs`, `Assets/Scripts/Combat/ExperienceGemPool.cs`, `Assets/Tests/Editor/{HealthTests,DamageGateTests,ExperienceGemTests,EnemySpawnerTests}.cs`, `Assets/Prefabs/Enemy/*.prefab`, `Assets/Prefabs/Combat/PFB_ExperienceGem.prefab`, `Assets/Prefabs/FX/PFB_DamageNumberComic.prefab`, `Assets/Animations/Enemy/*`, `Assets/Scenes/GameScene.unity`, `Assets/Scenes/TestMap.unity`, `Assets/Imports/Other/BTM_Assets/BTM_Items_Gems/Scripts/SimpleGemsAnim.cs`, `Assets/Imports/Fonts/DamageNumbersPro/Scripts/Internal/DamageNumber.cs`(`Spawn` 시그니처)
 >
 > 설계 원본 : `Docs/Spec/Enemy/MonsterSystem.md` (이 문서는 현재 구현 상태만 기술한다)
 >
@@ -26,7 +26,7 @@
 | `EnemyPool` (MonoBehaviour) | 프리팹마다 `UnityEngine.Pool.ObjectPool<Enemy>`를 따로 둔다(`Dictionary<Enemy, ObjectPool<Enemy>>`). `Spawn(prefab, position, flowFieldManager, player)` : 풀에서 꺼내 위치 지정 후 `Enemy.Initialize` 호출. 프리팹의 풀은 그 프리팹의 첫 `Spawn` 때 생성 | `Enemy`, `FlowFieldManager` |
 | `EnemySpawner` (MonoBehaviour) | `GameSession.ElapsedTime` 기준 `_spawnInterval`마다 해금된 프리팹 중 균등 랜덤으로 `_spawnCountPerTick`마리를 시야 사다리꼴 바깥에 생성. 동시 활성 상한 `_maxActiveEnemies`. 판정 함수 `IsUnlocked`, `HasCapacity`, `GetDistanceToBoundary`(static) | `GameSession`, `EnemyPool`, `FlowFieldManager`(`CostField`), 플레이어 `Transform`, `Camera`, `Enemy.ActiveEnemies` |
 | `TempEnemySpawner` (MonoBehaviour, 임시) | `TestMap` 전용. `Start`에서 `_spawnCount`마리를 자기 위치 기준 반경 `_spawnRadius` 원 위 랜덤 각도에 `EnemyPool`로 일괄 생성. 프리팹은 `_enemyPrefabs`에서 생성마다 균등 랜덤 | `EnemyPool`, `FlowFieldManager`, 플레이어 `Transform` |
-| `EnemyHitFeedback` (MonoBehaviour) | `Enemy.Damaged` 구독. 피해마다 `_renderer.sharedMaterial`을 `_flashMaterial`로 `_flashDuration`초 교체, `DamageNumber.Spawn(위치, 피해량)`으로 피해 숫자 표시 | `Enemy`, `Renderer`, `Material`, `DamageNumbersPro.DamageNumber` |
+| `EnemyHitFeedback` (MonoBehaviour) | `Enemy.Damaged` 구독. 피해마다 `_renderer.sharedMaterial`을 `_flashMaterial`로 `_flashDuration`초 교체, `DamageNumber.Spawn(위치, 피해량)`으로 피해 숫자 표시. 각각 `GameSettings` 설정이 꺼져 있으면 생략 | `Enemy`, `Renderer`, `Material`, `DamageNumbersPro.DamageNumber`, `GameSettings` |
 | `Health` (일반 클래스) | 최대·현재 체력, `ApplyDamage`(0 미만으로 내려가지 않음, 처음 사망한 호출만 `true`), `ResetToMax`. `Enemy`·`PlayerHealth`가 사용 | 없음 |
 | `DamageGate` (일반 클래스) | 피해 1회 통과 후 무적 시간 동안 추가 통과를 막는 게이트(`TryPass`, `Tick`, `IsOpen`). 현재 `PlayerHealth`만 사용 | 없음 |
 | `ExperienceGem` (MonoBehaviour) | 상태 `Idle` → `Scatter` → `Attract`. 도착 시 `PlayerExperience.AddExperience` 1회 후 풀 반환. 판정 함수 `IsInCollectRadius`, `GetScatterDirection`(static). 수명 없음 | `PlayerExperience`, `IObjectPool<ExperienceGem>` |
@@ -93,8 +93,9 @@
 
 - `Awake`에서 `_renderer.sharedMaterial`을 원래 재질로 저장한다.
 - 피해마다 (`OnDamaged`)
-    - `_flashDuration > 0`이면 `sharedMaterial`을 `_flashMaterial`로 바꾸고 남은 시간을 `_flashDuration`으로 채운다. 반짝이는 중에 다시 맞으면 남은 시간만 갱신된다. `_flashDuration`이 0이면 반짝임을 생략한다.
-    - `_damageNumberPrefab.Spawn(_numberPoint.position, damage)`로 피해 숫자를 띄운다.
+    - `GameSettings.HitFlashEnabled`이고 `_flashDuration > 0`이면 `sharedMaterial`을 `_flashMaterial`로 바꾸고 남은 시간을 `_flashDuration`으로 채운다. 반짝이는 중에 다시 맞으면 남은 시간만 갱신된다. 설정이 꺼져 있거나 `_flashDuration`이 0이면 반짝임을 생략한다.
+    - `GameSettings.DamageNumberEnabled`이면 `_damageNumberPrefab.Spawn(_numberPoint.position, damage)`로 피해 숫자를 띄운다. 꺼져 있으면 생략한다.
+    - 두 설정은 피해마다 읽으므로 설정 판넬에서 바꾸면 다음 피격부터 적용된다. 설정 값은 `GameSettings`의 static 캐시다 (`Docs/TechDocs/GameFlow.md`).
 - `Update`에서 남은 시간을 `Time.deltaTime`만큼 줄이고 0 이하가 되면 원래 재질로 되돌린다.
 - `OnDisable`(풀 반환 등)에서 반짝이는 중이었으면 원래 재질로 즉시 되돌린다. 재사용 시 반짝임 재질이 남지 않는다.
 
@@ -144,7 +145,7 @@
 Enemy.TakeDamage
   ├─ IsAlive 아니면 무시
   ├─ Health.ApplyDamage(피해)
-  ├─ Damaged(피해) → EnemyHitFeedback : 재질 교체, 피해 숫자 Spawn
+  ├─ Damaged(피해) → EnemyHitFeedback : 재질 교체, 피해 숫자 Spawn (각각 GameSettings가 켜져 있을 때만)
   └─ 처음 사망이면 Die()
        ├─ EnemyMovement·Collider 끔, _deathRemaining = _deathDuration
        ├─ Animator Die 트리거 (있으면)
@@ -292,7 +293,7 @@ Managers
 |---|---|---|
 | a | `ActiveEnemies`는 static 목록이다. 사망 연출 중인 Enemy도 반환 전까지 포함되므로 `EnemySpawner` 상한 판정과 무기 후보 순회에 들어간다 (무기 탐색은 `IsTargetable == false`로 제외) | `EnemyManager` 도입 시 이관 |
 | b | `TestMap`의 Scene 배치 `PFB_TempCubeEnemy` 3개(`GameScene`에서는 삭제됨)는 `Initialize`를 받지 않아 이동하지 않고(`FlowFieldManager` 미주입), 사망 시 풀 대신 `SetActive(false)`만 한다. 이들도 `ActiveEnemies`·처치 수·젬 드롭(경험치 1)에 포함된다 | 임시 적 정리 시 |
-| c | `Enemy`, `EnemyHitFeedback`, `ExperienceGem`, `PlayerHealth`, `GameSession`이 `Time.deltaTime`을 직접 쓴다 (코드의 `shortcut` 주석). `Time.timeScale` 0이면 함께 멈춘다 | GameState 도입 시 교체 |
+| c | (해결) `Enemy`, `EnemyHitFeedback`, `ExperienceGem`, `PlayerHealth`, `GameSession`이 `Time.deltaTime`을 직접 쓰던 일시정지 미연동 `shortcut` 주석은 Issue #13에서 삭제됐다. 일시정지는 `GameSession`이 `Time.timeScale` 0으로 구현하므로(`Docs/TechDocs/GameFlow.md`) 사망 연출·반짝임 복원·젬 이동이 일시정지와 함께 멈추는 것이 의도된 동작이다 | 해결 (#13) |
 | d | 젬에는 수명이 없다. 수집되지 않은 젬은 계속 활성 상태로 남고 매 프레임 수집 반경을 검사한다 | 젬 수가 문제되면 수명·합치기 검토 |
 | e | 젬 높이는 `_spawnHeight`(월드 Y 0.3) 고정이다. Enemy가 다른 높이에서 죽어도 젬은 이 높이에 생성된다 | 지면 높이가 달라지면 |
 | f | `EnemyHitFeedback`은 `Renderer.sharedMaterial` 하나만 교체한다. 외형에 Renderer가 여러 개면 연결한 하나만 반짝인다 | 외형 추가 시 |
