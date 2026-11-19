@@ -1,6 +1,6 @@
 # 캐릭터 선택·타이틀 (Character)
 
-> 근거 : `Assets/Scripts/Character/CharacterDefinition.cs`, `Assets/Scripts/Character/CharacterSelection.cs`, `Assets/Scripts/UI/CharacterSelectUI.cs`, `Assets/Scripts/Weapon/Weapon/WeaponLoadout.cs`, `Assets/Scripts/Weapon/Weapon/WeaponViewController.cs`, `Assets/Tests/Editor/WeaponLoadoutTests.cs`, `Assets/Data/Character/*.asset`, `Assets/Sprites/Character/*.png.meta`, `Assets/Scenes/TitleScene.unity`, `Assets/Prefabs/Player/PFB_Player.prefab`, `ProjectSettings/EditorBuildSettings.asset`, `ProjectSettings/EditorSettings.asset`
+> 근거 : `Assets/Scripts/Character/CharacterDefinition.cs`, `Assets/Scripts/Character/CharacterSelection.cs`, `Assets/Scripts/UI/CharacterSelectUI.cs`, `Assets/Scripts/UI/TitleMenu.cs`, `Assets/Scripts/Weapon/Weapon/WeaponLoadout.cs`, `Assets/Scripts/Weapon/Weapon/WeaponViewController.cs`, `Assets/Tests/Editor/WeaponLoadoutTests.cs`, `Assets/Data/Character/*.asset`, `Assets/Sprites/Character/*.png.meta`, `Assets/Scenes/TitleScene.unity`, `Assets/Prefabs/Player/PFB_Player.prefab`, `ProjectSettings/EditorBuildSettings.asset`, `ProjectSettings/EditorSettings.asset`, `ProjectSettings/ProjectSettings.asset`
 >
 > 설계 원본 : `Docs/Spec/GDD.md` §14의 1 (캐릭터 선택), `Docs/Spec/GameFlow.md` (이 문서는 현재 구현 상태만 기술한다)
 
@@ -14,6 +14,7 @@
 | 범위 | 내용 |
 |---|---|
 | 포함 | Issue #10 : 캐릭터 SO, 선택 결과 전달(static), 타이틀·캐릭터 선택 UI, 캐릭터 기준 시작 무기·생김새, Build Settings |
+| 포함 | Issue #13 : 타이틀 메뉴(`TitleMenu`, 설정·게임 종료 버튼, 종료 확인창), 1920×1080 고정 해상도 |
 | 제외 (후속) | 캐릭터 필수(고정) 아이템, 고유 특성 (추후 이슈), 한글 TMP 폰트, 패널 닫기·타이틀 복귀 |
 
 ## 주요 클래스와 역할
@@ -26,9 +27,11 @@
 | `CharacterSelectUI.CharacterSlot` (private, Serializable) | 슬롯 하나의 `_character`, `_button`, `_portrait`(Image), `_selectionMark`(GameObject) | `CharacterDefinition` |
 | `WeaponLoadout` (기존, 변경) | `Character`(`CharacterSelection.Selected`가 있으면 그것, 없으면 `_defaultCharacter`), `SignatureWeapon`(= `Character.StartWeapon`). 둘 다 읽을 때마다 계산 | `CharacterDefinition`, `CharacterSelection` |
 | `WeaponViewController` (기존, 변경) | `ApplyAppearance`에서 `_loadout.Character`와 같은 `_appearances` 항목의 Body·Head만 켬 | `WeaponLoadout`, `CharacterDefinition` |
+| `TitleMenu` (MonoBehaviour, Issue #13) | 타이틀 메뉴의 설정 판넬·게임 종료 확인창 열고 닫기. 확인창 예 → `Application.Quit()`. ESC(`UI/Cancel`)로 열린 창을 하나씩 닫음. 입력 액션을 직접 `Enable`/`Disable` | `Button`, `InputActionReference`, `Application` |
 
 - `WeaponLoadout`·`WeaponViewController`의 상세는 `Docs/TechDocs/Weapon.md` 참고.
-- 타이틀 화면 전용 스크립트는 없다. `StartButton`은 Button OnClick 영구 리스너로 `CharacterSelectPanel.SetActive(true)`를 호출한다.
+- `StartButton`은 `TitleMenu`와 무관하게 Button OnClick 영구 리스너로 `CharacterSelectPanel.SetActive(true)`를 호출한다 (Issue #13 이후에도 유지).
+- 설정 판넬(`PFB_SettingsPanel`, `SettingsPanel`)과 `GameSettings`는 `Docs/TechDocs/GameFlow.md` 참고.
 
 ## API / 이벤트 / 데이터 계약
 
@@ -57,6 +60,19 @@
 
 - `CharacterSelectPanel`은 Scene에 비활성으로 저장되어 있다. 첫 활성화 때 `Awake` → `OnEnable` → `Start` 순으로 실행된다 (같은 컴포넌트 안의 Unity 생명주기 순서).
 - 시작 버튼은 Scene에 `m_Interactable: 1`로 저장되어 있지만 `Start`에서 `false`로 바뀐다. 슬롯을 고르기 전에는 `StartGame`이 호출되지 않으므로 `_selected`가 `null`인 채 저장되는 경로는 없다.
+
+### 타이틀 메뉴 (`TitleMenu`)
+
+| 시점·입력 | 동작 |
+|---|---|
+| `OnEnable` | `SettingsButton` → 판넬 켬, 판넬 닫기 버튼 → 판넬 끔, `QuitButton` → 확인창 켬, 예 → `Application.Quit()`, 아니오 → 확인창 끔을 `onClick.AddListener`로 구독. `_cancelAction.action.performed` 구독 후 액션 `Enable` |
+| `OnDisable` | 위 구독을 모두 해제하고 액션 `Disable` |
+| ESC | 확인창이 켜져 있으면 확인창만 닫음 → 아니면 설정 판넬이 켜져 있으면 판넬만 닫음 → 둘 다 꺼져 있으면 무시 |
+
+- `_cancelAction`은 `InputSystem_Actions`의 `UI/Cancel` 참조다 (필드 주석). Scene마다 이 액션을 쓰는 컴포넌트가 메뉴 스크립트 하나뿐이라 직접 `Enable`/`Disable`한다 (코드 주석). `EventSystem`의 UI 입력 모듈과는 별개다.
+- ESC는 `CharacterSelectPanel`을 닫지 않는다 (주의사항 d).
+- 에디터에서는 `Application.Quit`이 무시되어 Play 모드가 유지된다 (코드 주석).
+- 확인창은 별도 스크립트 없이 `TitleMenu`가 버튼을 처리한다. 설정 판넬을 닫을 때 `SettingsPanel.OnDisable`이 설정을 저장한다 (`Docs/TechDocs/GameFlow.md`).
 
 ### 캐릭터 데이터 (`Assets/Data/Character/`)
 
@@ -123,28 +139,42 @@ Cameras
 Lights
 └─ DirectionalLight
 UI
-├─ TitleCanvas                   (Canvas Screen Space - Overlay, CanvasScaler 기준 해상도 1920×1080, GraphicRaycaster)
+├─ TitleCanvas                   (Canvas Screen Space - Overlay, CanvasScaler 기준 해상도 1920×1080, GraphicRaycaster, TitleMenu)
 │  ├─ TitleText                  (Text "Pack and Slash")
-│  ├─ StartButton                (Button, OnClick → CharacterSelectPanel.SetActive(true))
-│  │  └─ Label                   (Text "시작")
-│  └─ CharacterSelectPanel       (비활성으로 저장, Image, CharacterSelectUI)
-│     ├─ HeaderText              (Text "캐릭터 선택")
-│     ├─ Slot_01                 (Button, Image)
-│     │  ├─ SelectionMark
-│     │  └─ Portrait             (Image, Preserve Aspect, Raycast Target 끔)
-│     ├─ Slot_02                 (Slot_01과 같은 구성)
-│     ├─ Slot_03                 (Slot_01과 같은 구성)
-│     ├─ DetailPanel             (Image)
-│     │  ├─ NameText             (Text)
-│     │  ├─ WeaponLabel          (Text "시작 무기")
-│     │  ├─ WeaponText           (Text)
-│     │  └─ DescriptionText      (Text)
-│     └─ GameStartButton         (Button, OnClick 영구 리스너 없음)
-│        └─ Label                (Text "게임 시작")
+│  ├─ StartButton                (Button, OnClick → CharacterSelectPanel.SetActive(true), 위치 (-480, 0))
+│  │  └─ Label                   (Text "게임 시작")
+│  ├─ SettingsButton             (Button, TitleMenu._settingsButton, 위치 (-480, -140))
+│  │  └─ Label                   (Text "설정")
+│  ├─ QuitButton                 (Button, TitleMenu._quitButton, 위치 (-480, -280))
+│  │  └─ Label                   (Text "게임 종료")
+│  ├─ CharacterSelectPanel       (비활성으로 저장, Image, CharacterSelectUI)
+│  │  ├─ HeaderText              (Text "캐릭터 선택")
+│  │  ├─ Slot_01                 (Button, Image)
+│  │  │  ├─ SelectionMark
+│  │  │  └─ Portrait             (Image, Preserve Aspect, Raycast Target 끔)
+│  │  ├─ Slot_02                 (Slot_01과 같은 구성)
+│  │  ├─ Slot_03                 (Slot_01과 같은 구성)
+│  │  ├─ DetailPanel             (Image)
+│  │  │  ├─ NameText             (Text)
+│  │  │  ├─ WeaponLabel          (Text "시작 무기")
+│  │  │  ├─ WeaponText           (Text)
+│  │  │  └─ DescriptionText      (Text)
+│  │  └─ GameStartButton         (Button, OnClick 영구 리스너 없음)
+│  │     └─ Label                (Text "게임 시작")
+│  ├─ PFB_SettingsPanel          (PFB_SettingsPanel 인스턴스, 비활성으로 저장, TitleMenu._settingsPanel. 구성은 GameFlow.md)
+│  └─ QuitDialog                 (비활성으로 저장, Image 전체 화면 검정 α 0.6, TitleMenu._quitDialog)
+│     └─ PanelBox                (900×360)
+│        ├─ MessageText          (Text "정말 게임을 종료하시겠습니까?")
+│        ├─ YesButton            (TitleMenu._quitYesButton)
+│        │  └─ Label             (Text "예")
+│        └─ NoButton             (TitleMenu._quitNoButton)
+│           └─ Label             (Text "아니오")
 └─ EventSystem                   (EventSystem, InputSystemUIInputModule)
 ```
 
 - 모든 Text는 레거시 `UnityEngine.UI.Text`이며 폰트는 Unity 내장 폰트(`fileID: 10102`)다.
+- `StartButton`·`SettingsButton`·`QuitButton`은 화면 중앙 기준 왼쪽 절반(x -480)에 위에서 아래로 놓이며 크기는 모두 400×110이다. `TitleCanvas` 자식 순서는 `TitleText` → `StartButton` → `SettingsButton` → `QuitButton` → `CharacterSelectPanel` → `PFB_SettingsPanel` → `QuitDialog`다 (Transform 순서로 확인).
+- `TitleScene`의 `PFB_SettingsPanel` 인스턴스에는 추가 오브젝트가 없다. 타이틀 복귀 버튼(`ReturnTitleButton`)은 `GameScene` 인스턴스에만 있다.
 - `EventSystem`의 `InputSystemUIInputModule`은 액션 에셋 GUID `ca9f5fa95ffab41fb9a615ab714db018`을 참조한다. 프로젝트의 `Assets/InputSystem_Actions.inputactions`(GUID `052faaac586de48259a63d0c4782560b`)와 다른 에셋이며, Input System 패키지의 `InputSystem/Plugins/PlayerInput/DefaultInputActions.inputactions`다 (`.meta` 파일의 GUID로 확인).
 
 `CharacterSelectUI` (`CharacterSelectPanel`)
@@ -161,6 +191,20 @@ UI
 
 - Scene의 `Portrait` Image에는 Sprite가 비어 있다. `Start`에서 슬롯 캐릭터의 `Portrait`로 채운다.
 - Scene의 `SelectionMark`는 활성으로 저장되어 있다. `Start`에서 모두 끈다.
+
+`TitleMenu` (`TitleCanvas`)
+
+| 필드 | 연결 값 |
+|---|---|
+| `_settingsButton` | `SettingsButton` |
+| `_settingsPanel` | `PFB_SettingsPanel` (인스턴스 루트 GameObject) |
+| `_settingsCloseButton` | 인스턴스의 `PanelBox/CloseButton` Button |
+| `_quitButton` | `QuitButton` |
+| `_quitDialog` | `QuitDialog` |
+| `_quitYesButton` / `_quitNoButton` | `QuitDialog/PanelBox/YesButton` / `NoButton` |
+| `_cancelAction` | `InputSystem_Actions` 에셋(GUID `052faaac586de48259a63d0c4782560b`)의 액션 참조 (`fileID 7727032971491509709`, `GameScene`의 `PauseMenu`와 같은 값) |
+
+- `_cancelAction`의 fileID가 `UI/Cancel` 액션인지는 Scene 파일만으로 대조할 수 없었다. 필드 주석과 브리핑은 `UI/Cancel`이다 (미검증).
 
 ### `Assets/Prefabs/Player/PFB_Player.prefab`
 
@@ -179,6 +223,18 @@ UI
 - `Assets/Scenes/TestMap.unity`는 Build Settings에 없다. 파일은 유지되어 있다.
 - `StartGame`은 Scene 이름 `"GameScene"`으로 로드하므로 `GameScene`이 Build Settings에 있어야 한다.
 - `GameScene.unity`는 Issue #10에서 `TestMap.unity`의 내용으로 교체되었다 (`Docs/TechDocs/Weapon.md`의 `GameScene` 절, `Docs/TechDocs/Map.md` 참고).
+
+### 해상도 (`ProjectSettings/ProjectSettings.asset`, Issue #13)
+
+| 설정 | 값 | 의미 |
+|---|---|---|
+| `defaultScreenWidth` / `defaultScreenHeight` | 1920 / 1080 | 기본 해상도 1920×1080 |
+| `defaultIsNativeResolution` | 0 | 모니터 기본 해상도 대신 위 기본 해상도 사용 |
+| `fullscreenMode` | 1 | FullScreenWindow (변경 없이 유지) |
+| `allowFullscreenSwitch` | 0 | 전체 화면 전환 단축키 허용 안 함 |
+| `resizableWindow` | 0 | 창 크기 조절 안 함 |
+
+- 실제 빌드에서 이 설정대로 표시되는지는 확인하지 않았다 (빌드 실행 미검증).
 
 ## 예외·주의사항·검증 방법
 
@@ -203,3 +259,4 @@ UI
 ## 관련 Issue/PR
 
 - Issue #10 (TitleScene·캐릭터 선택 구현)
+- Issue #13 (타이틀 메뉴·설정·일시정지. 설정·일시정지는 `Docs/TechDocs/GameFlow.md`)

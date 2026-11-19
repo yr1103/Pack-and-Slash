@@ -34,7 +34,6 @@ public class EnemyHitFeedback : MonoBehaviour
             return;
         }
 
-        // shortcut: 일시정지 등 게임 시간 관리 연동 전 Time.deltaTime 직접 사용, GameState 도입 시 교체
         _flashRemaining -= Time.deltaTime;
         if (_flashRemaining <= 0f)
         {
@@ -57,12 +56,15 @@ public class EnemyHitFeedback : MonoBehaviour
     // 반짝이는 중에 다시 맞으면 유지 시간만 갱신, 유지 시간 0이면 복원 시점이 없으므로 반짝임 생략
     private void OnDamaged(float damage)
     {
-        if (_flashDuration > 0f)
+        if (GameSettings.HitFlashEnabled && _flashDuration > 0f)
         {
             _renderer.sharedMaterial = _flashMaterial;
             _flashRemaining = _flashDuration;
         }
 
-        _damageNumberPrefab.Spawn(_numberPoint.position, damage);
+        if (GameSettings.DamageNumberEnabled)
+        {
+            _damageNumberPrefab.Spawn(_numberPoint.position, damage);
+        }
     }
 }

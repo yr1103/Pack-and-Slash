@@ -3,7 +3,7 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// 전투 진행 상태·생존 시간·처치 수 관리, 클리어·게임 오버 판정과 종료 시 전투 정지 (Time.timeScale 유일 소유자)
+/// 전투 진행 상태·생존 시간·처치 수 관리, 클리어·게임 오버 판정과 종료 시 전투 정지, 일시정지·재개 (Time.timeScale 유일 소유자)
 /// </summary>
 public class GameSession : MonoBehaviour
 {
@@ -55,7 +55,6 @@ public class GameSession : MonoBehaviour
             return;
         }
 
-        // shortcut: 일시정지 등 게임 시간 관리 연동 전 Time.deltaTime 직접 사용, GameState 도입 시 교체
         _elapsedTime += Time.deltaTime;
         if (IsCleared(_elapsedTime, _clearTime))
         {
@@ -73,6 +72,24 @@ public class GameSession : MonoBehaviour
     private void OnDestroy()
     {
         Time.timeScale = 1f;
+    }
+
+    /// <summary>일시정지 (진행 중일 때만 전투 정지)</summary>
+    public void Pause()
+    {
+        if (IsPlaying)
+        {
+            Time.timeScale = 0f;
+        }
+    }
+
+    /// <summary>일시정지 해제 (진행 중일 때만, 종료 후 전투 정지는 풀지 않음)</summary>
+    public void Resume()
+    {
+        if (IsPlaying)
+        {
+            Time.timeScale = 1f;
+        }
     }
 
     /// <summary>클리어 판정 (생존 시간이 클리어 시간 이상이면 클리어)</summary>

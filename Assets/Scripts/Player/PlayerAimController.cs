@@ -29,7 +29,6 @@ public class PlayerAimController : MonoBehaviour
         }
 
         Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
-        // shortcut: 일시정지 등 게임 시간 관리 연동 전 Time.deltaTime 직접 사용, GameState 도입 시 교체
         _visualRoot.rotation = Quaternion.RotateTowards(_visualRoot.rotation, targetRotation, _turnSpeed * Time.deltaTime);
     }
 

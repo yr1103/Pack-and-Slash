@@ -464,7 +464,7 @@ PFB_Floating…                 (FloatingWeaponView, _muzzle = MuzzlePoint)
 | b | `CurrentTarget`은 다음 `Update`에서 덮어쓸 때까지 이전 값을 유지한다. `PlayerAimController`는 `ITargetable` 타입(interface)으로 `null`을 비교하므로 Unity의 파괴된 오브젝트 판정(`UnityEngine.Object`의 `==`)이 적용되지 않는다. 표적이 파괴된 뒤 읽으면 `AimPoint` 접근에서 예외가 날 수 있다 (재현 미검증). Issue #8 이후 Enemy는 사망 연출 후 풀로 반환(비활성화)되며, `EnemyPool`의 `_maxSize`를 넘겨 반환될 때만 `Destroy`된다 (`Docs/TechDocs/Enemy.md` 주의사항 k). 코드 수정은 보류 항목이다 | 풀 한도 초과가 확인될 때 |
 | c | 무기마다 매 프레임 후보 전체를 탐색한다. 간격 탐색·이벤트 방식은 측정 근거가 없어 채택하지 않았다. 실제 적 연동(#8)은 완료됐으나 Profiler 측정은 하지 않았다 | 성능 측정 단계 |
 | d | (해결) 고유 무기를 `WeaponLoadout._signatureWeapon`에 카우보이 권총으로 임시 지정하던 문제. Issue #10에서 필드를 제거하고 `SignatureWeapon` = `Character.StartWeapon`(캐릭터 SO)으로 바꿨다 | 해결 (#10) |
-| e | `WeaponAttackController`, `Projectile`, `PlayerAimController`, `WeaponViewController`, `Enemy`가 `Time.deltaTime`을 직접 쓴다. 일시정지와 연동되어 있지 않다 | GameFlow(GameState) 연동 시 교체 |
+| e | (해결) `WeaponAttackController`, `Projectile`, `PlayerAimController`, `WeaponViewController`, `Enemy`가 `Time.deltaTime`을 직접 쓰던 일시정지 미연동 `shortcut` 주석은 Issue #13에서 삭제됐다. 일시정지는 `GameSession`이 `Time.timeScale` 0으로 구현하므로(`Docs/TechDocs/GameFlow.md`) 쿨다운·탄 이동·조준 회전·부유 총기 이동이 일시정지와 함께 멈추는 것이 의도된 동작이다 | 해결 (#13) |
 | f | 손 무기 `MuzzlePoint` 로컬 위치 3종 `PistolDefault` (0, 0.15, 0.47), `ShotgunDefault` (0, 0.031, 0.928), `MiniGunDefault` (0, 0, 1.066)은 애니메이션이 없는 모델 메시 기준으로 총신 끝을 산출한 값이다. W05 Play 모드에서 애니메이션 재생 중 `MuzzlePoint`가 움직여 탄이 가끔 빗나가는 것을 사용자가 관찰했다 (발사 로직은 정상 동작) | 애니메이션(idle/running/피격) 적용 후 Play 모드로 조정 |
 | g | (해결) 임시 적 `TempCubeEnemy.TakeDamage`가 `IsAlive`가 아닌 `IsTargetable`로 사망 여부를 검사하던 문제. Issue #8에서 `TempCubeEnemy`를 삭제했고, `Enemy.TakeDamage`는 `IsAlive`로 검사한다 | 해결 (#8) |
 | h | W03 이월 항목 (아래 표) | 각 항목 참고 |

@@ -50,7 +50,6 @@ public class FlowFieldManager : MonoBehaviour
 
     private void Update()
     {
-        // shortcut: 일시정지 등 게임 시간 관리 연동 전 Time.time 직접 사용, GameState 도입 시 교체
         float elapsed = Time.time - _lastCalculateTime;
         Vector2Int playerTile = _costField.WorldToTile(_player.position);
         if (ShouldRecalculate(playerTile, _integrationField.Target, elapsed, _updateInterval))
