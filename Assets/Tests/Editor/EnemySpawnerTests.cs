@@ -2,7 +2,7 @@ using NUnit.Framework;
 using UnityEngine;
 
 /// <summary>
-/// 해금 시각 경계·활성 상한·시야 사다리꼴 경계까지 거리 계산 검증
+/// 해금 시각 경계·활성 상한·시야 사다리꼴 경계까지 거리 계산·보스 생성 후보 선택 검증
 /// </summary>
 public class EnemySpawnerTests
 {
@@ -90,5 +90,39 @@ public class EnemySpawnerTests
         Vector2 outsideOrigin = new Vector2(0f, -10f);
 
         Assert.AreEqual(0f, EnemySpawner.GetDistanceToBoundary(outsideOrigin, Vector2.down, _trapezoid), TOLERANCE);
+    }
+
+    [Test]
+    public void SelectBossSpawnIndex_AllOutside_ReturnsNearest()
+    {
+        Vector2[] candidates = { new Vector2(30f, 0f), new Vector2(0f, -8f) };
+
+        Assert.AreEqual(1, EnemySpawner.SelectBossSpawnIndex(Vector2.zero, candidates, _trapezoid));
+    }
+
+    [Test]
+    public void SelectBossSpawnIndex_NearestInside_ReturnsNextNearestOutside()
+    {
+        // (0, 10)은 시야 안, (0, -20)은 (40, 0)보다 가까운 시야 밖 후보
+        Vector2[] candidates = { new Vector2(0f, 10f), new Vector2(40f, 0f), new Vector2(0f, -20f) };
+
+        Assert.AreEqual(2, EnemySpawner.SelectBossSpawnIndex(Vector2.zero, candidates, _trapezoid));
+    }
+
+    [Test]
+    public void SelectBossSpawnIndex_AllInside_ReturnsMinusOne()
+    {
+        Vector2[] candidates = { new Vector2(0f, 10f), new Vector2(5f, 0f) };
+
+        Assert.AreEqual(-1, EnemySpawner.SelectBossSpawnIndex(Vector2.zero, candidates, _trapezoid));
+    }
+
+    [Test]
+    public void SelectBossSpawnIndex_OnBoundary_TreatedAsInside()
+    {
+        // (0, -5)는 가까운 변 위 → 화면 가장자리라 제외
+        Vector2[] candidates = { new Vector2(0f, -5f), new Vector2(0f, -20f) };
+
+        Assert.AreEqual(1, EnemySpawner.SelectBossSpawnIndex(Vector2.zero, candidates, _trapezoid));
     }
 }

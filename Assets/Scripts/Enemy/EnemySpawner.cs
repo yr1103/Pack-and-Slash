@@ -4,12 +4,13 @@ using UnityEngine;
 using Random = UnityEngine.Random;
 
 /// <summary>
-/// 진행 시간에 따라 해금된 일반 몬스터를 일정 간격으로 카메라 시야 바로 바깥에 생성
+/// 진행 시간에 따라 해금된 일반 몬스터를 일정 간격으로 카메라 시야 바로 바깥에 생성하고, 보스는 예정 시각에 1마리씩 생성
 /// </summary>
 public class EnemySpawner : MonoBehaviour
 {
     private const float FULL_CIRCLE_RADIANS = Mathf.PI * 2f;
     private const float MAX_GROUND_DISTANCE = 200f; // 광선이 지면에 닿지 않을 때 대신 쓰는 거리 (맵보다 충분히 커서 격자 밖 판정으로 재시도)
+    private const int CENTER_DIVISOR = 2; // 격자 크기를 나눠 변 중점 타일 계산
 
     // 순서대로 이어 볼록 사다리꼴이 되도록 뷰포트 모서리를 둘레 순으로 배치
     private static readonly Vector2[] _viewportCorners =
@@ -23,6 +24,7 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private Transform _player;
     [SerializeField] private Camera _camera; // Game View 카메라, 시야 사다리꼴 계산용
     [SerializeField] private SpawnEntry[] _spawnTable; // 해금된 항목 중 균등 랜덤 선택
+    [SerializeField] private SpawnEntry[] _bossSchedule; // 보스 프리팹과 등장 시각, 시각 오름차순으로 배치
     [SerializeField, Min(0.01f)] private float _spawnInterval = 1f; // 생성 간격(초)
     [SerializeField, Min(0)] private int _spawnCountPerTick = 2;
     [SerializeField, Min(0)] private int _maxActiveEnemies = 500; // 활성 Enemy 상한 (풀 보관 개체 제외)
@@ -31,7 +33,9 @@ public class EnemySpawner : MonoBehaviour
 
     private readonly Vector2[] _groundCorners = new Vector2[_viewportCorners.Length];
     private readonly List<Enemy> _unlockedPrefabs = new List<Enemy>();
+    private readonly List<Vector2> _bossCandidates = new List<Vector2>(); // 이동 가능한 격자 변 중점 (XZ)
     private float _nextSpawnTime;
+    private int _nextBossIndex; // 다음에 생성할 _bossSchedule 항목
 
     /// <summary>스폰 테이블 항목 (Enemy 프리팹과 해금 시각)</summary>
     [Serializable]
@@ -47,13 +51,20 @@ public class EnemySpawner : MonoBehaviour
     // 생성 주기를 GameSession 생존 시간에 맞춰 종료·일시정지 시 함께 멈춤
     private void Update()
     {
-        if (!_gameSession.IsPlaying || _gameSession.ElapsedTime < _nextSpawnTime)
+        if (!_gameSession.IsPlaying)
+        {
+            return;
+        }
+
+        float elapsedTime = _gameSession.ElapsedTime;
+        TrySpawnNextBoss(elapsedTime);
+        if (elapsedTime < _nextSpawnTime)
         {
             return;
         }
 
         _nextSpawnTime += _spawnInterval;
-        SpawnTick(_gameSession.ElapsedTime);
+        SpawnTick(elapsedTime);
     }
 
     /// <summary>해금 판정 (경과 시간이 해금 시각 이상이면 해금)</summary>
@@ -100,9 +111,108 @@ public class EnemySpawner : MonoBehaviour
         return farthest;
     }
 
+    /// <summary>보스 생성 후보 선택 : 시야 다각형 밖 후보 중 원점과 가장 가까운 후보</summary>
+    /// <param name="origin">플레이어 XZ 위치</param>
+    /// <param name="candidates">후보 XZ 위치</param>
+    /// <param name="viewCorners">둘레 순으로 놓인 시야 볼록 다각형 꼭짓점</param>
+    /// <returns>선택한 후보 인덱스, 모두 시야 안(경계 포함)이면 -1</returns>
+    public static int SelectBossSpawnIndex(Vector2 origin, IReadOnlyList<Vector2> candidates, Vector2[] viewCorners)
+    {
+        int selectedIndex = -1;
+        float nearestSqrDistance = float.MaxValue;
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            float sqrDistance = (candidates[i] - origin).sqrMagnitude;
+            if (sqrDistance < nearestSqrDistance && !IsInsideConvex(candidates[i], viewCorners))
+            {
+                nearestSqrDistance = sqrDistance;
+                selectedIndex = i;
+            }
+        }
+
+        return selectedIndex;
+    }
+
     private static float Cross(Vector2 a, Vector2 b)
     {
         return a.x * b.y - a.y * b.x;
+    }
+
+    // 모든 변에 대해 같은 쪽(또는 변 위)이면 안쪽, 꼭짓점 둘레 방향(시계·반시계)과 무관
+    private static bool IsInsideConvex(Vector2 point, Vector2[] corners)
+    {
+        bool hasPositive = false;
+        bool hasNegative = false;
+        for (int i = 0; i < corners.Length; i++)
+        {
+            Vector2 start = corners[i];
+            float side = Cross(corners[(i + 1) % corners.Length] - start, point - start);
+            hasPositive |= side > 0f;
+            hasNegative |= side < 0f;
+        }
+
+        return !(hasPositive && hasNegative);
+    }
+
+    // 예정 시각이 지난 다음 보스를 생성, 위치를 못 찾으면 인덱스를 유지해 다음 프레임 재시도 (보스 누락 방지)
+    private void TrySpawnNextBoss(float elapsedTime)
+    {
+        if (_nextBossIndex >= _bossSchedule.Length
+            || !IsUnlocked(_bossSchedule[_nextBossIndex].UnlockTime, elapsedTime))
+        {
+            return;
+        }
+
+        if (!TryFindBossSpawnPosition(out Vector3 position))
+        {
+            return;
+        }
+
+        _enemyPool.Spawn(_bossSchedule[_nextBossIndex].Prefab, position, _flowFieldManager, _player);
+        _nextBossIndex++;
+    }
+
+    // 격자 4변 중점 중 시야 밖이면서 플레이어와 가장 가까운 곳
+    private bool TryFindBossSpawnPosition(out Vector3 position)
+    {
+        float groundHeight = _player.position.y;
+        UpdateGroundCorners(groundHeight);
+        CollectBossCandidates();
+        Vector2 origin = new Vector2(_player.position.x, _player.position.z);
+
+        int index = SelectBossSpawnIndex(origin, _bossCandidates, _groundCorners);
+        if (index == -1)
+        {
+            position = Vector3.zero;
+            return false;
+        }
+
+        position = new Vector3(_bossCandidates[index].x, groundHeight, _bossCandidates[index].y);
+        return true;
+    }
+
+    // 가장자리 행·열은 MapGenerator의 장애물 금지 폭 안이라 격자 안쪽에서 Enemy가 바로 진입 가능
+    private void CollectBossCandidates()
+    {
+        _bossCandidates.Clear();
+        CostField costField = _flowFieldManager.CostField;
+        int centerX = costField.Width / CENTER_DIVISOR;
+        int centerZ = costField.Height / CENTER_DIVISOR;
+        AddBossCandidateIfWalkable(costField, centerX, costField.Height - 1);
+        AddBossCandidateIfWalkable(costField, centerX, 0);
+        AddBossCandidateIfWalkable(costField, 0, centerZ);
+        AddBossCandidateIfWalkable(costField, costField.Width - 1, centerZ);
+    }
+
+    private void AddBossCandidateIfWalkable(CostField costField, int x, int z)
+    {
+        if (!costField.IsWalkable(x, z))
+        {
+            return;
+        }
+
+        Vector3 world = costField.TileToWorld(x, z);
+        _bossCandidates.Add(new Vector2(world.x, world.z));
     }
 
     private void SpawnTick(float elapsedTime)
@@ -115,7 +225,8 @@ public class EnemySpawner : MonoBehaviour
 
         for (int i = 0; i < _spawnCountPerTick; i++)
         {
-            if (!HasCapacity(Enemy.ActiveEnemies.Count, _maxActiveEnemies))
+            // 보스 스케줄 전체 수만큼 슬롯을 항상 고정 예약 (등장 전·사망 후 포함), 보스(상한 검사 없음)가 생겨도 전체 상한 초과 방지
+            if (!HasCapacity(Enemy.ActiveEnemies.Count, _maxActiveEnemies - _bossSchedule.Length))
             {
                 return;
             }

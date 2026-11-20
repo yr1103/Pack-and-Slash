@@ -16724,6 +16724,15 @@ MonoBehaviour:
     _unlockTime: 180
   - _prefab: {fileID: 3755978135127593930, guid: ce73cbecb846c914caedc4051e6c05be, type: 3}
     _unlockTime: 360
+  _bossSchedule:
+  - _prefab: {fileID: 4268184432913942235, guid: 959e5de355f128b44958fd28f15afb8d, type: 3}
+    _unlockTime: 300
+  - _prefab: {fileID: 4268184432913942235, guid: 04b44e1c245fbbe40930dc7ebe26b5dd, type: 3}
+    _unlockTime: 600
+  - _prefab: {fileID: 4268184432913942235, guid: b671187c2e1376a4f9ce9783ea565e22, type: 3}
+    _unlockTime: 900
+  - _prefab: {fileID: 4268184432913942235, guid: 4986883e8b7fbed4a804c1dca1fb8c72, type: 3}
+    _unlockTime: 1200
   _spawnInterval: 1
   _spawnCountPerTick: 2
   _maxActiveEnemies: 500
