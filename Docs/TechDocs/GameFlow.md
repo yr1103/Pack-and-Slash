@@ -1,6 +1,6 @@
 # 게임 흐름·플레이어 상태·HUD (GameFlow)
 
-> 근거 : `Assets/Scripts/GameFlow/GameSession.cs`, `Assets/Scripts/Player/PlayerHealth.cs`, `Assets/Scripts/Player/PlayerExperience.cs`, `Assets/Scripts/UI/GameHUD.cs`, `Assets/Scripts/UI/PlayerHealthBar.cs`, `Assets/Scripts/UI/ResultPanel.cs`, `Assets/Scripts/UI/{GameSettings,SettingsPanel,PauseMenu,LevelUpPanel}.cs`, `Assets/Scripts/Combat/Health.cs`, `Assets/Scripts/Combat/DamageGate.cs`, `Assets/Tests/Editor/{PlayerExperienceTests,GameSessionTests,ResultPanelTests}.cs`, `Assets/Prefabs/Player/PFB_Player.prefab`, `Assets/Prefabs/UI/{PFB_SettingsPanel,PFB_LevelUpPanel,PFB_RewardCard}.prefab`, `Assets/InputSystem_Actions.inputactions`, `Assets/Scenes/GameScene.unity`, `Assets/Scenes/TestMap.unity`, `Assets/Sprites/UI/*.png.meta`, `Assets/Sprites/Inventory/**/*.png.meta`, `Assets/Imports/UI/2D Pixel Quest Vol.3 - The UI-GUI/Sprites PNG/{Slide Bar/F_UI_BlueBar,Menu Icons/F_UI_MenuIcons_Tile Map 16x16}.png.meta`, `.gitignore`
+> 근거 : `Assets/Scripts/GameFlow/GameSession.cs`, `Assets/Scripts/Player/PlayerHealth.cs`, `Assets/Scripts/Player/PlayerExperience.cs`, `Assets/Scripts/UI/GameHUD.cs`, `Assets/Scripts/UI/PlayerHealthBar.cs`, `Assets/Scripts/UI/ResultPanel.cs`, `Assets/Scripts/UI/{GameSettings,SettingsPanel,PauseMenu,LevelUpPanel}.cs`, `Assets/Scripts/Combat/TreasureChest.cs`(`RequestChestReward` 호출부), `Assets/Scripts/Enemy/Enemy.cs`(`ClearsSessionOnDeath`), `Assets/Scripts/Combat/Health.cs`, `Assets/Scripts/Combat/DamageGate.cs`, `Assets/Tests/Editor/{PlayerExperienceTests,GameSessionTests,ResultPanelTests}.cs`, `Assets/Prefabs/Player/PFB_Player.prefab`, `Assets/Prefabs/UI/{PFB_SettingsPanel,PFB_LevelUpPanel,PFB_RewardCard}.prefab`, `Assets/InputSystem_Actions.inputactions`, `Assets/Scenes/GameScene.unity`, `Assets/Scenes/TestMap.unity`, `Assets/Sprites/UI/*.png.meta`, `Assets/Sprites/Inventory/**/*.png.meta`, `Assets/Imports/UI/2D Pixel Quest Vol.3 - The UI-GUI/Sprites PNG/{Slide Bar/F_UI_BlueBar,Menu Icons/F_UI_MenuIcons_Tile Map 16x16}.png.meta`, `.gitignore`
 >
 > 설계 원본 : `Docs/Spec/GameFlow.md` (이 문서는 현재 구현 상태만 기술한다)
 >
@@ -8,10 +8,10 @@
 
 ## 목적 / 기능 범위
 
-- 전투 한 판(세션)의 진행 상태·생존 시간·처치 수를 관리하고, 클리어(생존 시간 도달)·게임 오버(플레이어 사망)를 판정한다.
+- 전투 한 판(세션)의 진행 상태·생존 시간·처치 수를 관리하고, 클리어(생존 시간 도달 또는 최종 보스 처치)·게임 오버(플레이어 사망)를 판정한다.
 - 종료 후 일정 시간 뒤 전투를 정지(`Time.timeScale` 0)하고 결과 패널을 표시한다. 결과 패널에서 타이틀로 돌아간다.
 - 전투 중 ESC로 일시정지(`Time.timeScale` 0)하며 설정 판넬을 열고, 닫으면 재개한다. 설정 판넬에서 확인창을 거쳐 타이틀로 돌아갈 수 있다.
-- 레벨업마다 일시정지하고 레벨업 화면(인벤토리·보상 카드 표시)을 열며, 쌓인 레벨업 횟수만큼 완료 버튼을 누르면 닫고 재개한다. 보상 선택·리롤·인벤토리 배치는 표시만 있고 동작하지 않는다.
+- 레벨업마다 일시정지하고 레벨업 화면(인벤토리·보상 카드 표시)을 열며, 쌓인 레벨업 횟수만큼 완료 버튼을 누르면 닫고 재개한다. 보물 상자 보상 요청도 같은 화면을 쓴다(카드 5장, 대기 중인 레벨업 다음 순서). 보상 선택·리롤·인벤토리 배치는 표시만 있고 동작하지 않는다.
 - 설정(볼륨·피격 효과·데미지 숫자)을 `PlayerPrefs`에 저장하고 게임 시작 시 불러온다.
 - 플레이어 체력·무적 시간·Enemy 접촉 피해, 경험치·레벨을 관리한다.
 - 생존 시간·처치 수·경험치 바·레벨·재화(고정 0)를 HUD로, 플레이어 체력을 머리 위 체력바로 표시한다.
@@ -21,20 +21,21 @@
 | 포함 | Issue #8 : `GameSession`(상태·생존 시간·처치 수·종료 판정·전투 정지), `PlayerHealth`, `PlayerExperience`(임시 레벨 곡선), `GameHUD`, `PlayerHealthBar`, `ResultPanel` |
 | 포함 | Issue #13 : `GameSession.Pause`/`Resume`, `PauseMenu`(ESC 일시정지·타이틀 복귀 확인창), `SettingsPanel`·`PFB_SettingsPanel`, `GameSettings`(저장·로드), `PlayerHealth` 일시정지 중 접촉 판정 생략 |
 | 포함 | Issue #17 : `LevelUpPanel`(레벨업 횟수 누적·일시정지·완료 버튼으로 재개), `PFB_LevelUpPanel`·`PFB_RewardCard`(표시 전용 레이아웃), `PauseMenu`가 레벨업 화면 중 ESC 무시, 경험치 바 스프라이트 교체 |
-| 제외 (후속) | 보상 선택·획득, 리롤 동작, 인벤토리 배치·저장고, 보물상자, 재화 획득, 다시하기 |
+| 포함 | Issue #19 : `GameSession`의 최종 보스 처치 클리어(`Enemy.ClearsSessionOnDeath`), `LevelUpPanel`의 보물 상자 보상 요청(`RequestChestReward`)·회차 종류별 카드 수(레벨업 3장, 보물 상자 5장). 상자 생성·획득 판정은 `Docs/TechDocs/Enemy.md` |
+| 제외 (후속) | 보상 선택·획득(보물 상자 보상 포함), 리롤 동작, 인벤토리 배치·저장고, 재화 획득, 다시하기 |
 
 ## 주요 클래스와 역할
 
 | 클래스 | 책임 | 의존성 |
 |---|---|---|
-| `GameSession` (MonoBehaviour) | 상태 `SessionState`(`Playing`·`Cleared`·`GameOver`), `ElapsedTime`, `KillCount` 소유. 생존 시간이 `_clearTime` 이상이면 클리어, 플레이어 사망 시 게임 오버. 종료 후 `_endFreezeDelay`초 뒤 `Time.timeScale = 0`과 `Ended(bool)` 발생. 일시정지 `Pause`·재개 `Resume`(진행 중일 때만). `Time.timeScale`을 바꾸는 유일한 클래스. 판정·표시 함수 `IsCleared`, `FormatTime`(static) | `PlayerHealth`(`Died`), `Enemy`(`Died`, static) |
+| `GameSession` (MonoBehaviour) | 상태 `SessionState`(`Playing`·`Cleared`·`GameOver`), `ElapsedTime`, `KillCount` 소유. 생존 시간이 `_clearTime` 이상이거나 `ClearsSessionOnDeath`인 Enemy(최종 보스)가 죽으면 클리어, 플레이어 사망 시 게임 오버. 종료 후 `_endFreezeDelay`초 뒤 `Time.timeScale = 0`과 `Ended(bool)` 발생. 일시정지 `Pause`·재개 `Resume`(진행 중일 때만). `Time.timeScale`을 바꾸는 유일한 클래스. 판정·표시 함수 `IsCleared`, `FormatTime`(static) | `PlayerHealth`(`Died`), `Enemy`(`Died`, static) |
 | `PlayerHealth` (MonoBehaviour) | `IDamageable` 구현. `Health`·`DamageGate` 소유. 매 프레임 `Physics.OverlapSphereNonAlloc`으로 Enemy 접촉 판정 후 피해 (`Time.timeScale` 0이면 생략). 이벤트 `Damaged`, `Died`. 사망 시 `_disableOnDeath` 컴포넌트를 끔. `MaxHealth`, `CurrentHealth`, `IsDead`, `IsAlive` 노출 | `Health`, `DamageGate`, `Enemy`(`ContactDamage`, `IsAlive`), `Physics` |
 | `PlayerExperience` (MonoBehaviour) | 누적 경험치 `Experience`, `Level`, 현재 레벨 경험치 `CurrentLevelExperience`, 요구치 `RequiredExperience`, 젬 수집 반경 `CollectRadius`. `AddExperience`로 증가·다중 레벨업·이월. 이벤트 `LevelChanged`, `ExperienceGained`. 요구치 함수 `GetRequiredExperience`(static, 임시 곡선) | 없음 |
 | `GameHUD` (MonoBehaviour) | 생존 시간·처치 수는 매 프레임 폴링해 값이 바뀔 때만 텍스트 갱신. 경험치 바·레벨은 `ExperienceGained` 구독으로 갱신. 재화는 "0" 고정 | `GameSession`, `PlayerExperience`, TMP(`TMP_Text`), `Image` |
 | `PlayerHealthBar` (MonoBehaviour) | 플레이어 머리 위 World Space 체력바. `PlayerHealth.Damaged`로 채움 비율 갱신, `LateUpdate`에서 카메라와 같은 회전(빌보드) | `PlayerHealth`, `Image`, `Camera` |
 | `ResultPanel` (MonoBehaviour) | `GameSession.Ended` 구독. 결과 문구(`CLEAR`/`GAME OVER`)와 통계(생존 시간·레벨·무기 목록·처치 수·진화 무기 수)를 영문으로 표시. 타이틀 버튼으로 `TitleScene` 로드. 문자열 함수 `BuildWeaponList`, `CountEvolved`(static) | `GameSession`, `PlayerExperience`, `WeaponLoadout`, `SceneManager`, TMP, `Button` |
 | `PauseMenu` (MonoBehaviour) | ESC(`UI/Cancel`) 입력으로 일시정지하며 설정 판넬을 열고, 닫으며 재개. 설정 판넬의 타이틀 복귀 버튼·확인창(예/아니오) 처리. 입력 액션을 직접 `Enable`/`Disable`. 레벨업 화면이 열려 있으면 ESC 무시 | `GameSession`(`IsPlaying`, `Pause`, `Resume`), `LevelUpPanel`(`IsOpen`), `Button`, `InputActionReference`, `SceneManager` |
-| `LevelUpPanel` (MonoBehaviour) | `PlayerExperience.LevelChanged`마다 대기 횟수를 1 늘리고, 화면이 닫혀 있으면 `GameSession.Pause()` 후 보상 카드 표시 수를 정해 화면을 연다. 완료 버튼마다 대기 횟수를 1 줄이고 0이면 화면을 닫고 `Resume()`. 표시 여부 `IsOpen` 노출 | `GameSession`(`Pause`, `Resume`), `PlayerExperience`(`LevelChanged`), `Button` |
+| `LevelUpPanel` (MonoBehaviour) | `PlayerExperience.LevelChanged`마다 레벨업 대기 횟수를, `RequestChestReward()`마다 보물 상자 대기 횟수를 1 늘리고, 화면이 닫혀 있으면 `GameSession.Pause()` 후 화면을 연다. 회차 종류는 레벨업 우선이며 종류에 따라 보상 카드 수(3/5)를 정한다. 완료 버튼마다 표시 중인 종류의 대기 횟수를 1 줄이고 둘 다 0이면 화면을 닫고 `Resume()`. 표시 여부 `IsOpen` 노출 | `GameSession`(`Pause`, `Resume`), `PlayerExperience`(`LevelChanged`), `Button`. 호출자 `TreasureChest`(`Docs/TechDocs/Enemy.md`) |
 | `SettingsPanel` (MonoBehaviour) | 설정 판넬 UI(볼륨 슬라이더, 피격 효과·데미지 숫자 토글)와 `GameSettings` 동기화. 켜질 때 현재 값 표시, 변경 즉시 반영, 꺼질 때 저장. 열고 닫기는 메뉴 스크립트(`PauseMenu`, `TitleMenu`)가 담당 | `GameSettings`, `Slider`, `Toggle` |
 | `GameSettings` (static class) | 설정 값 `Volume`(0~1), `HitFlashEnabled`, `DamageNumberEnabled`를 static 필드에 캐시하고 `PlayerPrefs`에 기록. `Save`로 디스크 기록. 첫 Scene 로드 전 자동 로드 | `PlayerPrefs`, `AudioListener` |
 
@@ -62,6 +63,7 @@
 | `State` / `IsPlaying` | 시작 값 `Playing`. `IsPlaying`은 생존 시간 누적·`EnemySpawner` 생성 허용 조건 |
 | `ElapsedTime` | `Playing` 동안만 `Update`에서 `Time.deltaTime`을 누적한다. 종료 즉시 멈춘다 |
 | `KillCount` | `Enemy.Died`마다 `Playing`일 때만 1 증가. 종료 후 사망 연출 대기 중에 죽은 적은 세지 않는다 |
+| 최종 보스 처치 클리어 (`HandleEnemyDied`) | 처치 수 처리 뒤 `enemy.ClearsSessionOnDeath`이면 `End(Cleared)`. `End`가 `Playing`일 때만 처리하므로 종료 후에 죽어도 상태는 바뀌지 않는다. 처치한 보스도 `Playing` 중이면 처치 수에 포함된다 (Issue #19) |
 | `IsCleared(elapsed, clearTime)` | `elapsed ≥ clearTime` |
 | `FormatTime(seconds)` | `"mm:ss"`. 소수점 버림, 분은 두 자리 이상 (예 : 1380 → `"23:00"`) |
 | `Pause()` | `IsPlaying`이면 `Time.timeScale = 0`. 아니면 아무것도 하지 않는다 |
@@ -137,14 +139,22 @@
 | 멤버 | 내용 |
 |---|---|
 | `IsOpen` | `_panelRoot.activeSelf`. `PauseMenu`가 ESC 무시 조건으로 읽는다 |
+| `RequestChestReward()` | 보물 상자 보상 1회를 대기열에 추가한다 (`_pendingChestCount++`). 화면이 닫혀 있을 때만 `Open`. 호출부는 `TreasureChest.Update` 하나다 (Issue #19) |
 | `_pendingCount` (private) | 아직 처리하지 않은 레벨업 횟수 |
-| `_previewCardCount` (Inspector) | 열 때 켤 보상 카드 수. 기본값·`GameScene` 값 3. 코드의 `shortcut` 주석 : 3(레벨업)/5(보물상자) 레이아웃 확인용 임시 값, 보상·보물상자 구현 시 호출부에서 개수 지정으로 교체 |
+| `_pendingChestCount` (private) | 아직 처리하지 않은 보물 상자 보상 횟수 |
+| `_isShowingChest` (private) | 현재 표시 중인 회차가 보물 상자인지. 완료 시 어느 대기 횟수를 줄일지 정한다 |
+| `_levelUpCardCount` (Inspector, `Min(1)`) | 레벨업 회차에 켤 보상 카드 수. 기본값·`GameScene` 값 3 |
+| `_chestCardCount` (Inspector, `Min(1)`) | 보물 상자 회차에 켤 보상 카드 수. 기본값·`GameScene` 값 5 |
 
+- Issue #17의 `_previewCardCount` 필드와 그 `shortcut` 주석(3/5 레이아웃 확인용 임시 값)은 Issue #19에서 제거되고 위 두 필드로 바뀌었다.
 - `Awake`에서 `_panelRoot.SetActive(false)`.
 - 구독 (`OnEnable`) : `_playerExperience.LevelChanged += HandleLevelChanged`, `_completeButton.onClick.AddListener(HandleCompleteClicked)`. `OnDisable`에서 해제.
 - `HandleLevelChanged(level)` : `_pendingCount++`. 화면이 닫혀 있을 때만 `Open`. 한 번에 여러 레벨이 올라 이벤트가 연속 발생해도 횟수만 쌓고 화면은 한 번만 연다 (코드 주석). 인자 `level`은 쓰지 않는다.
-- `Open` : `_gameSession.Pause()` → `_rewardCards[i]`를 `i < _previewCardCount`이면 켜고 나머지는 끔 → `_panelRoot.SetActive(true)`.
-- `HandleCompleteClicked` : `_pendingCount--`. 0이 되면 `_panelRoot.SetActive(false)` 후 `_gameSession.Resume()`. 0이 아니면 화면을 유지한다. 다음 회차에 갱신할 보상 내용은 아직 없다 (코드 주석). 따라서 마지막 회차를 완료하기 전에는 재개하지 않는다.
+- `Open` : `_gameSession.Pause()` → `RefreshRewardCards()` → `_panelRoot.SetActive(true)`.
+- `RefreshRewardCards` : 다음 회차 종류를 정한다. `_isShowingChest = (_pendingCount == 0)`이므로 레벨업 대기가 남아 있으면 항상 레벨업 회차가 먼저다. `_rewardCards[i]`를 `i < 카드 수`(보물 상자 `_chestCardCount`, 레벨업 `_levelUpCardCount`)이면 켜고 나머지는 끈다.
+- `HandleCompleteClicked` : `_isShowingChest`이면 `_pendingChestCount--`, 아니면 `_pendingCount--`. 표시 중인 종류만 줄이므로 표시 중에 도착한 다른 종류의 요청이 잘못 차감되지 않는다 (코드 주석). 두 횟수가 모두 0이면 `_panelRoot.SetActive(false)` 후 `_gameSession.Resume()`. 아니면 `RefreshRewardCards()`로 다음 회차를 표시한다. 따라서 마지막 회차를 완료하기 전에는 재개하지 않는다.
+- 화면이 열린 동안 들어온 요청은 횟수만 늘고 표시를 바꾸지 않는다. 예 : 보물 상자 회차(5장) 표시 중 레벨업하면 그 회차는 보물 상자로 유지되고, 완료하면 `_pendingChestCount`가 줄어든 뒤 다음 회차는 레벨업(3장)이다.
+- 보상 카드 내용은 회차가 바뀌어도 갱신되지 않는다. 켜지는 카드 수만 바뀐다.
 - `Pause`·`Resume`은 `GameSession`의 `IsPlaying` 조건을 따른다. 종료 대기 중 레벨업의 처리는 주의사항 n 참고.
 - `_panelRoot`는 이 컴포넌트가 붙은 오브젝트와 달라야 한다 (필드 주석 "이 컴포넌트와 다른 오브젝트여야 이벤트 구독이 유지됨"). 이유는 `ResultPanel`과 같다.
 
@@ -189,14 +199,20 @@ PlayerHealth             DamageGate.Tick → (timeScale 0이면 끝) → (살아
                               → _disableOnDeath 끔 → Died → GameSession.End(GameOver)
 GameHUD                  타이머·처치 수 폴링 (바뀔 때만 텍스트 갱신)
 
-[Enemy 사망] Enemy.Died → GameSession : Playing이면 KillCount++   (젬 드롭은 Enemy.md)
+[Enemy 사망] Enemy.Died → GameSession.HandleEnemyDied   (젬·상자 드롭은 Enemy.md)
+  ├─ Playing이면 KillCount++
+  └─ ClearsSessionOnDeath(최종 보스)면 End(Cleared)
 [젬 도착] PlayerExperience.AddExperience
   → (요구치 이상인 동안) 레벨업·LevelChanged × n → ExperienceGained → GameHUD 경험치 바·레벨
        └─ LevelChanged마다 LevelUpPanel.HandleLevelChanged : _pendingCount++
-            └─ (화면 닫힘) Open → GameSession.Pause → timeScale = 0 → 카드 _previewCardCount개만 켬 → _panelRoot 켬
-[완료 버튼] LevelUpPanel.HandleCompleteClicked : _pendingCount--
-  ├─ 0 아님 → 화면 유지 (다음 회차, 갱신 내용 없음)
-  └─ 0 → _panelRoot 끔 → GameSession.Resume → timeScale = 1
+            └─ (화면 닫힘) Open
+[상자 획득] TreasureChest.Update (Enemy.md) → LevelUpPanel.RequestChestReward : _pendingChestCount++
+            └─ (화면 닫힘) Open
+Open → GameSession.Pause → timeScale = 0 → RefreshRewardCards → _panelRoot 켬
+RefreshRewardCards : _isShowingChest = (_pendingCount == 0) → 카드 (상자 _chestCardCount / 레벨업 _levelUpCardCount)개만 켬
+[완료 버튼] LevelUpPanel.HandleCompleteClicked : _isShowingChest면 _pendingChestCount--, 아니면 _pendingCount--
+  ├─ 둘 중 하나라도 남음 → RefreshRewardCards (다음 회차, 레벨업 우선, 카드 내용 갱신 없음)
+  └─ 둘 다 0 → _panelRoot 끔 → GameSession.Resume → timeScale = 1
 
 [종료] GameSession.End(state)   (Playing일 때 첫 호출만)
   ├─ State = Cleared/GameOver → ElapsedTime 누적·EnemySpawner 생성 즉시 정지
@@ -316,7 +332,7 @@ UI
 | | `_panelRoot` | `HUDCanvas/PFB_LevelUpPanel` (Scene 인스턴스 루트 GameObject, 컴포넌트가 붙은 `HUDCanvas`와 다른 오브젝트) |
 | | `_completeButton` | 인스턴스의 `CompleteButton` Button |
 | | `_rewardCards` | 인스턴스의 보상 카드 GameObject 5개 (Scene 인스턴스 오브젝트) |
-| | `_previewCardCount` | 3 |
+| | `_levelUpCardCount` / `_chestCardCount` | 3 / 5 |
 
 - `LevelUpPanel`의 참조는 모두 Scene 인스턴스 오브젝트를 가리킨다 (Prefab 에셋을 가리키지 않음, Scene 파일의 stripped 오브젝트로 확인). `_rewardCards` 배열 순서가 `PFB_RewardCard_01`~`05` 순서와 일치함을 Unity MCP 조회로 확인했다.
 
@@ -427,15 +443,15 @@ PFB_RewardCard                (342×158, Image RewardCard Sliced)
 | e | (해결) `LevelChanged` 구독자가 없던 문제는 Issue #17에서 `LevelUpPanel`이 구독해 해결됐다. 보상 선택·획득은 여전히 구현되지 않았다 | 해결 (#17), 보상은 후속 |
 | f | 재화 표시는 "0" 고정이다 (`INITIAL_CURRENCY_TEXT`) | 재화 획득 구현 시 |
 | g | 결과 패널에는 다시하기 버튼이 없다. 타이틀 복귀만 있다 | 다시하기 구현 시 |
-| h | `_endFreezeDelay` 대기는 `WaitForSeconds`(scaled time)라 대기 중 `timeScale`이 0이면 `Ended`가 발생하지 않는다. Issue #13에서 두 경로를 막았다 : `Pause`·`Resume`은 `IsPlaying`일 때만 동작해 종료 대기 중에는 일시정지되지 않고, 일시정지 중에는 `PlayerHealth`가 접촉 판정을 생략해 사망(`End`)이 일어나지 않는다. 단, 이 생략은 접촉 판정에만 있어 `TakeDamage` 직접 호출로 일시정지 중 사망하면 같은 문제가 남는다. 접촉 외 호출 경로는 `IDamageable`을 통한 `Projectile` 적중뿐이며, 플레이어가 적중 대상이 되는지는 확인하지 않았다 (미검증) | 플레이어에게 피해를 주는 다른 경로 추가 시 |
+| h | `_endFreezeDelay` 대기는 `WaitForSeconds`(scaled time)라 대기 중 `timeScale`이 0이면 `Ended`가 발생하지 않는다. Issue #13에서 두 경로를 막았다 : `Pause`·`Resume`은 `IsPlaying`일 때만 동작해 종료 대기 중에는 일시정지되지 않고, 일시정지 중에는 `PlayerHealth`가 접촉 판정을 생략해 사망(`End`)이 일어나지 않는다. 단, 이 생략은 접촉 판정에만 있어 `TakeDamage` 직접 호출로 일시정지 중 사망하면 같은 문제가 남는다. 접촉 외 호출 경로는 `IDamageable`을 통한 `Projectile` 적중뿐이다. Issue #19부터 보스 탄(`PFB_BossBullet`, `_hitMask` Player)이 이 경로로 플레이어에게 피해를 준다 (`Docs/TechDocs/Enemy.md`). 일시정지 중 보스 탄 적중으로 사망하는 상황이 실제로 생기는지는 확인하지 않았다 (미검증) | 플레이어에게 피해를 주는 다른 경로 추가 시 |
 | i | Inspector 연결 누락 시 `null` 검사가 없다. `GameSession._playerHealth`, `GameHUD`·`ResultPanel`의 참조, `PlayerHealthBar._camera`, `LevelUpPanel`의 참조, `PauseMenu._levelUpPanel`이 비면 `Awake`·`OnEnable`·`Update`·`LateUpdate`·ESC 입력에서 예외가 난다. `PauseMenu`는 ESC마다 `_levelUpPanel.IsOpen`을 읽으므로 `LevelUpPanel`이 없는 Scene에 두면 ESC 입력 시 예외가 난다 | Scene 구성 시 연결 필수 |
 | j | `PlayerExperience`의 레벨 곡선은 임시다 (코드의 `shortcut` 주석) | 레벨 곡선 기획 확정 시 |
-| k | (해결) 레벨업 화면은 Issue #17에서 `PauseMenu`의 ESC 무시 조건(`_levelUpPanel.IsOpen`)에 포함됐다. 이후 일시정지를 쓰는 다른 판넬(보물상자 등)이 추가되면 같은 방식으로 무시 조건에 포함해야 한다 | 해결 (#17), 다른 판넬 추가 시 |
+| k | (해결) 레벨업 화면은 Issue #17에서 `PauseMenu`의 ESC 무시 조건(`_levelUpPanel.IsOpen`)에 포함됐다. 이후 일시정지를 쓰는 다른 판넬이 추가되면 같은 방식으로 무시 조건에 포함해야 한다. 보물 상자 보상(#19)은 같은 `LevelUpPanel` 화면을 쓰므로 이미 포함된다 | 해결 (#17), 다른 판넬 추가 시 |
 | l | 피격 효과를 꺼도 이미 반짝이는 중인 Enemy는 남은 시간이 지난 뒤 원래 재질로 돌아온다 (`EnemyHitFeedback.Update`는 설정과 무관하게 복원) | 참고 |
 | m | 데미지 숫자(DamageNumbersPro)가 일시정지(`timeScale` 0) 중에도 애니메이션되는지 확인하지 않았다 (미검증) | 일시정지 중 표시가 문제되면 |
-| n | 종료 대기(`_endFreezeDelay`) 중 레벨업하면 `IsPlaying`이 false라 `LevelUpPanel.Open`의 `Pause()`는 무시되고 화면만 열린다. 이어서 `Ended`가 발생하면 결과 패널이 레벨업 화면 위에 겹쳐 표시될 수 있다. 완료 버튼의 `Resume()`도 무시되므로 종료 정지가 풀리지는 않는다 (reviewer 권고, 미반영) | 레벨업 보상 구현 시 |
+| n | 종료 대기(`_endFreezeDelay`) 중 레벨업하면 `IsPlaying`이 false라 `LevelUpPanel.Open`의 `Pause()`는 무시되고 화면만 열린다. 이어서 `Ended`가 발생하면 결과 패널이 레벨업 화면 위에 겹쳐 표시될 수 있다. 완료 버튼의 `Resume()`도 무시되므로 종료 정지가 풀리지는 않는다 (reviewer 권고, 미반영). 종료 대기 중 보물 상자 획득(`RequestChestReward`)도 같은 경로로 화면만 열린다 (코드 확인, Play 미검증) | 레벨업 보상 구현 시 |
 | o | `PFB_LevelUpPanel` 인스턴스의 비활성 상태를 Scene 저장(`m_IsActive` 0)과 `LevelUpPanel.Awake`의 `_panelRoot.SetActive(false)` 두 곳이 정한다 (이중 책임, reviewer 권고, 미반영). `ResultPanel`도 같은 구조다 | 참고 |
-| p | 카드 5장(`_previewCardCount` 5)이면 `HorizontalLayoutGroup`이 카드 폭을 약 184px((1135 − 54 × 4) / 5)로 줄여 이름·설명 텍스트가 세로로 깨진다. 기본 크기 342×158은 3장 기준이다 | 보물상자(5장) 구현 시 |
+| p | 카드 5장(보물 상자 회차, `_chestCardCount` 5)이면 `HorizontalLayoutGroup`이 카드 폭을 약 184px((1135 − 54 × 4) / 5)로 줄여 이름·설명 텍스트가 세로로 깨진다. 기본 크기 342×158은 3장 기준이다. Issue #19 이후 5장 표시의 실제 화면은 이 문서 작성 시 확인하지 않았다 (미검증) | 카드 레이아웃 보정 시 |
 | q | 레벨업 화면 배경이 반투명(α 0.6)이라 아래 HUD가 보이고, 타이머가 `InventoryFrame` 상단에 겹친다 (1920×1080 렌더 캡처 기준) | 레이아웃 보정 시 |
 | r | 완료 버튼은 조건 검증 없이 누를 때마다 회차를 넘긴다 (보상 선택 여부 확인 없음). 리롤 버튼은 표시만 있고 동작이 없다. 인벤토리 슬롯·저장고("Storage 0/5")도 표시 전용이다 | 보상·리롤·인벤토리 구현 시 |
 | s | 연속 레벨업 시 다음 회차로 넘어가도 레벨업 효과음·새 보상 UI·새 후보가 없다. 같은 화면이 유지되고 대기 횟수만 줄어든다. `Docs/Spec/GameFlow.md`의 `연속 레벨업`(회차마다 효과음·UI·후보 3개 재생성)을 충족하지 않는다. 마지막 회차 전 재개하지 않는 조건은 충족한다 | 레벨업 보상 구현 시 |
@@ -460,6 +476,8 @@ PFB_RewardCard                (342×158, Image RewardCard Sliced)
     - 레이아웃 : 메인 세션이 1920×1080 렌더 캡처로 `InventoryLayout-1920x1080.png`과 배치가 일치함을 확인했다.
     - Play 모드 : 사용자 승인으로 전달받았다. 확인한 세부 항목은 이 문서 작성 입력에 포함되지 않았다.
     - 미검증 : 1920×1080 외 해상도에서의 레이아웃, 주의사항 n(종료 대기 중 레벨업)의 실제 표시.
+- Issue #19 (보물 상자 보상 요청·최종 보스 처치 클리어)
+    - `LevelUpPanel`·`GameSession` 변경분을 검증하는 새 EditMode 테스트는 없다. 테스트 실행 결과와 Play 모드 확인 항목은 이 문서 작성 입력에 포함되지 않았다 (미검증으로 표기).
 
 ## 관련 Issue/PR
 
@@ -468,3 +486,4 @@ PFB_RewardCard                (342×158, Image RewardCard Sliced)
 - Issue #10 (TitleScene·캐릭터 선택. 결과 패널의 타이틀 복귀 대상, `Docs/TechDocs/Character.md`)
 - Issue #13 (타이틀 메뉴·설정·일시정지). PR : 미정
 - Issue #17 (레벨업 일시정지·레벨업 화면 레이아웃). PR : 미정
+- Issue #19 (몬스터 최종 M06~M12. 보물 상자 보상 요청, 회차 종류별 카드 수, 최종 보스 처치 클리어. `Docs/TechDocs/Enemy.md`). PR : 미정
