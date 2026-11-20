@@ -273,6 +273,7 @@ MonoBehaviour:
   _contactDamage: 20
   _experienceValue: 0
   _dropsTreasureChest: 1
+  _clearsSessionOnDeath: 0
 --- !u!114 &7084415186446271958
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,9 +1,10 @@
+using System;
 using UnityEngine;
 
 /// <summary>
-/// 보스 사격 패턴 : 범위 안 플레이어 감지 시 예고 후 발사 순간의 플레이어 방향으로 탄 발사 (Naga 직선탄·Bishop 방사탄 공용)
+/// 보스 사격 패턴 : 범위 안 플레이어 감지 시 예고 후 발사 순간의 플레이어 방향으로 탄 발사 (Naga 직선탄·Bishop 방사탄·BlackKnight 직선·부채꼴탄 공용)
 /// </summary>
-public class BossShootPattern : MonoBehaviour
+public class BossShootPattern : MonoBehaviour, IBossPattern
 {
     private const float FULL_CIRCLE_ANGLE = 360f;
     private const float HALF = 0.5f;
@@ -25,6 +26,9 @@ public class BossShootPattern : MonoBehaviour
     private EnemyMovement _movement;
     private BossCharge _charge; // Warn = 예고, Charge = 발사 (진입 즉시 발사 후 EndCharge)
     private ProjectilePool _projectilePool;
+
+    /// <summary>발사(정지 보스는 추적 복귀까지) 직후 발생</summary>
+    public event Action Finished;
 
     private void Awake()
     {
@@ -123,6 +127,8 @@ public class BossShootPattern : MonoBehaviour
         {
             _movement.enabled = true;
         }
+
+        Finished?.Invoke();
     }
 
     /// <summary>탄 풀 주입 (EnemyPool.Spawn에서 호출), 미주입이면 패턴 동작 안 함</summary>

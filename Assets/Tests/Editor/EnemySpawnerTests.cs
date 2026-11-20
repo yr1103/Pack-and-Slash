@@ -2,7 +2,7 @@ using NUnit.Framework;
 using UnityEngine;
 
 /// <summary>
-/// 해금 시각 경계·활성 상한·시야 사다리꼴 경계까지 거리 계산·보스 생성 후보 선택 검증
+/// 해금 시각 경계·활성 상한·시야 사다리꼴 경계까지 거리 계산·보스 생성 후보 선택·원형 스폰 지점 검증
 /// </summary>
 public class EnemySpawnerTests
 {
@@ -11,6 +11,9 @@ public class EnemySpawnerTests
     private const float JUST_BEFORE_B_UNLOCK = 179.9f;
     private const int MAX_ACTIVE_ENEMIES = 500;
     private const float TOLERANCE = 0.0001f;
+    private const int RING_COUNT = 30;
+    private const float RING_RADIUS = 14f;
+    private const float ANGLE_TOLERANCE = 0.01f; // SignedAngle 내부 acos 오차 허용
 
     // 카메라가 +Z를 바라볼 때의 시야 사다리꼴 (가까운 변 z = -5 폭 12, 먼 변 z = 15 폭 32)
     private static readonly Vector2[] _trapezoid =
@@ -124,5 +127,41 @@ public class EnemySpawnerTests
         Vector2[] candidates = { new Vector2(0f, -5f), new Vector2(0f, -20f) };
 
         Assert.AreEqual(1, EnemySpawner.SelectBossSpawnIndex(Vector2.zero, candidates, _trapezoid));
+    }
+
+    [Test]
+    public void GetRingPoint_AllPoints_LieAtRadiusFromCenter()
+    {
+        Vector2 center = new Vector2(3f, -2f);
+
+        for (int i = 0; i < RING_COUNT; i++)
+        {
+            Vector2 point = EnemySpawner.GetRingPoint(center, i, RING_COUNT, RING_RADIUS);
+            Assert.AreEqual(RING_RADIUS, Vector2.Distance(center, point), TOLERANCE);
+        }
+    }
+
+    [Test]
+    public void GetRingPoint_AdjacentPoints_SeparatedByEqualAngle()
+    {
+        float expectedAngle = 360f / RING_COUNT;
+
+        for (int i = 0; i < RING_COUNT; i++)
+        {
+            Vector2 current = EnemySpawner.GetRingPoint(Vector2.zero, i, RING_COUNT, RING_RADIUS);
+            Vector2 next = EnemySpawner.GetRingPoint(Vector2.zero, (i + 1) % RING_COUNT, RING_COUNT, RING_RADIUS);
+            Assert.AreEqual(expectedAngle, Vector2.SignedAngle(current, next), ANGLE_TOLERANCE);
+        }
+    }
+
+    [Test]
+    public void GetRingPoint_IndexZero_ReturnsCenterPlusRadiusOnX()
+    {
+        Vector2 center = new Vector2(3f, -2f);
+
+        Vector2 point = EnemySpawner.GetRingPoint(center, 0, RING_COUNT, RING_RADIUS);
+
+        Assert.AreEqual(center.x + RING_RADIUS, point.x, TOLERANCE);
+        Assert.AreEqual(center.y, point.y, TOLERANCE);
     }
 }

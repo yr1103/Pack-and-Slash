@@ -14,6 +14,7 @@ public class EnemyPool : MonoBehaviour
 
     // 종류가 다른 Enemy끼리 섞여 재사용되지 않도록 프리팹마다 풀 분리
     private readonly Dictionary<Enemy, ObjectPool<Enemy>> _pools = new Dictionary<Enemy, ObjectPool<Enemy>>();
+    private readonly List<BossShootPattern> _shootPatterns = new List<BossShootPattern>(); // 스폰마다 할당 없이 재사용
 
     /// <summary>프리팹의 풀에서 Enemy를 꺼내 위치 지정 후 초기화 (해당 프리팹 첫 생성 시 풀 생성)</summary>
     /// <param name="prefab">생성할 Enemy 프리팹</param>
@@ -31,7 +32,8 @@ public class EnemyPool : MonoBehaviour
         // 재사용 Enemy의 이전 위치·회전 제거
         enemy.transform.SetPositionAndRotation(position, Quaternion.identity);
         enemy.Initialize(flowFieldManager, player, pool);
-        if (enemy.TryGetComponent(out BossShootPattern shootPattern))
+        enemy.GetComponents(_shootPatterns);
+        foreach (BossShootPattern shootPattern in _shootPatterns)
         {
             shootPattern.Initialize(_projectilePool);
         }

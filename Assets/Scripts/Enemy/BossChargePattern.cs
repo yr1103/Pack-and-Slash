@@ -1,16 +1,17 @@
+using System;
 using UnityEngine;
 
 /// <summary>
 /// 보스 돌진 패턴 : 범위 안 플레이어 방향을 고정해 경고선 표시 후 직선 돌진, 거리 도달·이동 불가 타일에서 추적 복귀
 /// </summary>
-public class BossChargePattern : MonoBehaviour
+public class BossChargePattern : MonoBehaviour, IBossPattern
 {
     [SerializeField] private LineRenderer _warningLine; // 자식, useWorldSpace true·positionCount 2·평소 enabled false
-    [SerializeField, Min(0f)] private float _chargeRange = 8f; // 경고 시작 XZ 거리, 수치미정
-    [SerializeField, Min(0f)] private float _warnDuration = 1f; // 수치미정
-    [SerializeField, Min(0.01f)] private float _chargeSpeed = 15f; // 0이면 돌진이 끝나지 않음, 수치미정
-    [SerializeField, Min(0f)] private float _chargeDistance = 10f; // 수치미정
-    [SerializeField, Min(0f)] private float _cooldown = 4f; // 돌진 종료 후 재경고까지(초), 수치미정
+    [SerializeField, Min(0f)] private float _chargeRange = 8f; // 경고 시작 XZ 거리
+    [SerializeField, Min(0f)] private float _warnDuration = 1f; 
+    [SerializeField, Min(0.01f)] private float _chargeSpeed = 15f; // 0이면 돌진이 끝나지 않음
+    [SerializeField, Min(0f)] private float _chargeDistance = 10f; 
+    [SerializeField, Min(0f)] private float _cooldown = 4f; // 돌진 종료 후 재경고까지(초)
     [SerializeField] private float _warningLineHeight = 0.1f; // 바닥에 묻히지 않게 띄우는 높이
 
     private Enemy _enemy;
@@ -18,6 +19,9 @@ public class BossChargePattern : MonoBehaviour
     private BossCharge _charge;
     private Vector3 _chargeDirection; // 경고 시작 순간의 플레이어 방향 (XZ 정규화)
     private float _chargedDistance;
+
+    /// <summary>돌진 종료(추적 복귀) 직후 발생</summary>
+    public event Action Finished;
 
     private void Awake()
     {
@@ -112,6 +116,7 @@ public class BossChargePattern : MonoBehaviour
     {
         _charge.EndCharge();
         _movement.enabled = true;
+        Finished?.Invoke();
     }
 
     private void CacheComponents()

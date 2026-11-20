@@ -9710,6 +9710,34 @@ PrefabInstance:
       propertyPath: _camera
       value: 
       objectReference: {fileID: 836134593}
+    - target: {fileID: 7179500189625430858, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
+      propertyPath: _extraWeapons.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7179500189625430858, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
+      propertyPath: '_extraWeapons.Array.data[2]'
+      value: 
+      objectReference: {fileID: 11400000, guid: a69205e25301dde4f9879a8219f2abb9, type: 2}
+    - target: {fileID: 7179500189625430858, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
+      propertyPath: '_extraWeapons.Array.data[3]'
+      value: 
+      objectReference: {fileID: 11400000, guid: a69205e25301dde4f9879a8219f2abb9, type: 2}
+    - target: {fileID: 7179500189625430858, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
+      propertyPath: '_extraWeapons.Array.data[4]'
+      value: 
+      objectReference: {fileID: 11400000, guid: a69205e25301dde4f9879a8219f2abb9, type: 2}
+    - target: {fileID: 7179500189625430858, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
+      propertyPath: '_extraWeapons.Array.data[5]'
+      value: 
+      objectReference: {fileID: 11400000, guid: a69205e25301dde4f9879a8219f2abb9, type: 2}
+    - target: {fileID: 7179500189625430858, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
+      propertyPath: '_extraWeapons.Array.data[6]'
+      value: 
+      objectReference: {fileID: 11400000, guid: a69205e25301dde4f9879a8219f2abb9, type: 2}
+    - target: {fileID: 7179500189625430858, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
+      propertyPath: '_extraWeapons.Array.data[7]'
+      value: 
+      objectReference: {fileID: 11400000, guid: a69205e25301dde4f9879a8219f2abb9, type: 2}
     - target: {fileID: 8765907936762248209, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
       propertyPath: _signatureWeapon
       value: 
@@ -16808,10 +16836,16 @@ MonoBehaviour:
   - _prefab: {fileID: 3755978135127593930, guid: ce73cbecb846c914caedc4051e6c05be, type: 3}
     _unlockTime: 360
   _bossSchedule:
+  - _prefab: {fileID: 4268184432913942235, guid: 552d140547129504b87a01a46ee1da5a, type: 3}
+    _unlockTime: 180
   - _prefab: {fileID: 4268184432913942235, guid: 959e5de355f128b44958fd28f15afb8d, type: 3}
     _unlockTime: 300
+  - _prefab: {fileID: 4268184432913942235, guid: 9ec60b4d2140b7049827c1c5f87d3fd1, type: 3}
+    _unlockTime: 480
   - _prefab: {fileID: 4268184432913942235, guid: 04b44e1c245fbbe40930dc7ebe26b5dd, type: 3}
     _unlockTime: 600
+  - _prefab: {fileID: 4268184432913942235, guid: 11966663f0293ae4db4695324844d666, type: 3}
+    _unlockTime: 780
   - _prefab: {fileID: 4268184432913942235, guid: b671187c2e1376a4f9ce9783ea565e22, type: 3}
     _unlockTime: 900
   - _prefab: {fileID: 4268184432913942235, guid: 4986883e8b7fbed4a804c1dca1fb8c72, type: 3}
@@ -16821,6 +16855,14 @@ MonoBehaviour:
   _maxActiveEnemies: 500
   _spawnMargin: 2
   _maxPositionAttempts: 8
+  _ringSpawnTimes:
+  - 240
+  - 480
+  - 720
+  - 960
+  _ringPrefab: {fileID: 4268184432913942235, guid: 087a028abfa43f346b83dd1e628c0b4b, type: 3}
+  _ringCount: 50
+  _ringRadius: 25
 --- !u!1001 &2080346360
 PrefabInstance:
   m_ObjectHideFlags: 0

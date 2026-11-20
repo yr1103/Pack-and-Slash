@@ -4,7 +4,8 @@ using UnityEngine;
 using Random = UnityEngine.Random;
 
 /// <summary>
-/// 진행 시간에 따라 해금된 일반 몬스터를 일정 간격으로 카메라 시야 바로 바깥에 생성하고, 보스는 예정 시각에 1마리씩 생성
+/// 진행 시간에 따라 해금된 일반 몬스터를 일정 간격으로 카메라 시야 바로 바깥에 생성하고, 보스·강화몹은 예정 시각에 1마리씩 가장 가까운 시야 밖 격자 변 중점에 생성
+/// 원형 대량 스폰 시각마다 1회, 플레이어 중심 원 위에 균등 각도로 몬스터를 한 번에 생성
 /// </summary>
 public class EnemySpawner : MonoBehaviour
 {
@@ -24,18 +25,23 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private Transform _player;
     [SerializeField] private Camera _camera; // Game View 카메라, 시야 사다리꼴 계산용
     [SerializeField] private SpawnEntry[] _spawnTable; // 해금된 항목 중 균등 랜덤 선택
-    [SerializeField] private SpawnEntry[] _bossSchedule; // 보스 프리팹과 등장 시각, 시각 오름차순으로 배치
+    [SerializeField] private SpawnEntry[] _bossSchedule; // 보스·강화몹 프리팹과 등장 시각, 시각 오름차순으로 배치
     [SerializeField, Min(0.01f)] private float _spawnInterval = 1f; // 생성 간격(초)
     [SerializeField, Min(0)] private int _spawnCountPerTick = 2;
     [SerializeField, Min(0)] private int _maxActiveEnemies = 500; // 활성 Enemy 상한 (풀 보관 개체 제외)
     [SerializeField, Min(0f)] private float _spawnMargin = 2f; // 시야 경계 바깥 여유 거리
     [SerializeField, Min(1)] private int _maxPositionAttempts = 8; // 격자 밖·통행 불가 시 방향 재시도 횟수
+    [SerializeField] private float[] _ringSpawnTimes; // 원형 대량 스폰 시각(초), 오름차순으로 배치
+    [SerializeField] private Enemy _ringPrefab; // 원형 대량 스폰에 쓰는 저속 몬스터
+    [SerializeField, Min(1)] private int _ringCount = 30; // 회차당 생성 수, 수치미정
+    [SerializeField, Min(0f)] private float _ringRadius = 14f; // 플레이어 중심 원 반지름, 수치미정
 
     private readonly Vector2[] _groundCorners = new Vector2[_viewportCorners.Length];
     private readonly List<Enemy> _unlockedPrefabs = new List<Enemy>();
     private readonly List<Vector2> _bossCandidates = new List<Vector2>(); // 이동 가능한 격자 변 중점 (XZ)
     private float _nextSpawnTime;
     private int _nextBossIndex; // 다음에 생성할 _bossSchedule 항목
+    private int _nextRingIndex; // 다음에 처리할 _ringSpawnTimes 항목
 
     /// <summary>스폰 테이블 항목 (Enemy 프리팹과 해금 시각)</summary>
     [Serializable]
@@ -58,6 +64,7 @@ public class EnemySpawner : MonoBehaviour
 
         float elapsedTime = _gameSession.ElapsedTime;
         TrySpawnNextBoss(elapsedTime);
+        TrySpawnNextRing(elapsedTime);
         if (elapsedTime < _nextSpawnTime)
         {
             return;
@@ -111,7 +118,7 @@ public class EnemySpawner : MonoBehaviour
         return farthest;
     }
 
-    /// <summary>보스 생성 후보 선택 : 시야 다각형 밖 후보 중 원점과 가장 가까운 후보</summary>
+    /// <summary>보스·강화몹 생성 후보 선택 :시야 다각형 밖 후보 중 원점과 가장 가까운 후보</summary>
     /// <param name="origin">플레이어 XZ 위치</param>
     /// <param name="candidates">후보 XZ 위치</param>
     /// <param name="viewCorners">둘레 순으로 놓인 시야 볼록 다각형 꼭짓점</param>
@@ -131,6 +138,18 @@ public class EnemySpawner : MonoBehaviour
         }
 
         return selectedIndex;
+    }
+
+    /// <summary>원 위 균등 각도 지점 : index 0은 월드 +X 방향, 360/count 간격으로 월드 +X → +Z 순서 배치</summary>
+    /// <param name="center">원 중심 XZ 위치</param>
+    /// <param name="index">지점 순번 (0 ~ count - 1)</param>
+    /// <param name="count">원 위 지점 수 (1 이상, 0이면 0으로 나눠 NaN)</param>
+    /// <param name="radius">원 반지름</param>
+    /// <returns>index번째 지점 XZ 위치</returns>
+    public static Vector2 GetRingPoint(Vector2 center, int index, int count, float radius)
+    {
+        float angle = FULL_CIRCLE_RADIANS * index / count;
+        return center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
     }
 
     private static float Cross(Vector2 a, Vector2 b)
@@ -154,7 +173,7 @@ public class EnemySpawner : MonoBehaviour
         return !(hasPositive && hasNegative);
     }
 
-    // 예정 시각이 지난 다음 보스를 생성, 위치를 못 찾으면 인덱스를 유지해 다음 프레임 재시도 (보스 누락 방지)
+    // 예정 시각이 지난 다음 보스·강화몹을 생성, 위치를 못 찾으면 인덱스를 유지해 다음 프레임 재시도 (누락 방지)
     private void TrySpawnNextBoss(float elapsedTime)
     {
         if (_nextBossIndex >= _bossSchedule.Length
@@ -215,6 +234,46 @@ public class EnemySpawner : MonoBehaviour
         _bossCandidates.Add(new Vector2(world.x, world.z));
     }
 
+    // 시각이 지난 다음 회차를 1회만 처리, 일부가 상한·장애물로 빠져도 재시도하지 않음
+    private void TrySpawnNextRing(float elapsedTime)
+    {
+        if (_nextRingIndex >= _ringSpawnTimes.Length
+            || !IsUnlocked(_ringSpawnTimes[_nextRingIndex], elapsedTime))
+        {
+            return;
+        }
+
+        _nextRingIndex++;
+        SpawnRing();
+    }
+
+    // 그 순간 플레이어 XZ 위치 중심 원 위에 일괄 생성, 통행 불가·격자 밖 지점은 그 1마리만 건너뜀
+    private void SpawnRing()
+    {
+        float groundHeight = _player.position.y;
+        Vector2 center = new Vector2(_player.position.x, _player.position.z);
+        CostField costField = _flowFieldManager.CostField;
+
+        for (int i = 0; i < _ringCount; i++)
+        {
+            // 일반 스폰과 같은 보스·강화몹 예약 슬롯 제외 상한, 상한이면 이 회차 남은 생성 중단
+            if (!HasCapacity(Enemy.ActiveEnemies.Count, _maxActiveEnemies - _bossSchedule.Length))
+            {
+                return;
+            }
+
+            Vector2 point = GetRingPoint(center, i, _ringCount, _ringRadius);
+            Vector3 position = new Vector3(point.x, groundHeight, point.y);
+            Vector2Int tile = costField.WorldToTile(position);
+            if (!costField.IsWalkable(tile.x, tile.y))
+            {
+                continue;
+            }
+
+            _enemyPool.Spawn(_ringPrefab, position, _flowFieldManager, _player);
+        }
+    }
+
     private void SpawnTick(float elapsedTime)
     {
         CollectUnlockedPrefabs(elapsedTime);
@@ -225,7 +284,7 @@ public class EnemySpawner : MonoBehaviour
 
         for (int i = 0; i < _spawnCountPerTick; i++)
         {
-            // 보스 스케줄 전체 수만큼 슬롯을 항상 고정 예약 (등장 전·사망 후 포함), 보스(상한 검사 없음)가 생겨도 전체 상한 초과 방지
+            // 보스·강화몹 스케줄 전체 수만큼 슬롯을 항상 고정 예약 (등장 전·사망 후 포함), 보스·강화몹(상한 검사 없음)이 생겨도 전체 상한 초과 방지
             if (!HasCapacity(Enemy.ActiveEnemies.Count, _maxActiveEnemies - _bossSchedule.Length))
             {
                 return;
