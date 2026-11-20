@@ -24,7 +24,7 @@
 | `FlowField` | 칸마다 8방향 중 "이웃 누적 비용 + 이동 비용"이 최소인 정규화 방향 계산. 목적지·장애물·도달 불가 칸은 `Vector2.zero`. 월드 위치 주변 4칸 방향의 쌍선형 보간(`GetInterpolatedDirection`) | `CostField`, `IntegrationField` |
 | `FlowFieldManager` (MonoBehaviour) | `IntegrationField`·`FlowField`를 하나씩 소유하고 전체 Enemy에 공유. `Start`에서 1회 계산, `Update`에서 갱신 조건(`ShouldRecalculate`)을 만족하면 재계산. Profiler 구간 `FlowFieldManager.CalculateIntegration`, `FlowFieldManager.CalculateFlow`. Gizmos(목적지·누적 비용·방향) | `MapGenerator`(`_mapGenerator`), 플레이어 `Transform`(`_player`) |
 | `MapGenerator` (MonoBehaviour) | `Awake`에서 `CostField` 생성 → 장애물 배치 → 고립 영역 채움 → 장식 배치 → 경계 벽 생성. 장애물마다 차단 Box 생성. Profiler 구간 `MapGenerator.Awake`, `MapGenerator.PlaceObstacles`, `MapGenerator.PlaceDecorations` | 장애물·장식 Prefab, `_generatedRoot` |
-| `EnemyMovement` (MonoBehaviour) | 매 `Update`에 `FlowFieldManager`에서 Flow Field를 조회해 이동 방향 결정(`GetMoveDirection`), 주변 Enemy로 Separation 계산(`CalculateSeparation`)·합성(`GetSeparatedDirection`) 후 `transform.position` 직접 이동. `Velocity` 노출. Profiler 구간 `EnemyMovement.Separation` | `FlowFieldManager`, 플레이어 `Transform` (둘 다 `Initialize`로 주입), `Physics` |
+| `EnemyMovement` (MonoBehaviour) | 매 `Update`에 `FlowFieldManager`에서 Flow Field를 조회해 이동 방향 결정(`GetMoveDirection`), 주변 Enemy로 Separation 계산(`CalculateSeparation`)·합성(`GetSeparatedDirection`) 후 `transform.position` 직접 이동. `Velocity` 노출. 주입받은 참조를 읽기 전용 프로퍼티 `FlowFieldManager`, `Player`로 노출 (Issue #19, 보스 패턴이 사용). Profiler 구간 `EnemyMovement.Separation` | `FlowFieldManager`, 플레이어 `Transform` (둘 다 `Initialize`로 주입), `Physics` |
 | `TempEnemySpawner` (MonoBehaviour, 임시, `TestMap` 전용) | `Start`에서 `_spawnCount`마리를 자기 위치 기준 반경 `_spawnRadius` 원 위 랜덤 각도에 `EnemyPool.Spawn`으로 생성 (풀이 `Enemy.Initialize` → `EnemyMovement.Initialize` 호출). 프리팹은 `_enemyPrefabs` 배열에서 생성마다 균등 랜덤. 시간차 생성 없음. `GameScene`은 대신 `EnemySpawner`를 쓴다 (`Docs/TechDocs/Enemy.md`) | `Enemy` Prefab, `EnemyPool`, `FlowFieldManager`, 플레이어 `Transform` |
 
 ## API / 이벤트 / 데이터 계약
@@ -80,15 +80,16 @@
 
 - 장애물마다 점유 타일 전체를 덮는 보이지 않는 축 정렬 `BoxCollider` 오브젝트를 하나 만든다. 이름의 `xx_zz`는 좌하단 타일 좌표다 (`ObstacleBlocker_{0:00}_{1:00}`).
 - 범위 : 좌하단 타일 모서리 ~ 우상단 타일 모서리, 높이는 바닥부터 `_boundaryWallHeight` (경계 벽과 같은 값을 공유).
-- Layer : `Default` (코드에서 지정하지 않은 새 GameObject 기본값). 탄환의 `_hitMask`(Enemy)·`_blockMask`(현재 없음)에 포함되지 않아 탄환은 통과한다.
+- Layer : `Default` (코드에서 지정하지 않은 새 GameObject 기본값). 무기 탄의 `_hitMask`(Enemy)·`_blockMask`(없음)에 포함되지 않아 무기 탄은 통과한다. 보스 탄(`_hitMask` Player, `_blockMask` Obstacle)에도 포함되지 않아 보스 탄도 통과한다.
 - 경계 벽(`BoundaryWall_01`~`04`)과 같은 `CreateBlockingBox`로 만든다.
 - 도입 이유 : 장애물 모델의 Collider는 타일보다 작다 (나무는 반지름 약 0.13의 Capsule, 바위는 낮은 Box. 브리핑 기준 수치이며 이 문서 작성 시 Prefab에서 재확인하지 않음). 차단 Box가 없으면 플레이어 중심이 장애물 타일 안으로 들어가거나 바위 위로 올라갈 수 있다. 그러면 Flow Field의 목적지(플레이어 타일)가 이동 불가 타일이 되어 `IntegrationField`가 모든 칸을 무한대로 두고, Flow가 전부 0이 되어 Enemy 추적이 멈춘다.
 - 차단 Box는 플레이어(`CharacterController`)를 막기 위한 것이다. Enemy는 `transform.position`을 직접 바꾸므로 차단 Box·경계 벽에 막히지 않는다 (Enemy의 장애물 회피는 Flow Field가 담당).
-- 탄환이 장애물을 통과하는 것은 이슈 #7에서 확정한 사항이다. 무기 쪽 상세는 `Docs/TechDocs/Weapon.md`의 `투사체 적중·반환` 참고.
+- 무기 탄이 장애물을 통과하는 것은 이슈 #7에서 확정한 사항이다. 무기 쪽 상세는 `Docs/TechDocs/Weapon.md`의 `투사체 적중·반환` 참고.
+- 보스 탄(Issue #19)은 `_blockMask`가 Obstacle(8)이라, 위 `장애물 점유 크기와 회전`에서 Layer Obstacle로 바뀐 장애물 모델(그 Collider)에 막힌다. 상세는 `Docs/TechDocs/Enemy.md`의 `PFB_BossBullet`.
 
 #### 경계 벽 (`BoundaryWall_01`~`04`)
 
-- 격자 바깥 네 변에 두께 `_boundaryWallThickness`, 높이 `_boundaryWallHeight`의 Box. 남·북 벽은 모서리까지 덮도록 두께만큼 길다. Layer `Default`라 탄환은 통과한다.
+- 격자 바깥 네 변에 두께 `_boundaryWallThickness`, 높이 `_boundaryWallHeight`의 Box. 남·북 벽은 모서리까지 덮도록 두께만큼 길다. Layer `Default`라 무기 탄과 보스 탄 모두 통과한다.
 
 ### Enemy 이동 (`EnemyMovement`)
 
@@ -115,6 +116,11 @@
     - 거리 ≥ 반경인 이웃도 제외한다. `OverlapSphere`가 Collider 표면 기준이라 중심이 반경 밖인 이웃도 들어오기 때문이다.
 - 합성 (`GetSeparatedDirection`) : `(Flow 방향 + Separation × _separationWeight)`를 정규화한다. 결과가 0이거나, 그 방향으로 이번 프레임 이동 거리만큼 간 위치의 타일이 이동 불가이면 Flow 방향만 쓴다.
 - Profiler 구간 `EnemyMovement.Separation`이 이웃 탐색과 합성을 감싼다.
+
+#### 외부 참조·추적 정지 (Issue #19)
+
+- `FlowFieldManager`, `Player` : `Initialize`로 주입받은 `_flowFieldManager`, `_player`를 그대로 반환한다. 미주입이면 `null`이다. 보스 패턴(`BossChargePattern`, `BossShootPattern`)이 같은 Enemy의 이 값으로 플레이어 방향과 `CostField`를 읽는다 (`Docs/TechDocs/Enemy.md`).
+- 보스 패턴은 경고·돌진·정지 사격 동안 `EnemyMovement.enabled`를 꺼서 Flow Field 추적을 멈추고, 끝나면 다시 켠다. 꺼진 동안은 `Update`가 돌지 않으므로 `Velocity`는 마지막으로 계산된 값을 유지한다 (0으로 바뀌지 않음). 현재 `Velocity`를 읽는 코드는 없다.
 
 ## 호출 순서 또는 데이터 흐름
 
@@ -305,3 +311,4 @@ Managers
 
 - Issue #7 (맵 프로토타입, 작업 A~F)
 - Issue #8 (몬스터 프로토타입. `TempEnemySpawner`의 풀 사용·프리팹 배열, `PFB_TempCubeEnemy`의 `Enemy` 대체, `TestMap`의 `EnemyPool`·`ExperienceGemPool` 추가). PR : 미정
+- Issue #19 (몬스터 최종 M06~M12. `EnemyMovement`의 `FlowFieldManager`·`Player` 프로퍼티 추가, 보스 패턴의 추적 정지. `Docs/TechDocs/Enemy.md`). PR : 미정

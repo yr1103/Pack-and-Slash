@@ -14,23 +14,31 @@ public class InventoryData : ScriptableObject
     [SerializeField] private ItemType _itemType;
     [SerializeField] private Vector2Int[] _itemShape; // 몇칸 차지하는지
     [SerializeField] private int _maxLevel;
+
+    // 무기 설정 참조하는 필드
+    [SerializeField] private WeaponDefinition _weaponDefinition;
     
     
     public int Id => _id;
     public string ItemName => _itemName;
     public Sprite Icon => _icon;
+    public string Description => _description;
     public ItemType ItemType => _itemType;
     public Vector2Int[] ItemShape => _itemShape;
     public int MaxLevel => _maxLevel;
 
-    public void SetData(int id, string itemName, Sprite icon, ItemType itemType, Vector2Int[] itemShape, int maxLevel)
+    public WeaponDefinition WeaponDefinition => _weaponDefinition;
+    
+    public void SetData(int id, string itemName, Sprite icon, ItemType itemType, string description, Vector2Int[] itemShape, int maxLevel, WeaponDefinition weaponDefinition)
     {
         _id = id;
         _itemName = itemName;
         _icon = icon;
+        _description = description;
         _itemType = itemType;
         _itemShape = itemShape;
         _maxLevel = maxLevel;
+        _weaponDefinition = weaponDefinition;
     }
 }
 
