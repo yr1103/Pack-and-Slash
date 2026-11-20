@@ -18,6 +18,7 @@ public class PauseMenu : MonoBehaviour
     [SerializeField] private Button _returnYesButton;
     [SerializeField] private Button _returnNoButton;
     [SerializeField] private InputActionReference _cancelAction; // UI/Cancel
+    [SerializeField] private LevelUpPanel _levelUpPanel;
 
     // Scene마다 이 액션을 쓰는 컴포넌트가 메뉴 스크립트 하나뿐이라 직접 Enable/Disable 소유
     private void OnEnable()
@@ -40,10 +41,10 @@ public class PauseMenu : MonoBehaviour
         _cancelAction.action.Disable();
     }
 
-    // 종료 연출·결과 판넬 중에는 무시, 가장 위에 열린 창(확인창 → 설정 판넬)부터 닫고 열린 창이 없으면 일시정지
+    // 종료 연출·결과 판넬·레벨업 화면 중에는 무시, 가장 위에 열린 창(확인창 → 설정 판넬)부터 닫고 열린 창이 없으면 일시정지
     private void HandleCancelPerformed(InputAction.CallbackContext context)
     {
-        if (!_gameSession.IsPlaying)
+        if (!_gameSession.IsPlaying || _levelUpPanel.IsOpen)
         {
             return;
         }
