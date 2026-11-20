@@ -27,6 +27,9 @@ public class EnemyMovement : MonoBehaviour
     /// <summary>현재 이동 속도 벡터 (정지 시 Vector3.zero, Animator 등 표시용)</summary>
     public Vector3 Velocity => _velocity;
 
+    public FlowFieldManager FlowFieldManager => _flowFieldManager;
+    public Transform Player => _player;
+
     // FlowField를 캐시하지 않고 매 프레임 조회 (초기화 순서·재계산과 무관하게 유효)
     private void Update()
     {

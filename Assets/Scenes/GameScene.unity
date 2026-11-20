@@ -3150,6 +3150,55 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 427978, guid: 57636e5d22bb8924887f2b34567666c2, type: 3}
   m_PrefabInstance: {fileID: 304718639}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &308949678
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 308949679}
+  - component: {fileID: 308949680}
+  m_Layer: 0
+  m_Name: TreasureChestSpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &308949679
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 308949678}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2097516411}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &308949680
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 308949678}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38e3f328f82bd9d46952b13e701462e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TreasureChestSpawner
+  _chestPrefab: {fileID: 659889786447184183, guid: 89d473a4a7ab2d54b968ca31d9550091, type: 3}
+  _chestParent: {fileID: 1673433032}
+  _player: {fileID: 1136806269}
+  _levelUpPanel: {fileID: 1669466780}
+  _spawnHeight: 0
 --- !u!1001 &315414501
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4879,6 +4928,7 @@ Transform:
   - {fileID: 731529641}
   - {fileID: 1193159548}
   - {fileID: 1075857157}
+  - {fileID: 1673433032}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &513090202
@@ -12888,6 +12938,7 @@ MonoBehaviour:
   _enemyParent: {fileID: 731529641}
   _defaultCapacity: 64
   _maxSize: 512
+  _projectilePool: {fileID: 1187427919}
 --- !u!4 &1626572719
 Transform:
   m_ObjectHideFlags: 0
@@ -13255,7 +13306,39 @@ MonoBehaviour:
   - {fileID: 2844778135830479354}
   - {fileID: 2844778135830479353}
   - {fileID: 2844778135830479352}
-  _previewCardCount: 3
+  _levelUpCardCount: 3
+  _chestCardCount: 5
+--- !u!1 &1673433031
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1673433032}
+  m_Layer: 0
+  m_Name: Chests
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1673433032
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1673433031}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 502910929}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1685302066
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17056,6 +17139,7 @@ Transform:
   - {fileID: 1626572719}
   - {fileID: 1816319847}
   - {fileID: 2076762366}
+  - {fileID: 308949679}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2099470029

@@ -44,6 +44,7 @@ GameObject:
   - component: {fileID: 8781981149591656067}
   - component: {fileID: 4268184432913942235}
   - component: {fileID: 7084415186446271958}
+  - component: {fileID: 3640864458233813176}
   m_Layer: 6
   m_Name: PFB_BossBishop
   m_TagString: Untagged
@@ -128,6 +129,7 @@ MonoBehaviour:
   _deathDuration: 2
   _contactDamage: 20
   _experienceValue: 0
+  _dropsTreasureChest: 1
 --- !u!114 &7084415186446271958
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -146,6 +148,30 @@ MonoBehaviour:
   _damageNumberPrefab: {fileID: 7046046755336388211, guid: 4091d3b6d485a014baff852cf81b8918, type: 3}
   _numberPoint: {fileID: 8373200349068620165}
   _flashDuration: 0.1
+--- !u!114 &3640864458233813176
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7530722014948690248}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c27f92ca45a9433458632eeb3219f375, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossShootPattern
+  _projectilePrefab: {fileID: 6193984512254993611, guid: e6a87cadeab93c141962dd14cd3627b2, type: 3}
+  _stopWhileWarning: 1
+  _detectRange: 12
+  _warnDuration: 0.5
+  _cooldown: 3
+  _projectileCount: 8
+  _spreadAngle: 360
+  _projectileSpeed: 5
+  _projectileDamage: 15
+  _projectileMaxDistance: 30
+  _projectileMaxLifetime: 10
+  _fireHeight: 1
 --- !u!1001 &3210829852295308755
 PrefabInstance:
   m_ObjectHideFlags: 0

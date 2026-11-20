@@ -10,6 +10,7 @@ public class EnemyPool : MonoBehaviour
     [SerializeField] private Transform _enemyParent; // 생성 Enemy를 모을 Hierarchy 부모
     [SerializeField, Min(1)] private int _defaultCapacity = 64; // 프리팹별 풀마다 적용
     [SerializeField, Min(1)] private int _maxSize = 512; // 프리팹별 풀마다 적용
+    [SerializeField] private ProjectilePool _projectilePool; // 보스 사격 패턴에 주입할 탄 풀
 
     // 종류가 다른 Enemy끼리 섞여 재사용되지 않도록 프리팹마다 풀 분리
     private readonly Dictionary<Enemy, ObjectPool<Enemy>> _pools = new Dictionary<Enemy, ObjectPool<Enemy>>();
@@ -30,6 +31,11 @@ public class EnemyPool : MonoBehaviour
         // 재사용 Enemy의 이전 위치·회전 제거
         enemy.transform.SetPositionAndRotation(position, Quaternion.identity);
         enemy.Initialize(flowFieldManager, player, pool);
+        if (enemy.TryGetComponent(out BossShootPattern shootPattern))
+        {
+            shootPattern.Initialize(_projectilePool);
+        }
+
         return enemy;
     }
 
