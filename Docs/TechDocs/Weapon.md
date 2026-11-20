@@ -195,12 +195,13 @@ Animator Controller (`Assets/Animations/Player/`)
 - `MaxDistance`를 넘는 구간의 적은 맞지 않도록 SphereCast 길이를 남은 거리로 제한한다.
 - XZ 성분이 0인 방향으로 `Launch`하면 경고 로그를 남기고 즉시 반환한다 (탄마다 1번씩 기록).
 - 충돌 마스크 : `PFB_PistolBullet`, `PFB_ShotgunPellet`, `PFB_MinigunBullet`의 `_hitMask`는 `Enemy` 레이어(6)만 검사한다.
+- 보스 탄 (Issue #19) : 보스 사격 패턴(`BossShootPattern`)도 같은 `Projectile`·`ProjectilePool`(`Managers/ProjectilePool`)을 쓴다. 탄 Prefab `PFB_BossBullet`은 `_hitMask` = Player(7), `_blockMask` = Obstacle(8)이라 플레이어만 맞고 장애물에 막힌다. 발사 시 `RequireCameraVisibility` false, 고유 적중 한도 1이다. 상세는 `Docs/TechDocs/Enemy.md`.
 - Trigger Collider : `ProjectileHitDetector.Cast`가 `QueryTriggerInteraction.Ignore`로 SphereCast하므로 `Is Trigger`가 켜진 Collider는 마스크에 포함된 레이어여도 적중·장애물 판정에서 제외된다.
 - 장애물 막힘 (`_blockMask`)
     - 동작 : `_blockMask`에 포함된 레이어의 Collider에 닿으면 피해 없이 즉시 반환한다. SphereCast 결과를 가까운 순으로 처리하므로 장애물 뒤의 적은 맞지 않는다. `_hitMask`와 겹치는 레이어는 장애물로 처리한다.
-    - 현재 설정 : 탄 Prefab 3종 모두 `_blockMask` = Nothing(0)이다. 따라서 탄은 장애물·차단 Box·경계 벽을 모두 통과한다 (이슈 #7 결정. 맵 쪽 상세는 `Docs/TechDocs/Map.md`).
+    - 현재 설정 (무기 탄) : 무기 탄 Prefab 3종 모두 `_blockMask` = Nothing(0)이다. 따라서 무기 탄은 장애물·차단 Box·경계 벽을 모두 통과한다 (이슈 #7 결정. 맵 쪽 상세는 `Docs/TechDocs/Map.md`). 보스 탄 `PFB_BossBullet`만 `_blockMask` = Obstacle(8)이라 장애물 모델에 막힌다 (위 `보스 탄` 항목).
     - 막힘 기능(`ProjectileHitDetector.IsObstacle`과 `Projectile`의 분기)은 코드에 유지한다. 초반 설계에서 적용한 기능이고 코드 양이 크지 않으며, 맵·캐릭터·무기 추가 시 쓸 수 있어서다 (사용자 판단).
-    - `Projectile.cs`의 `_blockMask` 주석은 "닿으면 탄이 막혀 반환되는 장애물 레이어"라고 설명하지만, 현재 Prefab에는 지정된 레이어가 없다.
+    - `Projectile.cs`의 `_blockMask` 주석은 "닿으면 탄이 막혀 반환되는 장애물 레이어"라고 설명하지만, 현재 무기 탄 Prefab에는 지정된 레이어가 없다.
 
 ## 호출 순서 또는 데이터 흐름
 
@@ -353,7 +354,7 @@ PFB_Player                    (Layer : Player, CharacterController, PlayerMoveme
 |---|---|---|
 | `Managers/ProjectilePool` | `ProjectilePool` | `_outputCamera` = `MainCamera`의 Camera, `_projectileParent` = `Gameplay/Projectiles`, `_defaultCapacity` = 64, `_maxSize` = 512 (두 값은 프리팹별 풀마다 각각 적용) |
 
-- 탄 프리팹은 `ProjectilePool`이 아닌 무기 SO의 `_projectilePrefab`에 연결한다.
+- 탄 프리팹은 `ProjectilePool`이 아닌 무기 SO의 `_projectilePrefab`에 연결한다. 보스 탄(`PFB_BossBullet`)은 보스 Prefab의 `BossShootPattern._projectilePrefab`에 연결한다 (`Docs/TechDocs/Enemy.md`).
 - Issue #10에서 `GameScene.unity`의 내용을 `TestMap.unity`로 교체했다 (`GameScene.unity.meta`의 GUID `ab62dbbf98b697d40b7d51d532785cf4`는 유지). Issue #8 이후 두 Scene은 다르다 (상세는 `Docs/TechDocs/Map.md`의 `TestMap.unity` 절 머리말). 위 `ProjectilePool` 값과 `PFB_Player` 인스턴스 오버라이드(`_pool`, 모델 내부 오브젝트 2개 비활성)가 `GameScene`에 있음을 확인했다. 맵·Flow Field 쪽 구성은 `Docs/TechDocs/Map.md`의 `TestMap.unity` 절 참고.
 - `GameScene`(및 `TestMap`)의 `PFB_Player` 인스턴스에는 이전 필드 `_signatureWeapon`(값 `SO_Pistol`) 오버라이드가 남아 있다. `WeaponLoadout`에 이 필드가 없으므로 사용되지 않는다.
 
@@ -542,3 +543,4 @@ PFB_Floating…                 (FloatingWeaponView, _muzzle = MuzzlePoint)
 - Issue #3 (탑다운 카메라·플레이어 이동. `PlayerMovement`의 `CharacterController.SimpleMove` 이동과 `InputActionReference` Move 입력이 이 이슈에서 확정됐다. `Docs/Spec/Roadmap.md`의 확정 사항 참고)
 - Issue #10 (TitleScene·캐릭터 선택. 고유 무기·생김새를 캐릭터 기준으로 변경, `Docs/TechDocs/Character.md`)
 - Issue #8 (몬스터 프로토타입. 표적 후보를 `Enemy`로 교체, `_orbitHeight` 조정, 플레이어 애니메이션 PA. `Docs/TechDocs/Enemy.md`, `Docs/TechDocs/GameFlow.md`). PR : 미정
+- Issue #19 (몬스터 최종 M06~M12. 보스 탄이 `Projectile`·`ProjectilePool`을 재사용. `Docs/TechDocs/Enemy.md`). PR : 미정
