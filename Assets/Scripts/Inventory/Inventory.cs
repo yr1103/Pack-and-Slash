@@ -1,148 +1,209 @@
-
-using System;
 using UnityEngine;
 
 public class Inventory : MonoBehaviour
 {
     private const int Width = 10;
     private const int Height = 6;
-    
-    // 각 셀 정보(구조체)
-    // 깊은 복사 할 일 없고 GC 부담 적음
-    public struct InventoryCell
-    {
-        public bool IsAvailable;
-        public ItemInstance Occupant;
-    }
-    // 10x6 배열 생성
-    private InventoryCell[,] _cells = new InventoryCell[Width, Height];
-    
-    // ---이벤트 함수------------------------------------------------------------------------
-    private void Awake()
-    {
-        Init();
-    }
-    // ------------------------------------------------------------------------------------
-    
-    // 실제 아이템 하나의 정보
+
+    private InventoryCell[,] cells = new InventoryCell[Width, Height];
+
+    // 실제 아이템 하나
     public class ItemInstance
     {
-        public InventoryData Data;      // SO에서 생김새 가져오기
-        public int Level;               // 아이템 레벨
-        public Vector2Int Position;     // 위치 정보
-        public int RotationIndex;       // 회전 정보 / 0도 회전 0 /  90 : 1 / 180 : 2 / 270 : 3
+        public InventoryData Data;
+        public int Level = 1;
+        public Vector2Int Position;
+        public int Rotation;
+        public bool IsPlaced;
 
-        // 생성자
-        public ItemInstance(InventoryData data) 
+        public ItemInstance(InventoryData data)
         {
             Data = data;
-            Level = 1;
-            Position = Vector2Int.zero;
-            RotationIndex = 0;
         }
     }
 
-    // 아이템 회전 좌표 계산
-    private Vector2Int[] GetRotatedShape(Vector2Int[] originalShape, int rotationIndex)
+    // 인벤토리 한 칸
+    public class InventoryCell
     {
-        Vector2Int[] rotated = (Vector2Int[])originalShape.Clone();
-
-        // 회전시 좌표 정규화
-        for (int r = 0; r < rotationIndex % 4; r++)
-        {
-            int minX = int.MaxValue;
-            int minY = int.MaxValue;
-
-            for (int i = 0; i < rotated.Length; i++)
-            {
-                int x = rotated[i].x;
-                int y = rotated[i].y;
-
-                // 좌하단 원점, 시계 방향 90도 처리
-                rotated[i] = new Vector2Int(y, -x);
-                // 최소값 받아와서
-                minX = Mathf.Min(minX, rotated[i].x);
-                minY = Mathf.Min(minY, rotated[i].y);
-            }
-
-            // 회전 후 좌표를 0부터 시작하도록 보정
-            for (int i = 0; i < rotated.Length; i++)
-            {
-                rotated[i] -= new Vector2Int(minX, minY);
-            }
-        }
-        return rotated;
+        public bool IsAvailable;
+        public ItemInstance hasEquipped;
     }
 
-    // 배치 가능 여부 검증 : 아이템, 위치, 회전 정보
-    private bool CanPlace(ItemInstance item, Vector2Int position, int rotationIndex)
+    private void Awake()
     {
-        Vector2Int[] shape = GetRotatedShape(item.Data.ItemShape, rotationIndex);
-
-        foreach (Vector2Int offset in shape)
-        {
-            Vector2Int target = position + offset;
-
-            // 배열 범위 검사
-            if (target.x < 0 || target.x >= Width || target.y < 0 || target.y >= Height)
-            {
-                return false;
-            }
-
-            InventoryCell cell = _cells[target.x, target.y];
-
-            // 잠긴 칸 검사
-            if (!cell.IsAvailable)
-                return false;
-
-            // 다른 아이템 점유 검사
-            if (cell.Occupant != null)
-                return false;
-        }
-        return true;
+        InitializeGrid();
     }
 
-    // 아이템 배치
-    public bool TryPlace(
-        ItemInstance item,
-        Vector2Int position,
-        int rotationIndex)
-    {
-        if (!CanPlace(item, position, rotationIndex))
-            return false;
-
-        Vector2Int[] shape =
-            GetRotatedShape(item.Data.ItemShape, rotationIndex);
-
-        foreach (Vector2Int offset in shape)
-        {
-            Vector2Int target = position + offset;
-            _cells[target.x, target.y].Occupant = item;
-        }
-
-        item.Position = position;
-        item.RotationIndex = rotationIndex % 4;
-
-        return true;
-    }
-
-    // 특정 좌표의 셀을 조회
-    public InventoryCell GetCell(int x, int y)
-    {
-        return _cells[x, y];
-    }
-    
-    // 인벤토리 초기화
-    private void Init()
+    // 1. 60칸 생성 및 중앙 4x4 활성화
+    private void InitializeGrid()
     {
         for (int x = 0; x < Width; x++)
         {
             for (int y = 0; y < Height; y++)
             {
-                // 초반 4x4 열린 상태로
-                _cells[x, y].IsAvailable = 
-                    x >= 3 && x <= 6 && y >= 1 && y <= 4;
+                cells[x, y] = new InventoryCell();
+
+                cells[x, y].IsAvailable =
+                    x >= 3 && x <= 6 &&
+                    y >= 1 && y <= 4;
             }
         }
+    }
+
+    // 2. 회전된 Shape 좌표 계산
+    private Vector2Int[] GetRotatedShape(
+        ItemInstance item, int rotation)
+    {
+        Vector2Int[] original = item.Data.ItemShape;
+        Vector2Int[] result = new Vector2Int[original.Length];
+
+        for (int i = 0; i < original.Length; i++)
+        {
+            Vector2Int pos = original[i];
+
+            for (int r = 0; r < rotation; r++)
+            {
+                pos = new Vector2Int(-pos.y, pos.x);
+            }
+
+            result[i] = pos;
+        }
+
+        // 음수 좌표 정규화
+        int minX = int.MaxValue;
+        int minY = int.MaxValue;
+
+        foreach (Vector2Int pos in result)
+        {
+            if (pos.x < minX) minX = pos.x;
+            if (pos.y < minY) minY = pos.y;
+        }
+
+        for (int i = 0; i < result.Length; i++)
+        {
+            result[i] -= new Vector2Int(minX, minY);
+        }
+
+        return result;
+    }
+
+    // 3. 배치 가능한지 검사
+    public bool CanPlace(
+        ItemInstance item, Vector2Int position, int rotation)
+    {
+        if (item == null || item.Data == null ||
+            item.Data.ItemShape == null ||
+            item.Data.ItemShape.Length == 0)
+            return false;
+
+        Vector2Int[] shape = GetRotatedShape(item, rotation);
+
+        foreach (Vector2Int offset in shape)
+        {
+            int x = position.x + offset.x;
+            int y = position.y + offset.y;
+
+            // 배열 범위 검사
+            if (x < 0 || x >= Width ||
+                y < 0 || y >= Height)
+                return false;
+
+            // 잠금 셀 검사
+            if (!cells[x, y].IsAvailable)
+                return false;
+
+            // 다른 아이템이 점유 중인지 검사
+            ItemInstance occupant = cells[x, y].hasEquipped;
+
+            if (occupant != null && occupant != item)
+                return false;
+        }
+
+        return true;
+    }
+
+    // 4. 실제 셀 점유
+    private void FillCells(ItemInstance item)
+    {
+        Vector2Int[] shape =
+            GetRotatedShape(item, item.Rotation);
+
+        foreach (Vector2Int offset in shape)
+        {
+            Vector2Int pos = item.Position + offset;
+            cells[pos.x, pos.y].hasEquipped = item;
+        }
+    }
+
+    // 5. 아이템 최초 배치
+    public bool PlaceItem(ItemInstance item, Vector2Int position)
+    {
+        if (item == null || item.IsPlaced)
+            return false;
+
+        if (!CanPlace(item, position, item.Rotation))
+            return false;
+
+        item.Position = position;
+        item.IsPlaced = true;
+
+        FillCells(item);
+        return true;
+    }
+
+    // 6. 기존 점유 셀 해제
+    public void RemoveItem(ItemInstance item)
+    {
+        if (item == null || !item.IsPlaced)
+            return;
+
+        Vector2Int[] shape =
+            GetRotatedShape(item, item.Rotation);
+
+        foreach (Vector2Int offset in shape)
+        {
+            Vector2Int pos = item.Position + offset;
+            cells[pos.x, pos.y].hasEquipped = null;
+        }
+
+        item.IsPlaced = false;
+    }
+
+    // 7. 아이템 이동
+    public bool MoveItem(ItemInstance item, Vector2Int newPosition)
+    {
+        if (item == null || !item.IsPlaced)
+            return false;
+
+        if (!CanPlace(item, newPosition, item.Rotation))
+            return false;
+
+        RemoveItem(item);
+
+        item.Position = newPosition;
+        item.IsPlaced = true;
+        FillCells(item);
+
+        return true;
+    }
+
+    // 8. 90도 회전
+    public bool RotateItem(ItemInstance item)
+    {
+        if (item == null || !item.IsPlaced)
+            return false;
+
+        int nextRotation = (item.Rotation + 1) % 4;
+
+        if (!CanPlace(item, item.Position, nextRotation))
+            return false;
+
+        RemoveItem(item);
+
+        item.Rotation = nextRotation;
+        item.IsPlaced = true;
+        FillCells(item);
+
+        return true;
     }
 }
