@@ -23,6 +23,7 @@ MonoBehaviour:
   _projectileDamage: 3
   _damageVariance: 0.33
   _disableOutsideGameCamera: 1
+  _pierceCount: 2
   _projectilesPerShot: 1
   _spreadAngle: 18
   _randomSpread: 1

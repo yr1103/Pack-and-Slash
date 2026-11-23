@@ -6,9 +6,6 @@ using UnityEngine;
 /// </summary>
 public class WeaponAttackController : MonoBehaviour
 {
-    // 첫 적 적중 후 반환, 미니건 진화 시 WeaponDefinition 필드로 이전
-    private const int MAX_UNIQUE_TARGETS_HIT = 1;
-
     [SerializeField] private WeaponLoadout _loadout;
     [SerializeField] private ProjectilePool _pool;
     [SerializeField] private Transform _playerRoot; // 적 탐색 원점
@@ -51,7 +48,7 @@ public class WeaponAttackController : MonoBehaviour
                             definition.ProjectileSpeed,
                             WeaponDefinition.GetRolledDamage(weapon.Damage, definition.DamageVariance, Random.value),
                             definition.ProjectileMaxDistance,
-                            definition.ProjectileMaxLifetime, definition.DisableOutsideGameCamera, MAX_UNIQUE_TARGETS_HIT,
+                            definition.ProjectileMaxLifetime, definition.DisableOutsideGameCamera, definition.PierceCount,
                             weapon.KnockbackStrength));
                     }
                 }

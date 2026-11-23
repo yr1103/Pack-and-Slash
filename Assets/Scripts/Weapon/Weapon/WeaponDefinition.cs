@@ -20,6 +20,7 @@ public class WeaponDefinition : ScriptableObject
     [SerializeField, Min(0f)] private float _projectileDamage;
     [SerializeField, Range(0f, 1f)] private float _damageVariance; // 최종 공격력 기준 탄별 피해 ±비율, 0 = 고정
     [SerializeField] private bool _disableOutsideGameCamera; // 출력 카메라 화면 밖이면 탄 반환·피해 무효 (권총·미니건 true)
+    [SerializeField, Min(1)] private int _pierceCount = 1; // 탄 하나가 피해를 주는 서로 다른 적 최대 수, 1 = 관통 없음
     [SerializeField, Min(1)] private int _projectilesPerShot = 1;
     [SerializeField, Min(0f)] private float _spreadAngle; // 부채꼴 전체 각도(도), 양 끝 탄 포함
     [SerializeField] private bool _randomSpread; // true = 탄마다 ±SpreadAngle/2 랜덤 각도, false = 균등 간격 부채꼴
@@ -40,6 +41,7 @@ public class WeaponDefinition : ScriptableObject
     public float ProjectileDamage => _projectileDamage;
     public float DamageVariance => _damageVariance;
     public bool DisableOutsideGameCamera => _disableOutsideGameCamera;
+    public int PierceCount => _pierceCount;
     public int ProjectilesPerShot => _projectilesPerShot;
     public float SpreadAngle => _spreadAngle;
     public bool RandomSpread => _randomSpread;
