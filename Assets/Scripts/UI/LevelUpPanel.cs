@@ -6,6 +6,8 @@ using UnityEngine.UI;
 /// </summary>
 public class LevelUpPanel : MonoBehaviour
 {
+    private const string STORAGE_COUNT_FORMAT = "Storage {0}/{1}"; // {0} 보관 수, {1} 보관함 용량
+
     [SerializeField] private GameSession _gameSession;
     [SerializeField] private PlayerExperience _playerExperience;
     [SerializeField] private GameObject _panelRoot; // 이 컴포넌트와 다른 오브젝트여야 이벤트 구독이 유지됨
@@ -13,6 +15,9 @@ public class LevelUpPanel : MonoBehaviour
     [SerializeField] private GameObject[] _rewardCards;
     [SerializeField, Min(1)] private int _levelUpCardCount = 3; // 레벨업 회차 표시 카드 수
     [SerializeField, Min(1)] private int _chestCardCount = 5; // 보물 상자 회차 표시 카드 수
+    [SerializeField] private Inventory _inventory;
+    [SerializeField] private GameObject _temporaryWarning; // Temporary 아이템이 남아 있을 때 표시
+    [SerializeField] private Text _storageCountText;
 
     private int _pendingCount; // 아직 처리하지 않은 레벨업 횟수
     private int _pendingChestCount; // 아직 처리하지 않은 보물 상자 보상 횟수
@@ -30,12 +35,16 @@ public class LevelUpPanel : MonoBehaviour
     {
         _playerExperience.LevelChanged += HandleLevelChanged;
         _completeButton.onClick.AddListener(HandleCompleteClicked);
+        _inventory.TemporaryCountChanged += RefreshCompleteButton;
+        _inventory.StorageCountChanged += RefreshStorageCount;
     }
 
     private void OnDisable()
     {
         _playerExperience.LevelChanged -= HandleLevelChanged;
         _completeButton.onClick.RemoveListener(HandleCompleteClicked);
+        _inventory.TemporaryCountChanged -= RefreshCompleteButton;
+        _inventory.StorageCountChanged -= RefreshStorageCount;
     }
 
     /// <summary>보물 상자 보상 1회 대기열에 추가 (화면이 닫혀 있으면 열고, 대기 중인 레벨업이 있으면 그 뒤에 표시)</summary>
@@ -62,12 +71,18 @@ public class LevelUpPanel : MonoBehaviour
     {
         _gameSession.Pause();
         RefreshRewardCards();
+        RefreshCompleteButton();
+        RefreshStorageCount();
         _panelRoot.SetActive(true);
     }
 
     // 표시 중인 회차 종류의 횟수만 차감 (표시 중 도착한 다른 종류 요청이 잘못 차감되지 않도록), 남은 회차가 있으면 다음 회차 표시
     private void HandleCompleteClicked()
     {
+        // 버튼 비활성화와 별개로 외부 호출 방어
+        if (_inventory.TemporaryCount > 0)
+            return;
+
         if (_isShowingChest)
         {
             _pendingChestCount--;
@@ -85,6 +100,18 @@ public class LevelUpPanel : MonoBehaviour
         }
 
         RefreshRewardCards();
+    }
+
+    // Temporary 아이템이 남아 있으면 완료 차단
+    private void RefreshCompleteButton()
+    {
+        _completeButton.interactable = _inventory.TemporaryCount == 0;
+        _temporaryWarning.SetActive(_inventory.TemporaryCount > 0);
+    }
+
+    private void RefreshStorageCount()
+    {
+        _storageCountText.text = string.Format(STORAGE_COUNT_FORMAT, _inventory.StorageCount, Inventory.STORAGE_CAPACITY);
     }
 
     // 다음 회차 종류(레벨업 우선)를 정하고 그 개수만큼 카드 활성화

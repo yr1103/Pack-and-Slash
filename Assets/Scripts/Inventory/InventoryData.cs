@@ -14,6 +14,7 @@ public class InventoryData : ScriptableObject
     [SerializeField] private ItemType _itemType;
     [SerializeField] private Vector2Int[] _itemShape; // 몇칸 차지하는지
     [SerializeField] private int _maxLevel;
+    [SerializeField] private bool _isSellable = true; // 진화 무기는 false (판매 불가)
 
     // 무기 설정 참조하는 필드
     [SerializeField] private WeaponDefinition _weaponDefinition;
@@ -26,6 +27,7 @@ public class InventoryData : ScriptableObject
     public ItemType ItemType => _itemType;
     public Vector2Int[] ItemShape => _itemShape;
     public int MaxLevel => _maxLevel;
+    public bool IsSellable => _isSellable;
 
     public WeaponDefinition WeaponDefinition => _weaponDefinition;
     
@@ -47,4 +49,5 @@ public  enum ItemType
     Weapon,
     Passive,
     Expendables, // 소비
+    Essential, // 캐릭터 고유 아이템 (기존 SO 직렬화 정수값 보존을 위해 끝에 추가)
 }

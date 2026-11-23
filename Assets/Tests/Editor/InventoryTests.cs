@@ -1,14 +1,18 @@
 using System.Reflection;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 /// <summary>
-/// 다중 아이템 배치·이동·회전 시 충돌, 잠긴 셀·범위 밖 실패, 실패 시 상태 유지, Shape 원본 불변 검증
+/// 다중 아이템 배치·이동·회전 시 충돌, 잠긴 셀·범위 밖 실패, 실패 시 상태 유지, Shape 원본 불변,
+/// Inventory·Storage·Temporary 영역 간 이동 시 점유·카운트·회전·개수 변화 이벤트·실패 시 원본 유지,
+/// 영역별 판매 해제·판매 불가·None 판매 실패·판매가 검증
 /// </summary>
 public class InventoryTests
 {
     private const string AWAKE_METHOD = "Awake";
+    private const string IS_SELLABLE_FIELD = "_isSellable";
     private const int ROTATION_COUNT = 4;
 
     // 기본 배치 (활성 영역 x 3~6, y 1~4)
@@ -23,6 +27,8 @@ public class InventoryTests
         new Vector2Int(4, 1), new Vector2Int(5, 1), new Vector2Int(3, 4),
         new Vector2Int(6, 3), new Vector2Int(6, 4),
     };
+
+    private static readonly Vector2 _temporaryPosition = new Vector2(10f, 20f);
 
     private GameObject _inventoryObject;
     private Inventory _inventory;
@@ -230,6 +236,406 @@ public class InventoryTests
         AssertOccupied(new Vector2Int(5, 1), new Vector2Int(5, 2));
     }
 
+    [Test]
+    public void MoveToTemporary_FromInventory_ReleasesCellsAndCounts()
+    {
+        Assert.IsTrue(_inventory.PlaceItem(_pistolA, _pistolAPosition));
+        int eventCount = 0;
+        _inventory.TemporaryCountChanged += () => eventCount++;
+
+        _inventory.MoveToTemporary(_pistolA, _temporaryPosition, 0);
+
+        Assert.AreEqual(ItemLocation.Temporary, _pistolA.Location);
+        Assert.IsFalse(_pistolA.IsPlaced);
+        Assert.AreEqual(_temporaryPosition, _pistolA.TemporaryPosition);
+        Assert.AreEqual(1, _inventory.TemporaryCount);
+        Assert.AreEqual(1, eventCount);
+        Assert.IsTrue(_inventory.PlaceItem(_pistolB, _pistolAPosition));
+    }
+
+    // Temporary 내 좌표 이동은 카운트·이벤트 변화 없음
+    [Test]
+    public void MoveToTemporary_WithinTemporary_UpdatesPositionOnly()
+    {
+        _inventory.MoveToTemporary(_pistolA, Vector2.zero, 0);
+        int eventCount = 0;
+        _inventory.TemporaryCountChanged += () => eventCount++;
+
+        _inventory.MoveToTemporary(_pistolA, _temporaryPosition, 0);
+
+        Assert.AreEqual(_temporaryPosition, _pistolA.TemporaryPosition);
+        Assert.AreEqual(1, _inventory.TemporaryCount);
+        Assert.AreEqual(0, eventCount);
+    }
+
+    [Test]
+    public void TryPlace_FromTemporary_Succeeds()
+    {
+        _inventory.MoveToTemporary(_pistolA, _temporaryPosition, 0);
+        int eventCount = 0;
+        _inventory.TemporaryCountChanged += () => eventCount++;
+
+        Assert.IsTrue(_inventory.TryPlace(_pistolA, _pistolAPosition, 0));
+
+        Assert.AreEqual(ItemLocation.Inventory, _pistolA.Location);
+        Assert.AreEqual(_pistolAPosition, _pistolA.Position);
+        Assert.AreEqual(0, _inventory.TemporaryCount);
+        Assert.AreEqual(1, eventCount);
+        AssertOccupied(new Vector2Int(4, 3), new Vector2Int(4, 4));
+    }
+
+    [Test]
+    public void TryPlace_FromTemporaryOnOccupiedCell_FailsAndKeepsState()
+    {
+        Assert.IsTrue(_inventory.PlaceItem(_pistolB, _pistolBPosition));
+        _inventory.MoveToTemporary(_pistolA, _temporaryPosition, 0);
+
+        Assert.IsFalse(_inventory.TryPlace(_pistolA, _pistolBPosition, 0));
+
+        Assert.AreEqual(ItemLocation.Temporary, _pistolA.Location);
+        Assert.AreEqual(_temporaryPosition, _pistolA.TemporaryPosition);
+        Assert.AreEqual(1, _inventory.TemporaryCount);
+        AssertOccupied(new Vector2Int(5, 3), new Vector2Int(5, 4));
+        Assert.IsFalse(_inventory.CanPlace(_pistolA, _pistolBPosition, 0));
+    }
+
+    // 가로 회전 상태로 보관 시 회전 셀 해제 후 회전 0
+    [Test]
+    public void TryStore_FromInventory_ReleasesCellsAndResetsRotation()
+    {
+        Vector2Int position = new Vector2Int(3, 1);
+        Assert.IsTrue(_inventory.PlaceItem(_pistolA, position));
+        Assert.IsTrue(_inventory.RotateItem(_pistolA));
+
+        Assert.IsTrue(_inventory.TryStore(_pistolA));
+
+        Assert.AreEqual(ItemLocation.Storage, _pistolA.Location);
+        Assert.AreEqual(0, _pistolA.Rotation);
+        Assert.AreEqual(1, _inventory.StorageCount);
+        Assert.AreSame(_pistolA, _inventory.GetStorageItem(_inventory.GetStorageIndex(_pistolA)));
+        Assert.AreEqual(0, _inventory.TemporaryCount);
+        AssertFree(new Vector2Int(3, 1), new Vector2Int(4, 1));
+    }
+
+    [Test]
+    public void TryStore_WhenFull_FailsAndKeepsState()
+    {
+        FillStorage();
+        Assert.IsTrue(_inventory.PlaceItem(_pistolA, _pistolAPosition));
+        _inventory.MoveToTemporary(_shotgun, _temporaryPosition, 0);
+
+        Assert.IsFalse(_inventory.TryStore(_pistolA));
+        Assert.IsFalse(_inventory.TryStore(_shotgun));
+
+        Assert.AreEqual(ItemLocation.Inventory, _pistolA.Location);
+        Assert.AreEqual(_pistolAPosition, _pistolA.Position);
+        AssertOccupied(new Vector2Int(4, 3), new Vector2Int(4, 4));
+        Assert.AreEqual(ItemLocation.Temporary, _shotgun.Location);
+        Assert.AreEqual(_temporaryPosition, _shotgun.TemporaryPosition);
+        Assert.AreEqual(1, _inventory.TemporaryCount);
+        Assert.AreEqual(Inventory.STORAGE_CAPACITY, _inventory.StorageCount);
+    }
+
+    [Test]
+    public void MoveToTemporary_NotCountedInStorage()
+    {
+        _inventory.MoveToTemporary(_pistolA, _temporaryPosition, 0);
+
+        Assert.AreEqual(0, _inventory.StorageCount);
+        Assert.AreEqual(-1, _inventory.GetStorageIndex(_pistolA));
+    }
+
+    [Test]
+    public void MoveToTemporary_FromStorage_ReleasesSlot()
+    {
+        Assert.IsTrue(_inventory.TryStore(_pistolA));
+        int slotIndex = _inventory.GetStorageIndex(_pistolA);
+
+        _inventory.MoveToTemporary(_pistolA, _temporaryPosition, 0);
+
+        Assert.AreEqual(ItemLocation.Temporary, _pistolA.Location);
+        Assert.AreEqual(0, _inventory.StorageCount);
+        Assert.IsNull(_inventory.GetStorageItem(slotIndex));
+        Assert.AreEqual(1, _inventory.TemporaryCount);
+    }
+
+    [Test]
+    public void TryPlace_FromStorage_ReleasesSlotAndOccupiesCells()
+    {
+        Assert.IsTrue(_inventory.TryStore(_pistolA));
+
+        Assert.IsTrue(_inventory.TryPlace(_pistolA, _pistolAPosition, 0));
+
+        Assert.AreEqual(ItemLocation.Inventory, _pistolA.Location);
+        Assert.AreEqual(0, _inventory.StorageCount);
+        Assert.AreEqual(0, _inventory.TemporaryCount);
+        AssertOccupied(new Vector2Int(4, 3), new Vector2Int(4, 4));
+    }
+
+    // 권총A의 이전 Position에서 가로 회전 시 (5,3)을 권총B가 점유하지만 Temporary는 검사하지 않음
+    [Test]
+    public void RotateItem_Temporary_SucceedsWithoutCollisionCheck()
+    {
+        PlaceDefaultLayout();
+        _inventory.MoveToTemporary(_pistolA, _temporaryPosition, 0);
+
+        Assert.IsTrue(_inventory.RotateItem(_pistolA));
+
+        Assert.AreEqual(1, _pistolA.Rotation);
+        Assert.AreEqual(ItemLocation.Temporary, _pistolA.Location);
+        AssertOccupied(new Vector2Int(5, 3), new Vector2Int(5, 4));
+    }
+
+    [Test]
+    public void RotateItem_Storage_Fails()
+    {
+        Assert.IsTrue(_inventory.TryStore(_pistolA));
+
+        Assert.IsFalse(_inventory.RotateItem(_pistolA));
+
+        Assert.AreEqual(0, _pistolA.Rotation);
+        Assert.AreEqual(ItemLocation.Storage, _pistolA.Location);
+    }
+
+    [Test]
+    public void TryPlace_FromTemporaryWithRotation_AppliesRotation()
+    {
+        _inventory.MoveToTemporary(_pistolA, _temporaryPosition, 0);
+        Vector2Int position = new Vector2Int(3, 1);
+
+        Assert.IsTrue(_inventory.TryPlace(_pistolA, position, 1));
+
+        Assert.AreEqual(ItemLocation.Inventory, _pistolA.Location);
+        Assert.AreEqual(position, _pistolA.Position);
+        Assert.AreEqual(1, _pistolA.Rotation);
+        AssertOccupied(new Vector2Int(3, 1), new Vector2Int(4, 1));
+        AssertFree(new Vector2Int(3, 2));
+    }
+
+    // 세로(회전 0)로는 (4,3),(4,4)가 비어 있지만 가로 회전 시 (5,3)을 권총B가 점유
+    [Test]
+    public void TryPlace_FromTemporaryWithRotationCollides_FailsAndKeepsState()
+    {
+        Assert.IsTrue(_inventory.PlaceItem(_pistolB, _pistolBPosition));
+        _inventory.MoveToTemporary(_pistolA, _temporaryPosition, 0);
+
+        Assert.IsFalse(_inventory.TryPlace(_pistolA, _pistolAPosition, 1));
+
+        Assert.AreEqual(ItemLocation.Temporary, _pistolA.Location);
+        Assert.AreEqual(0, _pistolA.Rotation);
+        Assert.AreEqual(_temporaryPosition, _pistolA.TemporaryPosition);
+        Assert.AreEqual(1, _inventory.TemporaryCount);
+        AssertFree(new Vector2Int(4, 3), new Vector2Int(4, 4));
+    }
+
+    [Test]
+    public void TryPlace_WithinInventoryWithRotation_MovesAndRotates()
+    {
+        Assert.IsTrue(_inventory.PlaceItem(_pistolA, new Vector2Int(3, 1)));
+        Vector2Int newPosition = new Vector2Int(4, 1);
+
+        Assert.IsTrue(_inventory.TryPlace(_pistolA, newPosition, 1));
+
+        Assert.AreEqual(newPosition, _pistolA.Position);
+        Assert.AreEqual(1, _pistolA.Rotation);
+        AssertOccupied(new Vector2Int(4, 1), new Vector2Int(5, 1));
+        AssertFree(new Vector2Int(3, 1), new Vector2Int(3, 2));
+    }
+
+    // 가로 회전으로 (5,4),(6,4)에 놓으면 (5,4)를 권총B가 점유
+    [Test]
+    public void TryPlace_WithinInventoryWithRotationCollides_FailsAndKeepsState()
+    {
+        PlaceDefaultLayout();
+
+        Assert.IsFalse(_inventory.TryPlace(_pistolA, new Vector2Int(5, 4), 1));
+
+        Assert.AreEqual(ItemLocation.Inventory, _pistolA.Location);
+        Assert.AreEqual(_pistolAPosition, _pistolA.Position);
+        Assert.AreEqual(0, _pistolA.Rotation);
+        AssertOccupied(new Vector2Int(4, 3), new Vector2Int(4, 4));
+        AssertFree(_freeCells);
+    }
+
+    // 출발 셀은 기존 회전(세로) 기준으로 해제되어야 함
+    [Test]
+    public void MoveToTemporary_FromInventoryWithRotation_StoresRotationAndReleasesCells()
+    {
+        Assert.IsTrue(_inventory.PlaceItem(_pistolA, new Vector2Int(3, 1)));
+
+        _inventory.MoveToTemporary(_pistolA, _temporaryPosition, 1);
+
+        Assert.AreEqual(ItemLocation.Temporary, _pistolA.Location);
+        Assert.AreEqual(1, _pistolA.Rotation);
+        AssertFree(new Vector2Int(3, 1), new Vector2Int(3, 2));
+    }
+
+    [Test]
+    public void StorageCountChanged_TryStoreSucceeds_RaisedOnce()
+    {
+        int eventCount = 0;
+        _inventory.StorageCountChanged += () => eventCount++;
+
+        Assert.IsTrue(_inventory.TryStore(_pistolA));
+
+        Assert.AreEqual(1, eventCount);
+    }
+
+    [Test]
+    public void StorageCountChanged_FromStorageToTemporary_RaisedOnce()
+    {
+        Assert.IsTrue(_inventory.TryStore(_pistolA));
+        int eventCount = 0;
+        _inventory.StorageCountChanged += () => eventCount++;
+
+        _inventory.MoveToTemporary(_pistolA, _temporaryPosition, 0);
+
+        Assert.AreEqual(1, eventCount);
+    }
+
+    [Test]
+    public void StorageCountChanged_FromStorageToInventory_RaisedOnce()
+    {
+        Assert.IsTrue(_inventory.TryStore(_pistolA));
+        int eventCount = 0;
+        _inventory.StorageCountChanged += () => eventCount++;
+
+        Assert.IsTrue(_inventory.TryPlace(_pistolA, _pistolAPosition, 0));
+
+        Assert.AreEqual(1, eventCount);
+    }
+
+    [Test]
+    public void StorageCountChanged_TryStoreFails_NotRaised()
+    {
+        FillStorage();
+        Assert.IsTrue(_inventory.PlaceItem(_pistolA, _pistolAPosition));
+        int eventCount = 0;
+        _inventory.StorageCountChanged += () => eventCount++;
+
+        Assert.IsFalse(_inventory.TryStore(_pistolA));
+
+        Assert.AreEqual(0, eventCount);
+    }
+
+    // 구독자가 전환 중간 상태(Location None)를 보지 않아야 함
+    [Test]
+    public void TemporaryCountChanged_LeavingTemporary_RaisedAfterArrival()
+    {
+        _inventory.MoveToTemporary(_pistolA, _temporaryPosition, 0);
+        ItemLocation locationAtEvent = ItemLocation.None;
+        _inventory.TemporaryCountChanged += () => locationAtEvent = _pistolA.Location;
+
+        Assert.IsTrue(_inventory.TryPlace(_pistolA, _pistolAPosition, 0));
+
+        Assert.AreEqual(ItemLocation.Inventory, locationAtEvent);
+    }
+
+    [Test]
+    public void TrySell_FromInventory_ReleasesCellsAndSetsNone()
+    {
+        Assert.IsTrue(_inventory.PlaceItem(_pistolA, _pistolAPosition));
+
+        Assert.IsTrue(_inventory.TrySell(_pistolA));
+
+        Assert.AreEqual(ItemLocation.None, _pistolA.Location);
+        AssertFree(new Vector2Int(4, 3), new Vector2Int(4, 4));
+    }
+
+    [Test]
+    public void TrySell_FromStorage_ReleasesSlotAndRaisesStorageEvent()
+    {
+        Assert.IsTrue(_inventory.TryStore(_pistolA));
+        int slotIndex = _inventory.GetStorageIndex(_pistolA);
+        int eventCount = 0;
+        _inventory.StorageCountChanged += () => eventCount++;
+
+        Assert.IsTrue(_inventory.TrySell(_pistolA));
+
+        Assert.AreEqual(ItemLocation.None, _pistolA.Location);
+        Assert.AreEqual(0, _inventory.StorageCount);
+        Assert.IsNull(_inventory.GetStorageItem(slotIndex));
+        Assert.AreEqual(1, eventCount);
+    }
+
+    [Test]
+    public void TrySell_FromTemporary_DecreasesCountAndRaisesTemporaryEvent()
+    {
+        _inventory.MoveToTemporary(_pistolA, _temporaryPosition, 0);
+        int eventCount = 0;
+        _inventory.TemporaryCountChanged += () => eventCount++;
+
+        Assert.IsTrue(_inventory.TrySell(_pistolA));
+
+        Assert.AreEqual(ItemLocation.None, _pistolA.Location);
+        Assert.AreEqual(0, _inventory.TemporaryCount);
+        Assert.AreEqual(1, eventCount);
+    }
+
+    [Test]
+    public void TrySell_FromInventory_RaisesNoCountEvents()
+    {
+        Assert.IsTrue(_inventory.PlaceItem(_pistolA, _pistolAPosition));
+        int eventCount = 0;
+        _inventory.TemporaryCountChanged += () => eventCount++;
+        _inventory.StorageCountChanged += () => eventCount++;
+
+        Assert.IsTrue(_inventory.TrySell(_pistolA));
+
+        Assert.AreEqual(0, eventCount);
+    }
+
+    // 진화 무기처럼 판매 불가로 설정된 데이터
+    [Test]
+    public void TrySell_NotSellable_FailsAndKeepsState()
+    {
+        SetSellable(_pistolData, false);
+        Assert.IsTrue(_inventory.PlaceItem(_pistolA, _pistolAPosition));
+        _inventory.MoveToTemporary(_pistolB, _temporaryPosition, 0);
+
+        Assert.IsFalse(_inventory.CanSell(_pistolA));
+        Assert.IsFalse(_inventory.TrySell(_pistolA));
+        Assert.IsFalse(_inventory.TrySell(_pistolB));
+
+        Assert.AreEqual(ItemLocation.Inventory, _pistolA.Location);
+        AssertOccupied(new Vector2Int(4, 3), new Vector2Int(4, 4));
+        Assert.AreEqual(ItemLocation.Temporary, _pistolB.Location);
+        Assert.AreEqual(1, _inventory.TemporaryCount);
+    }
+
+    // 생성 직후 또는 이미 판매된 아이템
+    [Test]
+    public void TrySell_LocationNone_Fails()
+    {
+        Assert.IsFalse(_inventory.CanSell(_pistolA));
+        Assert.IsFalse(_inventory.TrySell(_pistolA));
+
+        Assert.IsTrue(_inventory.TryStore(_pistolB));
+        Assert.IsTrue(_inventory.TrySell(_pistolB));
+        int eventCount = 0;
+        _inventory.StorageCountChanged += () => eventCount++;
+
+        Assert.IsFalse(_inventory.TrySell(_pistolB));
+        Assert.AreEqual(0, eventCount);
+    }
+
+    [TestCase(1, 1)]
+    [TestCase(3, 3)]
+    public void GetSellPrice_ReturnsLevelTimesPricePerLevel(int level, int expectedPrice)
+    {
+        _pistolA.Level = level;
+
+        Assert.AreEqual(expectedPrice, _inventory.GetSellPrice(_pistolA));
+    }
+
+    private void FillStorage()
+    {
+        for (int i = 0; i < Inventory.STORAGE_CAPACITY; i++)
+        {
+            Assert.IsTrue(_inventory.TryStore(new Inventory.ItemInstance(_probeData)));
+        }
+    }
+
     private void PlaceDefaultLayout()
     {
         Assert.IsTrue(_inventory.PlaceItem(_shotgun, _shotgunPosition));
@@ -275,5 +681,13 @@ public class InventoryTests
         InventoryData data = ScriptableObject.CreateInstance<InventoryData>();
         data.SetData(0, itemName, null, ItemType.Weapon, string.Empty, shape, 1, null);
         return data;
+    }
+
+    // SetData 시그니처를 바꾸지 않도록 직렬화 필드로 설정
+    private static void SetSellable(InventoryData data, bool isSellable)
+    {
+        SerializedObject serializedData = new SerializedObject(data);
+        serializedData.FindProperty(IS_SELLABLE_FIELD).boolValue = isSellable;
+        serializedData.ApplyModifiedPropertiesWithoutUndo();
     }
 }

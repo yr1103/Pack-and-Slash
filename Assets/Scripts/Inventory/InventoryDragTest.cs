@@ -10,6 +10,8 @@ public class InventoryDragTest : MonoBehaviour
         public InventoryData data;
         public InventoryItemUI ui;
         public Vector2Int position;
+        public bool startInTemporary;
+        public Vector2 temporaryPosition; // Temporary 영역 기준 로컬 좌표
     }
 
     [SerializeField] private Inventory _inventory;
@@ -21,6 +23,13 @@ public class InventoryDragTest : MonoBehaviour
         {
             Inventory.ItemInstance item =
                 new Inventory.ItemInstance(testItem.data);
+
+            if (testItem.startInTemporary)
+            {
+                _inventory.MoveToTemporary(item, testItem.temporaryPosition, 0); // 회전 0으로 시작
+                testItem.ui.Initialize(item);
+                continue;
+            }
 
             if (!_inventory.PlaceItem(item, testItem.position))
             {

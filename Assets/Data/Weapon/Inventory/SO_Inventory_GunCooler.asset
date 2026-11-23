@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 536773cbcdc1fb346b8d675e4a057e6c, type: 3}
+  m_Name: SO_Inventory_GunCooler
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryData
+  _id: 6
+  _itemName: GunCooler
+  _icon: {fileID: 21300000, guid: 10fd57cb0ed64794b8bfcd1ee75fc792, type: 3}
+  _description: GunCooler
+  _itemType: 1
+  _itemShape:
+  - {x: 0, y: 0}
+  _maxLevel: 5
+  _isSellable: 1
+  _weaponDefinition: {fileID: 0}
