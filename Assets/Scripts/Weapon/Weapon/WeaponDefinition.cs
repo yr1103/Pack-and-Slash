@@ -22,7 +22,7 @@ public class WeaponDefinition : ScriptableObject
     [SerializeField, Min(1)] private int _projectilesPerShot = 1;
     [SerializeField, Min(0f)] private float _spreadAngle; // 부채꼴 전체 각도(도), 양 끝 탄 포함
     [SerializeField] private bool _randomSpread; // true = 탄마다 ±SpreadAngle/2 랜덤 각도, false = 균등 간격 부채꼴
-    [SerializeField] private Projectile _projectilePrefab; // 무기별 탄 외형, 프리팹마다 풀 분리
+    [SerializeField, Range(0f, 1f)] private float _level3SpreadReduction; // Lv.3 이상 탄퍼짐 감소율, 0 = 효과 없음    [SerializeField] private Projectile _projectilePrefab; // 무기별 탄 외형, 프리팹마다 풀 분리
     [SerializeField] private FloatingWeaponView _floatingViewPrefab; // 주무기가 아닐 때 플레이어 주변에 띄우는 외형
 
     public WeaponType WeaponType => _weaponType;
@@ -38,7 +38,7 @@ public class WeaponDefinition : ScriptableObject
     public int ProjectilesPerShot => _projectilesPerShot;
     public float SpreadAngle => _spreadAngle;
     public bool RandomSpread => _randomSpread;
-    public Projectile ProjectilePrefab => _projectilePrefab;
+    public float Level3SpreadReduction => _level3SpreadReduction;    public Projectile ProjectilePrefab => _projectilePrefab;
     public FloatingWeaponView FloatingViewPrefab => _floatingViewPrefab;
 }
 

@@ -568,9 +568,10 @@ public class Inventory : MonoBehaviour
                              (1f - GetEffectiveAdjacencyBonus(weapon, AdjacencyEffectType.FireInterval)) /
                              (1f + GetUniqueAttackSpeedBonus(weapon));
 
-        // 냉각기 인접과 캐릭터 정확도는 같은 탄퍼짐 감소율이라 합친 뒤 상한 적용
+        // 냉각기 인접·캐릭터 정확도·무기 Lv.3 감소는 같은 탄퍼짐 감소율이라 합친 뒤 상한 적용
         float spreadReduction = Mathf.Clamp(
-            GetAdjacencyBonus(weapon, AdjacencyEffectType.Spread) + GetCharacterAccuracyBonus(weapon),
+            GetAdjacencyBonus(weapon, AdjacencyEffectType.Spread) + GetCharacterAccuracyBonus(weapon) +
+            (IsLevel3EffectActive(weapon) ? definition.Level3SpreadReduction : 0f),
             0f, MAX_SPREAD_REDUCTION);
         float uniqueSpreadAngle = GetUniqueSpreadAngle(weapon);
         bool useUniqueSpread = uniqueSpreadAngle > 0f;
