@@ -1,6 +1,6 @@
 # 게임 흐름·플레이어 상태·HUD (GameFlow)
 
-> 근거 : `Assets/Scripts/GameFlow/GameSession.cs`, `Assets/Scripts/Player/PlayerHealth.cs`, `Assets/Scripts/Player/PlayerExperience.cs`, `Assets/Scripts/UI/GameHUD.cs`, `Assets/Scripts/UI/PlayerHealthBar.cs`, `Assets/Scripts/UI/ResultPanel.cs`, `Assets/Scripts/UI/{GameSettings,SettingsPanel,PauseMenu,LevelUpPanel,RewardCardUI}.cs`, `Assets/Scripts/Inventory/{RewardCandidateGenerator,InventoryItemUI,InventoryUI,SellConfirmPopup}.cs`, `Assets/Scripts/Currency/Currency.cs`, `Assets/Scripts/Combat/TreasureChest.cs`(`RequestChestReward` 호출부), `Assets/Scripts/Enemy/Enemy.cs`(`ClearsSessionOnDeath`), `Assets/Scripts/Combat/Health.cs`, `Assets/Scripts/Combat/DamageGate.cs`, `Assets/Tests/Editor/{PlayerExperienceTests,GameSessionTests,ResultPanelTests,RewardCandidateGeneratorTests}.cs`, `Assets/Prefabs/Player/PFB_Player.prefab`, `Assets/Prefabs/UI/{PFB_SettingsPanel,PFB_LevelUpPanel,PFB_RewardCard,PFB_InventoryItem}.prefab`, `Assets/InputSystem_Actions.inputactions`, `Assets/Scenes/GameScene.unity`, `Assets/Scenes/TestMap.unity`, `Assets/Sprites/UI/*.png.meta`, `Assets/Sprites/Inventory/**/*.png.meta`, `Assets/Imports/UI/2D Pixel Quest Vol.3 - The UI-GUI/Sprites PNG/{Slide Bar/F_UI_BlueBar,Menu Icons/F_UI_MenuIcons_Tile Map 16x16}.png.meta`, `.gitignore`
+> 근거 : `Assets/Scripts/GameFlow/GameSession.cs`, `Assets/Scripts/Player/PlayerHealth.cs`, `Assets/Scripts/Player/PlayerExperience.cs`, `Assets/Scripts/UI/GameHUD.cs`, `Assets/Scripts/UI/PlayerHealthBar.cs`, `Assets/Scripts/UI/ResultPanel.cs`, `Assets/Scripts/UI/{GameSettings,SettingsPanel,PauseMenu,LevelUpPanel,RewardCardUI,ItemTooltipUI}.cs`, `Assets/Scripts/Inventory/{RewardCandidateGenerator,InventoryItemUI,InventoryUI,SellConfirmPopup,Inventory,InventoryData}.cs`, `Assets/Data/Weapon/Inventory/SO_Inventory_*.asset`, `Assets/Tests/Editor/InventoryTests.cs`(`GetSellPrice_DataAndLevel_ReturnsLevelTimesPricePerLevel`), `Assets/Scripts/Currency/Currency.cs`, `Assets/Scripts/Combat/TreasureChest.cs`(`RequestChestReward` 호출부), `Assets/Scripts/Enemy/Enemy.cs`(`ClearsSessionOnDeath`), `Assets/Scripts/Combat/Health.cs`, `Assets/Scripts/Combat/DamageGate.cs`, `Assets/Tests/Editor/{PlayerExperienceTests,GameSessionTests,ResultPanelTests,RewardCandidateGeneratorTests}.cs`, `Assets/Prefabs/Player/PFB_Player.prefab`, `Assets/Prefabs/UI/{PFB_SettingsPanel,PFB_LevelUpPanel,PFB_RewardCard,PFB_InventoryItem}.prefab`, `Assets/InputSystem_Actions.inputactions`, `Assets/Scenes/GameScene.unity`, `Assets/Scenes/TestMap.unity`, `Assets/Sprites/UI/*.png.meta`, `Assets/Sprites/Inventory/**/*.png.meta`, `Assets/Imports/UI/2D Pixel Quest Vol.3 - The UI-GUI/Sprites PNG/{Slide Bar/F_UI_BlueBar,Menu Icons/F_UI_MenuIcons_Tile Map 16x16}.png.meta`, `.gitignore`
 >
 > 설계 원본 : `Docs/Spec/GameFlow.md` (이 문서는 현재 구현 상태만 기술한다)
 >
@@ -24,7 +24,8 @@
 | 포함 | Issue #17 : `LevelUpPanel`(레벨업 횟수 누적·일시정지·완료 버튼으로 재개), `PFB_LevelUpPanel`·`PFB_RewardCard`(표시 전용 레이아웃), `PauseMenu`가 레벨업 화면 중 ESC 무시, 경험치 바 스프라이트 교체 |
 | 포함 | Issue #19 : `GameSession`의 최종 보스 처치 클리어(`Enemy.ClearsSessionOnDeath`), `LevelUpPanel`의 보물 상자 보상 요청(`RequestChestReward`)·회차 종류별 카드 수(레벨업 3장, 보물 상자 5장). 상자 생성·획득 판정은 `Docs/TechDocs/Enemy.md` |
 | 포함 | 이슈 미등록 (브랜치 `art/fix-inven-ui`) : `LevelUpPanel`의 보상 단계(`RewardPhase.Selecting`/`Organizing`), 레벨업 3중 2택·보물 상자 5중 3택, 리롤(특수 재화 차감), 선택 아이템의 Temporary 배치, 완료 조건(Temporary 0개), `RewardCardUI`, `RewardCandidateGenerator`, `PFB_InventoryItem` |
-| 제외 (후속) | 소비 아이템 효과(1칸 확장·체력 회복), 인벤토리 기술 문서(별도 작업), 판매 외 재화 획득, 다시하기 |
+| 포함 | 이슈 미등록 (브랜치 `art/fix-inven-ui`) : 공통 아이템 툴팁 `ItemTooltipUI`(인벤토리·저장고·Temporary 아이템과 보상 후보 카드 Hover), 아이템 설명 데이터(`InventoryData`의 설명·장착 효과·해제 버프·해제 디버프 텍스트), `Inventory.GetSellPrice(InventoryData, int)` |
+| 제외 (후속) | 소비 아이템 효과(1칸 확장·체력 회복), 인벤토리 기술 문서(별도 작업), 판매 외 재화 획득, 다시하기, 툴팁 효과 텍스트(장착 효과·해제 버프/디버프)의 실제 효과 적용, 레벨별 무기 공격력 표시 |
 
 ## 주요 클래스와 역할
 
@@ -37,8 +38,9 @@
 | `PlayerHealthBar` (MonoBehaviour) | 플레이어 머리 위 World Space 체력바. `PlayerHealth.Damaged`로 채움 비율 갱신, `LateUpdate`에서 카메라와 같은 회전(빌보드) | `PlayerHealth`, `Image`, `Camera` |
 | `ResultPanel` (MonoBehaviour) | `GameSession.Ended` 구독. 결과 문구(`CLEAR`/`GAME OVER`)와 통계(생존 시간·레벨·무기 목록·처치 수·진화 무기 수)를 영문으로 표시. 타이틀 버튼으로 `TitleScene` 로드. 문자열 함수 `BuildWeaponList`, `CountEvolved`(static) | `GameSession`, `PlayerExperience`, `WeaponLoadout`, `SceneManager`, TMP, `Button` |
 | `PauseMenu` (MonoBehaviour) | ESC(`UI/Cancel`) 입력으로 일시정지하며 설정 판넬을 열고, 닫으며 재개. 설정 판넬의 타이틀 복귀 버튼·확인창(예/아니오) 처리. 입력 액션을 직접 `Enable`/`Disable`. 레벨업 화면이 열려 있으면 ESC 무시 | `GameSession`(`IsPlaying`, `Pause`, `Resume`), `LevelUpPanel`(`IsOpen`), `Button`, `InputActionReference`, `SceneManager` |
-| `LevelUpPanel` (MonoBehaviour) | `PlayerExperience.LevelChanged`마다 레벨업 대기 횟수를, `RequestChestReward()`마다 보물 상자 대기 횟수를 1 늘리고, 화면이 닫혀 있으면 `GameSession.Pause()` 후 화면을 연다. 회차 종류는 레벨업 우선이며 종류에 따라 카드 수(3/5)·선택 수(2/3)를 정한다. 회차 단계 `RewardPhase`(`Selecting` → `Organizing`)를 소유한다. `Selecting`에서 후보 생성·카드 선택·리롤·확정, 확정 시 선택 아이템을 Temporary 영역에 생성하고 `Organizing`으로 전환. Temporary가 비면 완료 버튼으로 표시 중인 종류의 대기 횟수를 1 줄이고, 둘 다 0이면 화면을 닫고 `Resume()`. 표시 여부 `IsOpen` 노출. `RewardPhase` enum도 같은 파일에 선언 | `GameSession`(`Pause`, `Resume`), `PlayerExperience`(`LevelChanged`), `Currency`(`Balance`, `TrySpend`, `Changed`), `Inventory`(`TemporaryCount`, `StorageCount`, `MoveToTemporary`, `GetRotatedShape`, 이벤트 2개), `InventoryUI`(`GetItemSize`, `ClampToTemporary`, `SetRotateEnabled`), `InventoryItemUI`(프리팹 생성·`Initialize`), `SellConfirmPopup`(아이템 UI에 전달), `RewardCardUI`, `RewardCandidateGenerator`, `Button`, `Text`, `CanvasGroup`. 호출자 `TreasureChest`(`Docs/TechDocs/Enemy.md`) |
-| `RewardCardUI` (MonoBehaviour) | 보상 후보 카드 1장 표시. `Bind(InventoryData)`로 아이콘·이름(`"{이름} Lv.1"`)·설명 표시, `SetSelected(bool)`로 배경 색(`_normalColor`/`_selectedColor`) 변경. 카드 버튼 클릭 시 `Clicked(this)` 발생. 선택 판정은 하지 않는다 | `Button`, `Image`, `Text`, `InventoryData`(`Icon`, `ItemName`, `Description`) |
+| `LevelUpPanel` (MonoBehaviour) | `PlayerExperience.LevelChanged`마다 레벨업 대기 횟수를, `RequestChestReward()`마다 보물 상자 대기 횟수를 1 늘리고, 화면이 닫혀 있으면 `GameSession.Pause()` 후 화면을 연다. 회차 종류는 레벨업 우선이며 종류에 따라 카드 수(3/5)·선택 수(2/3)를 정한다. 회차 단계 `RewardPhase`(`Selecting` → `Organizing`)를 소유한다. `Selecting`에서 후보 생성·카드 선택·리롤·확정, 확정 시 선택 아이템을 Temporary 영역에 생성하고 `Organizing`으로 전환. Temporary가 비면 완료 버튼으로 표시 중인 종류의 대기 횟수를 1 줄이고, 둘 다 0이면 화면을 닫고 `Resume()`. 표시 여부 `IsOpen` 노출. `RewardPhase` enum도 같은 파일에 선언 | `GameSession`(`Pause`, `Resume`), `PlayerExperience`(`LevelChanged`), `Currency`(`Balance`, `TrySpend`, `Changed`), `Inventory`(`TemporaryCount`, `StorageCount`, `MoveToTemporary`, `GetRotatedShape`, 이벤트 2개), `InventoryUI`(`GetItemSize`, `ClampToTemporary`, `SetRotateEnabled`), `InventoryItemUI`(프리팹 생성·`Initialize`), `SellConfirmPopup`·`ItemTooltipUI`(`_tooltip`, 아이템 UI에 전달), `RewardCardUI`, `RewardCandidateGenerator`, `Button`, `Text`, `CanvasGroup`. 호출자 `TreasureChest`(`Docs/TechDocs/Enemy.md`) |
+| `RewardCardUI` (MonoBehaviour) | 보상 후보 카드 1장 표시. `Bind(InventoryData)`로 데이터를 `_data`에 보관하고 아이콘·이름(`"{이름} Lv.1"`)·설명 표시, `SetSelected(bool)`로 배경 색(`_normalColor`/`_selectedColor`) 변경. 카드 버튼 클릭 시 `Clicked(this)` 발생. 선택 판정은 하지 않는다. 마우스를 올리면(`IPointerEnterHandler`) `_tooltip.Show(_data, this)`, 벗어나거나(`IPointerExitHandler`) 비활성화되면 `_tooltip.Hide(this)`. `_tooltip`이 비어 있으면 툴팁 없음 | `Button`, `Image`, `Text`, `InventoryData`(`Icon`, `ItemName`, `Description`), `ItemTooltipUI` |
+| `ItemTooltipUI` (MonoBehaviour) | 보유 아이템·보상 후보 공통 툴팁 하나를 커서 옆에 표시. `Show(Inventory.ItemInstance, source)`(현재 레벨·판매가) / `Show(InventoryData, source)`(Lv.1 기준) / `Hide(source)`(마지막으로 `Show`한 `source`만 숨김). 표시 중에는 `LateUpdate`마다 커서 위치로 갱신 | `Inventory`(`GetSellPrice` 두 오버로드), `InventoryData`(`Icon`, `ItemName`, `ItemType`, `Description`, `MaxLevel`, `WeaponDefinition`, `IsSellable`, `EquippedEffect`, `UnequippedBuff`, `UnequippedDebuff`), `WeaponDefinition`(`ProjectileDamage`), `Mouse`(Input System), `LayoutRebuilder`, `Image`, `Text`. 호출자 `RewardCardUI`, `InventoryItemUI` |
 | `RewardCandidateGenerator` (static class) | 후보 풀에서 서로 다른 아이템을 최대 `count`개 추첨 (`Generate`). 종류별 가중치로 종류를 고른 뒤 종류 안에서 균등 추첨, 직전 후보에 없는 아이템 우선 | `InventoryData`(`ItemType`, `IsSellable`, `Id`), `System.Random` |
 | `SettingsPanel` (MonoBehaviour) | 설정 판넬 UI(볼륨 슬라이더, 피격 효과·데미지 숫자 토글)와 `GameSettings` 동기화. 켜질 때 현재 값 표시, 변경 즉시 반영, 꺼질 때 저장. 열고 닫기는 메뉴 스크립트(`PauseMenu`, `TitleMenu`)가 담당 | `GameSettings`, `Slider`, `Toggle` |
 | `GameSettings` (static class) | 설정 값 `Volume`(0~1), `HitFlashEnabled`, `DamageNumberEnabled`를 static 필드에 캐시하고 `PlayerPrefs`에 기록. `Save`로 디스크 기록. 첫 Scene 로드 전 자동 로드 | `PlayerPrefs`, `AudioListener` |
@@ -199,7 +201,7 @@
 1. `Selecting`이 아니거나 선택 수 != `RequiredSelectCount`이면 무시.
 2. 연속 클릭으로 중복 지급되지 않도록 `_phase = Organizing`을 먼저 설정한다 (코드 주석).
 3. 선택 순서대로 후보를 모은다. `ItemType.Expendables`는 `TODO` 주석(소비 아이템 효과 적용 : 1칸 확장, 체력 회복)만 있고 Temporary에 등록하지 않는다 (주의사항 x).
-4. 나머지 아이템마다 `AddToTemporary(data, i, 개수)` : `Inventory.ItemInstance` 생성 → Temporary 영역을 가로로 개수만큼 등분한 i번째 칸 중심을 구함 → `InventoryUI.GetItemSize(회전 0 Shape)`와 `ClampToTemporary(..., rotation 0, camera null)`로 영역 안으로 보정 → `Inventory.MoveToTemporary(item, 위치, 0)` → `_itemPrefab`을 `_itemLayer`에 `Instantiate` → `InventoryItemUI.Initialize(item, _inventory, _inventoryUI, _sellPopup)`. 데이터를 먼저 Temporary로 옮기는 것은 UI가 초기화 시 데이터의 영역·좌표로 표시하기 때문이다 (코드 주석).
+4. 나머지 아이템마다 `AddToTemporary(data, i, 개수)` : `Inventory.ItemInstance` 생성 → Temporary 영역을 가로로 개수만큼 등분한 i번째 칸 중심을 구함 → `InventoryUI.GetItemSize(회전 0 Shape)`와 `ClampToTemporary(..., rotation 0, camera null)`로 영역 안으로 보정 → `Inventory.MoveToTemporary(item, 위치, 0)` → `_itemPrefab`을 `_itemLayer`에 `Instantiate` → `InventoryItemUI.Initialize(item, _inventory, _inventoryUI, _sellPopup, _tooltip)`. 데이터를 먼저 Temporary로 옮기는 것은 UI가 초기화 시 데이터의 영역·좌표로 표시하기 때문이다 (코드 주석).
 5. 선택·후보를 비우고 `RefreshRewardCards()`로 카드를 모두 끈다. 카드는 프리팹 구조상 `_selectingGroup` 밖이라 그룹 비활성화로 숨겨지지 않기 때문이다 (코드 주석, 주의사항 ab).
 6. `ApplyPhase()`.
 
@@ -242,15 +244,80 @@
 - `Pause`·`Resume`은 `GameSession`의 `IsPlaying` 조건을 따른다. 종료 대기 중 레벨업의 처리는 주의사항 n 참고.
 - `_panelRoot`는 이 컴포넌트가 붙은 오브젝트와 달라야 한다 (필드 주석 "이 컴포넌트와 다른 오브젝트여야 이벤트 구독이 유지됨"). 이유는 `ResultPanel`과 같다.
 
-### 인벤토리 API (이번 변경분만)
-
-인벤토리 전체 기술 문서는 없다 (별도 작업). 보상 화면이 쓰는 변경 API만 적는다.
+### `ItemTooltipUI`
 
 | 멤버 | 내용 |
 |---|---|
-| `InventoryItemUI.Initialize(target, targetInventory, targetInventoryUI, sellPopup)` | 런타임 생성 아이템용 오버로드. `Inventory`·`InventoryUI`·`SellConfirmPopup` 참조를 주입하고, 아이콘(`Data.Icon`)과 크기(`GetItemSize(회전 0 Shape)`)를 설정한 뒤 기존 `Initialize(target)`으로 표시한다. 표시 위치를 데이터에서 읽으므로 영역 이동(`MoveToTemporary` 등) 뒤에 호출해야 한다 (요약 주석). `Awake`에서 얻은 `_image`를 쓰므로 `Awake`가 실행된 뒤여야 한다 (주의사항 y) |
+| `Show(Inventory.ItemInstance item, object source)` | 보유 아이템 표시. 레벨 `item.Level`, 판매가 `Inventory.GetSellPrice(item)`. 호출부 `InventoryItemUI.OnPointerEnter` |
+| `Show(InventoryData data, object source)` | 보상 후보 표시. `ItemInstance`를 만들지 않고 레벨 `REWARD_LEVEL`(1), 판매가 `Inventory.GetSellPrice(data, 1)`. 호출부 `RewardCardUI.OnPointerEnter` |
+| `Hide(object source)` | `source`가 현재 표시 요청자(`_source`)일 때만 숨긴다. 다른 아이템 `Enter` 직후 이전 아이템의 `Exit`가 와도 새 툴팁이 꺼지지 않게 하기 위해서다 (요약 주석) |
+| `_tooltipRect` (Inspector) | 툴팁 패널 루트. 표시/숨김은 이 오브젝트의 `SetActive`로 한다 |
+| `_cursorOffset` (Inspector) | 커서에서 띄우는 화면 픽셀 거리. 기본값·`GameScene` 값 (16, -16) |
+
+- `source`는 요청한 UI 자신(`this`)이다. 툴팁은 1개이며 마지막 `Show`가 이전 표시를 덮어쓴다.
+- `Awake` : `_tooltipRect`를 끈다. `OnDisable` : `_source`를 비우고 `_tooltipRect`를 끈다 (패널이 닫혔다 열릴 때 이전 툴팁이 남지 않도록, 코드 주석). `_tooltipRect`가 자신이면 끄지 않는다.
+
+#### 표시 항목 (`Display`)
+
+| 항목 | 내용 | 숨김 조건 |
+|---|---|---|
+| 아이콘·이름 | `Icon`, `ItemName` | 없음 |
+| 종류 | `ItemType` → `"무기"`·`"패시브"`·`"소비"`, 그 외(`Essential`)는 `"고유"` (`switch`의 `default`) | 없음 |
+| 레벨 | `"Lv.{레벨}"` | `MaxLevel ≤ 1`이면 줄 숨김 |
+| 설명 | `Description` | 없음 (빈 문자열이어도 줄은 켜져 있다) |
+| 공격력 | `"공격력 {WeaponDefinition.ProjectileDamage}"` | `WeaponDefinition`이 null이면 줄 숨김 |
+| 장착 효과 | `"장착: {EquippedEffect}"` | 값이 비면 줄 숨김 |
+| 해제 버프 | `"해제 시: {UnequippedBuff}"` | 값이 비면 줄 숨김 |
+| 해제 디버프 | `"해제 시: {UnequippedDebuff}"` | 값이 비면 줄 숨김 |
+| 효과 묶음 (`_effectContainer`) | 위 세 줄의 부모 | 세 줄이 모두 비면 숨김 |
+| 판매가 | `IsSellable`이면 `"판매가 {판매가}"`, 아니면 `"판매 불가"` | 없음 |
+
+- 줄을 끄는 것은 레이아웃 공간을 없애기 위해서다 (코드 주석). 루트를 켠 뒤 `LayoutRebuilder.ForceRebuildLayoutImmediate(_tooltipRect)`로 크기를 즉시 반영하고 위치를 계산한다 (줄 활성 상태가 바뀐 직후 크기를 반영해야 위치 보정이 맞음, 코드 주석).
+- 공격력은 레벨 계산 없이 `ProjectileDamage` 기본값이다 (주의사항 ad).
+- 해제 버프와 해제 디버프는 같은 접두어 `"해제 시:"`이며 텍스트 색(`GameScene` 값 : 버프 초록, 디버프 빨강)으로만 구분한다 (주의사항 ae).
+
+#### 위치 계산 (`UpdatePosition`)
+
+1. `Mouse.current`가 null이면 아무것도 하지 않는다.
+2. 기본 pivot (0, 1) + `_cursorOffset` = 커서 오른쪽 아래로 펼침.
+3. 오른쪽으로 화면(`Screen.width`)을 넘으면 pivot x = 1, offset x 반전 (커서 왼쪽으로 펼침). 아래로 화면을 넘으면 pivot y = 0, offset y 반전 (커서 위로 펼침). 넘는 축만 뒤집는다.
+4. `커서 + offset`을 pivot 기준 툴팁 크기(`rect.size × lossyScale`)만큼 화면 안으로 `Mathf.Clamp`한 뒤 `_tooltipRect.pivot`·`position`에 대입.
+
+- 월드 좌표를 화면 좌표로 그대로 쓰는 것은 Screen Space Overlay 전제다 (코드의 `shortcut` 주석 : Camera 캔버스 전환 시 카메라 기준 변환 필요).
+
+#### 호출 측 규칙
+
+| 호출 측 | `Show` | `Hide(this)` |
+|---|---|---|
+| `RewardCardUI` | `OnPointerEnter` (`_tooltip`·`_data`가 있을 때) | `OnPointerExit`, `OnDisable`(확정·회차 전환으로 꺼지면 `Exit`가 오지 않으므로, 코드 주석) |
+| `InventoryItemUI` | `OnPointerEnter` (`_tooltip`·`item`이 있고 드래그 중이 아닐 때 : `eventData.dragging`이 false이고 `_draggingItem`이 null) | `OnPointerExit`, `OnBeginDrag`(드래그 시작 시 숨김), `OnDisable`(판매 등으로 꺼지면 `Exit`가 오지 않으므로, 코드 주석) |
+
+- 드래그 중에는 다른 아이템 위를 지나도 툴팁을 띄우지 않는다 (코드 주석).
+- 보상 카드는 `Selecting`에서만 켜져 있고, 아이템 UI는 `Organizing`에서만 포인터 이벤트를 받는다 (주의사항 ac).
+
+#### 아이템 설명 데이터 (`InventoryData`)
+
+| 필드 (프로퍼티) | 내용 |
+|---|---|
+| `_description` (`Description`) | 설명. `[TextArea]` |
+| `_equippedEffect` (`EquippedEffect`) | 장착 효과 텍스트. `[TextArea]` |
+| `_unequippedBuff` (`UnequippedBuff`) | 해제 시 버프 텍스트. `[TextArea]` |
+| `_unequippedDebuff` (`UnequippedDebuff`) | 해제 시 디버프 텍스트. `[TextArea]` |
+
+- 텍스트 필드 3개는 툴팁 표시 전용이며 전투 수치와 연결하지 않는다 (필드 주석, 주의사항 af).
+- 값 : `Assets/Data/Weapon/Inventory/SO_Inventory_*.asset` 12개 모두 `_description`이 입력되어 있고, 텍스트 필드 3개는 `CowboyHat`·`CombatVest`·`ProteinShake` 3개에만 입력되어 있다. 출처는 `Docs/Spec/Inventory/ItemDescriptions.md`(고유 아이템은 하단 요약 표 기준)다 (브리핑 기준, 문구 대조는 하지 않았다).
+
+### 인벤토리 API (이번 변경분만)
+
+인벤토리 전체 기술 문서는 없다 (별도 작업). 보상 화면·툴팁이 쓰는 변경 API만 적는다.
+
+| 멤버 | 내용 |
+|---|---|
+| `InventoryItemUI.Initialize(target, targetInventory, targetInventoryUI, sellPopup, tooltip)` | 런타임 생성 아이템용 오버로드. `Inventory`·`InventoryUI`·`SellConfirmPopup`·`ItemTooltipUI` 참조를 주입하고, 아이콘(`Data.Icon`)과 크기(`GetItemSize(회전 0 Shape)`)를 설정한 뒤 기존 `Initialize(target)`으로 표시한다. 표시 위치를 데이터에서 읽으므로 영역 이동(`MoveToTemporary` 등) 뒤에 호출해야 한다 (요약 주석). `Awake`에서 얻은 `_image`를 쓰므로 `Awake`가 실행된 뒤여야 한다 (주의사항 y) |
 | `InventoryUI.SetRotateEnabled(bool)` | 공유 회전 액션의 허용 여부. 값을 `_isRotateEnabled`에 보관하고, 컴포넌트가 활성일 때만 즉시 `Enable`/`Disable`한다. 비활성 중이면 다음 `OnEnable`에서 `_isRotateEnabled`가 true일 때만 `Enable`한다 (패널 밖에서 회전 입력이 살아남지 않게, 코드 주석) |
 | `InventoryUI.GetItemSize(Vector2Int[] shape)` | 회전 0 정규화 Shape의 바운딩 칸 수로 이미지 크기 계산 : `칸 수 × cellSize + (칸 수 − 1) × spacing` (`GameScene` 값 cellSize 72, spacing 4) |
+| `InventoryItemUI.OnPointerEnter` / `OnPointerExit` | `IPointerEnterHandler`·`IPointerExitHandler` 구현. 툴팁 표시·숨김 (위 `ItemTooltipUI`의 `호출 측 규칙`) |
+| `Inventory.GetSellPrice(InventoryData data, int level)` | 보유하지 않은 아이템(보상 후보 등)의 판매가 `level × SELL_PRICE_PER_LEVEL`(1). `data`가 null이면 0. 기존 `GetSellPrice(ItemInstance)`는 null이면 0, 아니면 `GetSellPrice(item.Data, item.Level)`에 위임한다 |
 
 ### `SettingsPanel`
 
@@ -312,9 +379,15 @@ StartRound : _isShowingChest = (_pendingCount == 0) → Phase = Selecting, 선�
   └─ Currency.TrySpend 성공 → 후보 교체·선택 초기화 → RefreshRewardCards   (Currency.Changed → RefreshCurrency)
 [선택 완료 버튼] HandleConfirmClicked : Selecting·선택 수 == 필요 수 확인 → Phase = Organizing (먼저)
   → 선택 순서대로 (Expendables는 TODO, 등록 안 함) AddToTemporary : ItemInstance → 가로 균등 칸 중심 → ClampToTemporary
-       → Inventory.MoveToTemporary → Instantiate(PFB_InventoryItem, ItemLayer) → InventoryItemUI.Initialize(4인자)
+       → Inventory.MoveToTemporary → Instantiate(PFB_InventoryItem, ItemLayer) → InventoryItemUI.Initialize(5인자, _tooltip 포함)
   → 후보·선택 비움 → RefreshRewardCards (카드 모두 끔) → ApplyPhase (SelectingGroup 끔, TemporaryArea·완료 버튼 켬, 드래그·회전 허용)
 [아이템 정리] 드래그로 인벤토리·저장고·판매 → Inventory.TemporaryCountChanged → RefreshCompleteButton (0개면 완료 버튼 켬, 경고 끔)
+[툴팁 Hover]
+  카드 Enter (Selecting) → RewardCardUI.OnPointerEnter → ItemTooltipUI.Show(data, 카드) → Display(Lv.1, GetSellPrice(data, 1)) → 루트 켬 → 레이아웃 재계산 → UpdatePosition
+  아이템 Enter (Organizing, 드래그 중 아님) → InventoryItemUI.OnPointerEnter → ItemTooltipUI.Show(item, 아이템) → Display(item.Level, GetSellPrice(item)) → (위와 같음)
+  매 프레임 LateUpdate (_source 있음) → UpdatePosition
+  Exit / 드래그 시작 / 비활성화 → Hide(자신) → 요청자가 현재 _source일 때만 루트 끔
+  패널 닫힘 → TooltipLayer 비활성 → ItemTooltipUI.OnDisable → _source 비움·루트 끔
 [완료 버튼] LevelUpPanel.HandleCompleteClicked : Organizing·TemporaryCount == 0 확인 → _isShowingChest면 _pendingChestCount--, 아니면 _pendingCount--
   ├─ 둘 중 하나라도 남음 → StartRound (다음 회차, 레벨업 우선, 새 후보)
   └─ 둘 다 0 → _panelRoot 끔 → GameSession.Resume → timeScale = 1
@@ -397,8 +470,23 @@ UI
 │  │  │  └─ ConfirmButton     ((400, -110) · 220×64, Button, Image RewardCard, LevelUpPanel._confirmButton)
 │  │  │     └─ Label          (Text "선택 완료")
 │  │  ├─ TemporaryArea        (인스턴스에 추가, Layer 0 Default, 중앙 기준 (120, -315) · 1150×400, Image 검정 α 약 0.25 · 스프라이트 없음 · Raycast Target 꺼짐, LevelUpPanel._temporaryArea · InventoryUI._temporaryArea)
-│  │  └─ ItemLayer            (인스턴스에 추가, CanvasGroup, LevelUpPanel._itemLayer · _itemLayerGroup, InventoryUI.itemLayer)
-│  │     └─ 테스트 아이템 13개 (PistolItem_01 등, InventoryItemUI, 모두 Scene 저장 시 비활성)
+│  │  ├─ ItemLayer            (인스턴스에 추가, CanvasGroup, LevelUpPanel._itemLayer · _itemLayerGroup, InventoryUI.itemLayer)
+│  │  │  └─ 테스트 아이템 13개 (PistolItem_01 등, InventoryItemUI, 모두 Scene 저장 시 비활성, _tooltip 미연결)
+│  │  └─ TooltipLayer         (인스턴스에 추가 · 마지막 자식, 전체 stretch, Scene 저장 시 활성, ItemTooltipUI. Image 없음)
+│  │     └─ ItemTooltip       (ItemTooltipUI._tooltipRect, 폭 320 · pivot (0, 1), Image 짙은 남색 (0.106, 0.133, 0.208, α 0.95) · Raycast Target 꺼짐,
+│  │        │                  CanvasGroup blocksRaycasts·interactable false, VerticalLayoutGroup 패딩 14/14/12/12 · 간격 6, ContentSizeFitter 세로 Preferred)
+│  │        ├─ Header         (HorizontalLayoutGroup 간격 10)
+│  │        │  ├─ ItemIcon    (Image, _icon)
+│  │        │  └─ ItemName    (Text, _nameText)
+│  │        ├─ ItemType       (Text, _typeText)
+│  │        ├─ LevelText      (Text, _levelText)
+│  │        ├─ Description    (Text, _descriptionText)
+│  │        ├─ AttackText     (Text, _attackText)
+│  │        ├─ EffectContainer (VerticalLayoutGroup 간격 4, _effectContainer)
+│  │        │  ├─ EquippedEffect   (Text 초록 (0.45, 0.9, 0.45), _equippedEffectText)
+│  │        │  ├─ UnequippedBuff   (Text 초록 (0.45, 0.9, 0.45), _unequippedBuffText)
+│  │        │  └─ UnequippedDebuff (Text 빨강 (1, 0.42, 0.42), _unequippedDebuffText)
+│  │        └─ SellPrice      (Text, _sellPriceText)
 │  ├─ ResultPanel             (ResultPanel._panelRoot, Scene 저장 시 비활성)
 │  │  └─ PanelBox
 │  │     ├─ ResultTitleText   (ResultPanel._resultTitleText)
@@ -467,6 +555,17 @@ UI
 | | `_itemLayer` / `_itemLayerGroup` | 인스턴스의 `ItemLayer` RectTransform / CanvasGroup |
 | | `_inventoryUI` | 인스턴스 루트의 `InventoryUI` |
 | | `_sellPopup` | Scene의 `SellConfirmPopup` |
+| | `_tooltip` | 인스턴스의 `TooltipLayer`의 `ItemTooltipUI` (생성한 Temporary 아이템 UI에 주입) |
+| `ItemTooltipUI` (TooltipLayer) | `_inventory` | Scene의 `InventorySystem` 오브젝트의 `Inventory` (`LevelUpPanel._inventory`와 같은 컴포넌트) |
+| | `_tooltipRect` | `TooltipLayer/ItemTooltip` RectTransform |
+| | `_icon` / `_nameText` / `_typeText` / `_levelText` / `_descriptionText` / `_attackText` / `_effectContainer` / `_equippedEffectText` / `_unequippedBuffText` / `_unequippedDebuffText` / `_sellPriceText` | `ItemTooltip` 하위 (위 Hierarchy 참고) |
+| | `_cursorOffset` | (16, -16) |
+| `RewardCardUI` (보상 카드 5장, Scene 인스턴스) | `_tooltip` | `TooltipLayer`의 `ItemTooltipUI` (카드마다 Scene 인스턴스 오버라이드) |
+
+- `ItemTooltipUI`는 툴팁 루트(`ItemTooltip`)가 아닌 항상 활성인 별도 오브젝트(`TooltipLayer`)에 둔다. 같은 오브젝트에 두면 첫 표시 때 루트가 처음 켜지며 `Awake`가 실행되어 루트를 다시 끈다 (주의사항 ah).
+- `TooltipLayer`는 `PFB_LevelUpPanel` 인스턴스 루트에 Scene에서 추가한 오브젝트 중 마지막(`m_AddedGameObjects` 순서)이라 패널의 다른 요소·아이템 위에 그려진다. `TooltipLayer`에는 Graphic이 없고 `ItemTooltip`은 Image의 Raycast Target 꺼짐·CanvasGroup `blocksRaycasts` false라 툴팁이 아래 카드·아이템의 포인터 이벤트를 가리지 않는다.
+- `ItemTooltip`은 Scene 저장 시 활성이며, 패널이 처음 열릴 때 `ItemTooltipUI.Awake`가 끈다. 폭은 320 고정이고 높이는 `ContentSizeFitter`가 정한다.
+- `ItemLayer`의 테스트 아이템 13개는 `_tooltip`이 비어 있어 툴팁이 뜨지 않는다 (`null`이면 툴팁 없음, 필드 주석).
 
 - `LevelUpPanel`의 참조는 `_itemPrefab`·`_rewardPool`을 빼면 모두 Scene 오브젝트를 가리킨다 (Scene 파일의 stripped 오브젝트·fileID로 확인). `_rewardCards` 배열 순서가 `PFB_RewardCard_01`~`05` 순서와 일치함은 Issue #17 때 Unity MCP 조회로 확인했다.
 - `SelectingGroup`·`TemporaryArea`·`ItemLayer`는 `PFB_LevelUpPanel` 인스턴스 루트 아래에 Scene에서 추가한 오브젝트다 (Prefab 원본에는 없다). 세 오브젝트 모두 Scene 저장 시 활성이며, 실행 중 표시는 `ApplyPhase`가 정한다.
@@ -547,6 +646,7 @@ PFB_RewardCard                (342×158, Image RewardCard Sliced, Button, Reward
 | | `_background` | 루트 Image |
 | | `_icon` / `_nameText` / `_descriptionText` | 위 Hierarchy 참고 |
 | | `_normalColor` / `_selectedColor` | 흰색 / (1, 0.85, 0.3) |
+| | `_tooltip` | Prefab 파일에는 저장된 값이 없다(비어 있음). `GameScene`의 카드 5장은 인스턴스 오버라이드로 연결 |
 
 - 카드별 `RerollButton`(하위 `RerollIcon`·`CurrencyIcon`·`CostText` 포함)은 삭제됐다. 리롤 버튼은 패널에 1개만 있다 (`GameScene`의 `SelectingGroup/RerollButton`).
 - 세로 배치 : 아이콘 → 이름 → 설명 순으로 위에서 아래.
@@ -562,7 +662,7 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 | 컴포넌트 | 필드 | 값 |
 |---|---|---|
 | `InventoryItemUI` | `rotateAction` | `InputSystem_Actions` 에셋의 `UI/Rotate` 액션 참조 (fileID `835590030820426825`) |
-| | `inventory` / `inventoryUI` / `_sellPopup` | 비어 있음. Prefab은 Scene 오브젝트를 참조할 수 없어 `LevelUpPanel`이 `Initialize` 4인자 오버로드로 주입한다 |
+| | `inventory` / `inventoryUI` / `_sellPopup` / `_tooltip` | 비어 있음 (`_tooltip`은 Prefab 파일에 항목 자체가 없다). Prefab은 Scene 오브젝트를 참조할 수 없어 `LevelUpPanel`이 `Initialize` 5인자 오버로드로 주입한다 |
 
 - `LevelUpPanel._itemPrefab`으로 쓰이며 확정 시 `ItemLayer` 아래에 생성된다. 스프라이트·크기는 `Initialize`가 데이터에 맞게 바꾼다.
 - Prefab 루트를 활성 상태로 저장해야 한다. 비활성으로 저장하면 `Instantiate` 직후 `Awake`가 실행되지 않아 `Initialize`에서 `_image`가 null이 된다 (주의사항 y).
@@ -619,10 +719,16 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 | v | Temporary 영역을 `LevelUpPanel._temporaryArea`(배치 좌표 계산)와 `InventoryUI._temporaryArea`(보정·표시 좌표)가 각각 참조한다. 두 필드에 같은 오브젝트를 연결해야 한다. 다르면 확정 시 배치 위치가 어긋날 수 있다 (코드 기준 추정, reviewer 권고, 미반영) | 참조 단일화 시 |
 | w | 특수 재화 획득처는 아이템 판매뿐이다. 보스·엘리트 처치 시 지급은 검토 중이다 | 재화 지급처 확정 시 |
 | x | 소비 아이템(`ItemType.Expendables`)을 선택하면 효과(1칸 확장·체력 회복)는 `TODO` 주석만 있고 적용되지 않으며, Temporary에도 등록되지 않는다. 선택 수에는 포함되므로 그 칸만큼 보상이 사라진다 | 소비 아이템 효과 구현 시 |
-| y | `PFB_InventoryItem`을 비활성으로 저장하면 `Instantiate` 직후 `Awake`가 실행되지 않아 `InventoryItemUI.Initialize`(4인자)에서 `_image`가 null이라 `NullReferenceException`이 난다. Prefab 루트는 활성으로 저장해야 한다 | Prefab 수정 시 |
+| y | `PFB_InventoryItem`을 비활성으로 저장하면 `Instantiate` 직후 `Awake`가 실행되지 않아 `InventoryItemUI.Initialize`(5인자)에서 `_image`가 null이라 `NullReferenceException`이 난다. Prefab 루트는 활성으로 저장해야 한다 | Prefab 수정 시 |
 | z | 판매한 아이템의 UI는 `SellConfirmPopup`이 `SetActive(false)`로 끄기만 하고 파괴하지 않는다. 판매가 반복되면 비활성 오브젝트가 `ItemLayer`에 쌓인다 | 아이템 UI 수명 관리 정리 시 |
 | aa | 확정(`HandleConfirmClicked`) 시점에는 `ApplyPhase` 전이라 Temporary 영역이 비활성인 상태에서 `rect`·`TransformPoint`를 읽는다. Temporary 영역이 중앙 앵커·고정 크기라 레이아웃 재계산의 영향이 없다고 판단했다 (reviewer 권고, 미반영, 미검증) | 영역 앵커를 stretch로 바꿀 때 |
 | ab | `RewardCards`는 `PFB_LevelUpPanel`의 Prefab 자식이라 `SelectingGroup` 밖에 있다. 그룹 비활성화로 숨겨지지 않으므로 확정 시 후보를 비우고 `RefreshRewardCards`로 카드를 모두 끈다. 카드 표시를 그룹 기준으로 바꾸려면 Prefab 구조 변경이 필요하다 | 레이아웃 정리 시 |
+| ac | `Selecting` 단계에서는 `_itemLayerGroup.blocksRaycasts`가 false라 인벤토리·저장고 아이템에 마우스를 올려도 툴팁이 뜨지 않는다. 아이템 툴팁은 `Organizing`에서만, 보상 카드 툴팁은 카드가 켜진 `Selecting`에서만 뜬다 | 선택 중 아이템 정보 확인이 필요해지면 |
+| ad | 툴팁의 무기 공격력은 레벨 계산 없이 `WeaponDefinition.ProjectileDamage` 기본값이다 (코드의 `shortcut` 주석 : 무기 레벨 성장 구현 시 레벨 반영) | 무기 레벨 성장 구현 시 |
+| ae | 해제 버프와 해제 디버프가 같은 접두어 `"해제 시:"`(`UNEQUIPPED_FORMAT`)를 쓰고 텍스트 색(`GameScene` 값 초록/빨강)으로만 구분한다. 종류 표시는 `ItemType`이 무기·패시브·소비가 아니면 모두 `"고유"`(`default`)다. 보상 Lv.1 규칙이 `ItemTooltipUI.REWARD_LEVEL`과 `RewardCardUI.NAME_FORMAT` 두 곳에 있다 (reviewer 권고, 미반영) | 툴팁 문구·보상 레벨 규칙 정리 시 |
+| af | 장착 효과·해제 버프·해제 디버프 텍스트는 표시 전용이다. 실제 효과(장착·해제 시 능력치 변화)는 구현되지 않았다 | 아이템 효과 구현 시 |
+| ag | `ItemTooltipUI`에는 Inspector 참조 `null` 방어가 없다. `_inventory`·`_tooltipRect`·텍스트·이미지 참조가 비면 `Awake`·`Show`에서 `NullReferenceException`이 난다. 호출 측(`RewardCardUI`·`InventoryItemUI`)은 `_tooltip`이 비면 툴팁만 생략한다 | Scene 구성 시 연결 필수 |
+| ah | `ItemTooltipUI`를 툴팁 루트(`_tooltipRect`)와 같은 오브젝트에 두면, 루트가 비활성인 채 첫 `Show`가 루트를 켤 때 `Awake`가 처음 실행되어 루트를 다시 끈다. 항상 활성인 별도 오브젝트(`TooltipLayer`)에 두어야 한다. `_tooltipRect`의 필드 주석("자신과 같아도 됨")과 `OnDisable`의 같은 오브젝트 분기는 이 배치를 허용하는 것처럼 쓰여 있다 (코드 기준 추정, 같은 오브젝트 배치는 실행 확인하지 않음) | 필드 주석 정리 시 |
 
 ### 검증 방법
 
