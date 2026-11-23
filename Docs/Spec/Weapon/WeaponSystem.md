@@ -171,8 +171,8 @@
 
 - **기본:** 발사 이벤트 1회에 `pelletCount`발을 부채꼴 `spreadAngleDegrees` 안의 여러 방향으로 발사. **[확정]** 펠릿은 부채꼴 안에서 **일정 각도 간격**을 두고 발사한다. **[설계 제안]** `pelletCount > 1`이면 양 끝 각도를 포함해 균등 분포시키고, 1발이면 중앙으로 발사한다. 랜덤 지터는 기본 적용하지 않는다.
 - `fireInterval = 2.5f`, `projectileMaxDistance`를 짧게 설정(둘 다 인스펙터). `pelletSpeed`, `pelletCount`, `spreadAngleDegrees`는 실험값.
-- **[설계 제안]** 동일 샷건의 **한 번의 발사 이벤트에서 같은 적에 여러 펠릿 적중 시** 각각 피해를 줄지, 적 1회만 처리할지 옵션을 둔다. *초기 권장:* 각 펠릿이 개별 피해를 주되 관통 없이 첫 적에 닿으면 반환한다. 이에 따른 근접 화력 폭증을 밸런스 테스트한다.
-- **Lv.3:** 산탄 적중 시 `KnockbackRequest(direction, strength, duration)`와 같은 의미상 계약으로 넉백 요청. **실제 몬스터 이동 합성·우선순위는 개발자 담당 이동 시스템에서 결정**하고 무기 코드가 Flow Field/Separation 상태를 직접 변경하지 않는다.
+- **[설계 제안]** 동일 샷건의 **한 번의 발사 이벤트에서 같은 적에 여러 펠릿 적중 시** 각각 피해를 줄지, 적 1회만 처리할지 옵션을 둔다. *초기 권장:* 각 펠릿이 개별 피해를 준다. 관통은 무기 데이터 `pierceCount`(탄 하나가 피해를 주는 서로 다른 적 최대 수)로 정하며 샷건 현재값은 **3**(임시값)이다. 이에 따른 근접 화력 폭증을 밸런스 테스트한다.
+- **Lv.3:** 산탄 적중 시 넉백 요청. 구현은 탄 적중 시 `EnemyMovement.AddKnockback(탄 진행 방향, level3KnockbackStrength)`를 호출하는 계약이다(§8). **실제 몬스터 이동 합성·감속·이동 불가 처리는 이동 시스템(`EnemyMovement`)이 결정**하고 무기 코드가 Flow Field/Separation 상태를 직접 변경하지 않는다.
 - **진화:** `evolvedSpreadAngle`, `evolvedMaxDistance` 등으로 기본 공격의 퍼짐 범위와 유효 이동 반경을 증가시킨다. 별도로 `radialInterval = 4f`마다 `radialProjectileCount`개의 탄을 **XZ 평면 360° 균등 각도**로 방사한다.
 - **[설계 제안]** 360° 방사는 일반 발사 타이머와 독립된 스킬로 처리하며 주변에 유효 적이 없더라도 주기 도달 시 발사한다. `radialOnEvolveImmediately` 등 첫 발동 옵션은 추후 선택. 방사탄에 Lv.3 넉백을 적용할지 여부는 **[결정 필요]**(기본 제안은 적용).
 
@@ -185,9 +185,10 @@
 - `magazineCapacity = 100`, `reloadDuration = 5f` (인스펙터), `shotsPerSecond` 또는 `fireInterval` 중 **한 가지 기준만** 내부 정식 데이터로 사용한다. 초당 발사 수는 미정.
 - **[설계 제안]** 누르고 있는 트리거가 없는 자동사격이므로 표적이 없으면 **탄약을 소비하지 않고** 남은 탄약과 재장전 진행을 유지한다. *탄창 0발이 되는 즉시* 재장전을 시작하며, 표적 유무와 무관하게 전투 시간에 따라 완료한다.
 - **[설계 제안]** 매 발사에서 `yawOffset = Random.Range(-spread/2, +spread/2)`로 XZ 방향을 결정. 지나친 `Random` 호출/프레임 중복 탐색을 줄이려면 타이머 기준 발사 시에만 계산한다.
-- **Lv.3:** `spreadAngleDegrees`를 `level3SpreadAngle` 또는 `accuracyMultiplier`로 축소한다(감지 거리나 타격 판정 크기를 늘리는 방식이 아님).
+- **Lv.3:** 탄퍼짐 감소율 `level3SpreadReduction`(현재 0.2, 임시값)을 둔다. 이 감소율은 헤비거너 정확도·냉각기 인접 감소 등 다른 탄퍼짐 감소와 **합산**한 뒤 상한(현재 0.7, 임시값)을 적용하고 *탄퍼짐 각도 × (1 − 합계)*로 1회 적용한다(감지 거리나 타격 판정 크기를 늘리는 방식이 아님).
+- **관통:** 기본 미니건의 관통 수 `pierceCount`는 **2**(임시값)이며, 아래 진화 관통 한도 3과는 별개 값이다.
 - **헤비거너 고유 특성:** **[확정]** 정확도 +20%(고유 아이템 해제 시 +10%를 합산해 +30%). 같은 종류 %는 합산 후 1회 적용하며, 탄퍼짐 각도 × (1 − 정확도 합계)로 적용. **냉각기** 인접 탄퍼짐 감소 등 탄퍼짐 감소 계열은 모두 합산한 뒤 *탄퍼짐 각도 × (1 − 합계)*로 1회 적용한다. 최종 하한각은 추후 밸런스 결정.
-- **진화:** `maxUniqueTargetsHit = 3` 초기값(인스펙터 변경 가능). **한 탄환이 최대 3개의 서로 다른 적에게 피해**를 준다는 의미로 제안한다. 동일 적 Collider가 여러 개이거나 한 물리 스텝에 중복 접촉하더라도 **동일 적은 1회만** 카운트/피해를 처리한다. 세 번째 서로 다른 적에게 피해를 준 직후 풀 반환한다.
+- **진화:** `maxUniqueTargetsHit = 3` 초기값(인스펙터 변경 가능, 진화 미구현이며 기본 관통 2와 구분). **한 탄환이 최대 3개의 서로 다른 적에게 피해**를 준다는 의미로 제안한다. 동일 적 Collider가 여러 개이거나 한 물리 스텝에 중복 접촉하더라도 **동일 적은 1회만** 카운트/피해를 처리한다. 세 번째 서로 다른 적에게 피해를 준 직후 풀 반환한다.
 - **[확정]** 진화 시 **탄환 수 증가**도 포함한다. 증가 방식(발사당 추가 탄환/연사속도 증가)은 **[결정 필요]**로 남기며, `evolvedProjectilesPerShot` 등을 별도 설정값으로 둔다. 현재 문서의 `1발` 초기안은 증가 효과를 표현하지 못하므로 확정 초기값으로 쓰지 않는다.
 - **추후 UI:** 전투 HUD 좌하단 또는 우하단에 미니건 탄약 `현재/최대` + 재장전 남은 시간/진행 상태. **현재 무기 구현 단계에서 UI를 반드시 만들지 않으며**, UI가 구독할 `AmmoChanged`, `ReloadStarted`, `ReloadFinished` 등의 읽기 전용 이벤트 계약을 준비한다.
 
@@ -301,9 +302,21 @@ GDD/Roadmap에서 Flow Field·Spatial Hash·Separation과 넉백의 결합은 **
 - **[설계 제안] 요청 정보:** `shotId`, 피격 대상 ID, 발사 방향, 동일 발사에서 적중한 펠릿 수, 기본 넉백 세기, 보스 저항값 등을 이동 시스템에 전달한다. 샷건의 각 펠릿 피해 처리는 별도로 유지할 수 있다.
 - **[설계 제안] 점감형 누적 예시:** 1발 적중 시 1.0m, 2발 1.5m, 3발 1.75m처럼 **증가폭이 절반씩 감소**하는 방식이다. 이는 이해를 위한 예시이며 **실제 월드 이동 거리나 물리 공식으로 확정하지 않는다**. 실제 이동에는 누적 넉백 세기와 몬스터 이동 시스템의 시간·감쇠 규칙을 사용한다.
 - **[결정 필요] 중첩 기준:** 같은 `shotId`로 한 적에게 적중한 펠릿 수를 모아 **한 번의 집계 넉백**을 적용할지, 펠릿 도착마다 누적량을 갱신할지 선택한다. 집계 방식은 프레임 순서에 덜 민감하지만, 펠릿 도착 시간이 다르면 집계 종료 기준이 필요하다.
-- **[결정 필요] 상한/점감 선택과 보스 저항 적용 순서:** 상한만 적용할지, 점감만 적용할지, 둘 다 적용할지 선택한다. 두 장치를 함께 사용할 때 초기 제안은 **점감 누적 → 상한 → 보스 저항 배율**이다.
+- **[결정 필요] 상한/점감 선택과 보스 저항 적용 순서:** 상한만 적용할지, 점감만 적용할지, 둘 다 적용할지 선택한다. 두 장치를 함께 사용할 때 초기 제안은 **점감 누적 → 상한 → 보스 저항 배율**이다. → 아래 승인된 계약으로 결정됨.
 
-**주의:** 실제 피격에 의한 피해량, 넉백 이동 거리, 관성/외력은 서로 다른 개념이다. `KnockbackRequest`는 이동 담당 시스템과 API를 합의한 다음 구체화한다.
+#### 8.1 승인된 넉백 계약 (2026-11-24)
+
+위 `[결정 필요]` 두 항목(중첩 기준, 상한/점감·저항 순서)과 `[설계 제안]` 요청 정보는 아래 계약으로 대체한다. 수치는 모두 임시값이다.
+
+- **API:** `EnemyMovement.AddKnockback(direction, strength)`. 무기는 탄 적중 시 이 메서드만 호출하고 이동·감속·충돌 처리는 `EnemyMovement`가 맡는다. `shotId`·펠릿 수 집계는 쓰지 않는다.
+- **펠릿마다 누적:** 펠릿이 적중할 때마다 즉시 넉백 속도를 더한다(집계 넉백 없음). 이번 피해로 죽은 적에게는 넉백하지 않는다.
+- **상한만 적용, 점감 없음:** 누적 넉백 속도의 크기를 `maxKnockbackSpeed`(현재 10)로 자른다. 추가 적중의 증가폭을 줄이는 점감은 적용하지 않는다.
+- **보스 저항:** 더할 강도에 `× (1 − knockbackResistance)`를 곱한다. 보스 4종 현재 0.7, 일반 몬스터 0.
+- **이동:** 넉백은 Flow Field·Separation 이동과 별도의 속도로 위치에 더하고, 초당 `knockbackDeceleration`(현재 20)씩 선형 감속한다. 다음 위치가 이동 불가 타일이면 넉백을 즉시 종료한다(중심점의 다음 타일만 검사하는 한계 있음). 일시정지 중에는 멈춘다.
+- **세기:** 샷건 `level3KnockbackStrength` 현재 6(초당 거리). `knockbackDuration`은 두지 않는다(감속으로 지속 시간이 결정됨).
+- 구현 상세는 `Docs/TechDocs/Enemy.md`의 `넉백`, `Docs/TechDocs/Weapon.md`의 `Lv.3 효과`를 따른다.
+
+**주의:** 실제 피격에 의한 피해량, 넉백 이동 거리, 관성/외력은 서로 다른 개념이다.
 
 ## 9. 일시정지, 스킬 타이머, 인벤토리 연동
 
@@ -334,22 +347,24 @@ GDD/Roadmap에서 Flow Field·Spatial Hash·Separation과 넉백의 결합은 **
 |---|---|---|
 | 권총 | `fireInterval` | **1.5초** |
 | 권총 | `detectionRange`, `projectileSpeed`, `projectileMaxDistance`, `projectileMaxLifetime` | 실험 후 결정(보통 탄속, 긴 탐지/비행) |
-| 권총 Lv.3 | `level3GunCount` | **2** |
+| 권총 Lv.3 | `level3GunCount` → 구현 : `WeaponDefinition._level3GunCount` | **2**. 동시 발사, 탄약·쿨다운은 발사 1회당 1회 |
 | 권총 진화 | `evolvedGunCount` | **4**(GDD 유지 제안) |
 | 권총 진화 | `burstCooldown`, `burstDuration`, `burstFireInterval` | **10초**, **3초**, 난사 간격 미정 |
 | 샷건 | `fireInterval` | **2.5초** |
 | 샷건 | `detectionRange`, `pelletCount`, `spreadAngleDegrees`, `pelletSpeed`, `projectileMaxDistance` | 실험 후 결정(짧은 탐지/비행) |
-| 샷건 Lv.3 | `knockbackStrength`, `knockbackDuration` | 이동 계약 협의 후 결정 |
+| 샷건 Lv.3 | `knockbackStrength` → 구현 : `WeaponDefinition._level3KnockbackStrength`(초당 거리). `knockbackDuration`은 두지 않음 | **6**(임시). 이동 쪽 `EnemyMovement._knockbackDeceleration` 20, `_maxKnockbackSpeed` 10, 보스 `_knockbackResistance` 0.7(모두 임시, §8.1) |
 | 샷건 진화 | `evolvedSpreadAngle`, `evolvedMaxDistance`, `radialProjectileCount` | 실험 후 결정 |
 | 샷건 진화 | `radialInterval` | **4초** |
 | 미니건 | `detectionRange`, `fireInterval`, `spreadAngleDegrees`, `projectileSpeed`, `projectileMaxDistance`, `projectileMaxLifetime` | 실험 후 결정(권총보다 긴 탐지) |
 | 미니건 | `magazineCapacity`, `reloadDuration` | **100발**, **5초** |
-| 미니건 Lv.3 | `level3SpreadMultiplier` | 정확도 상승 수치 미정(1보다 작음) |
-| 미니건 진화 | `maxUniqueTargetsHit` | **3마리** |
+| 미니건 Lv.3 | `level3SpreadMultiplier` → 구현 : 감소율 `WeaponDefinition._level3SpreadReduction` | **0.2**(임시). 다른 탄퍼짐 감소와 합산 후 상한 0.7(임시), 각도 × (1 − 합계) 1회 |
+| 공통 관통 | `pierceCount` → 구현 : `WeaponDefinition._pierceCount`(탄 하나가 피해를 주는 서로 다른 적 최대 수, 1 = 관통 없음) | 권총 **2**, 샷건 **3**, 미니건 **2**(모두 임시) |
+| 공통 공격력 범위 | `damageVariance` → 구현 : `WeaponDefinition._damageVariance`(최종 공격력 기준 탄별 ±비율) | 권총 **0.13**, 샷건 **0.2**, 미니건 **0.33**(모두 임시) |
+| 미니건 진화 | `maxUniqueTargetsHit` | **3마리**(진화 미구현, 기본 관통 2와 별개) |
 | 미니건 진화 | `evolvedProjectilesPerShot` | **미정**(진화 시 탄환 수 증가 필요) |
 | 시작 무기 조준 연출 | `PlayerAimController._turnSpeed` (무기 SO가 아닌 플레이어 비주얼 회전 속도, §6.2) | 360° 거리 감지; 매우 짧고 자연스러운 몸통 회전, 발사 대기 없음 |
 | 부유 무기 조준 연출 | `floatingTurnSpeed` → 구현 : `WeaponViewController._floatingTurnSpeed`(초당 각도), `floatingOffset` → 미구현(대응 필드 없음, 위치는 아래 원형 배치 행의 반경·높이로만 정함) | **360° 감지 확정**, 무기별 독립 회전/배치. 구현 초깃값 `_floatingTurnSpeed` **720**(임시) |
-| 원형 배치 | `floatingOrbitRadius` → 구현 : `WeaponViewController._orbitRadius`, 높이 `WeaponViewController._orbitHeight`, `slotRepositionDuration` → 구현 : `WeaponViewController._slotMoveSpeed`(슬롯 재배치, 초당 이동 거리), `maxSingleRingGunCount` | 총기 수에 따라 360° 분할. 구현 초깃값 `_orbitRadius` **1.5**, `_orbitHeight` **1.2**, `_slotMoveSpeed` **6**(모두 임시). 2중 원 전환·총기 수 상한은 미구현(미정) |
+| 원형 배치 | `floatingOrbitRadius` → 구현 : `WeaponViewController._orbitRadius`, 높이 `WeaponViewController._orbitHeight`, `slotRepositionDuration` → 구현 : `WeaponViewController._slotMoveSpeed`(슬롯 재배치, 초당 이동 거리), `maxSingleRingGunCount` | 총기 수에 따라 360° 분할. 구현 초깃값 `_orbitRadius` **1.5**, `_orbitHeight` **0.5**(Prefab 값, 코드 기본값 1.2는 높아 탄이 Enemy를 맞히지 못해 낮춤), `_slotMoveSpeed` **6**(모두 임시). 2중 원 전환·총기 수 상한은 미구현(미정) |
 | 고유 아이템 탈착 | `cowboyUnequippedSpreadAngle`, `cowboyFireIntervalMultiplier`, `vestUnequippedDamageTakenMultiplier`, `heavyUnequippedSpreadMultiplier`, `heavyUnequippedReloadMultiplier` | 표 §3.6의 **초기 밸런스 제안값**, 인스펙터 조절 |
 | 공통 | `disableOutsideGameCamera` | 권총/미니건 **true**, 샷건 **false**(짧은 사거리로 정리) |
 
@@ -411,7 +426,7 @@ GDD/Roadmap에서 Flow Field·Spatial Hash·Separation과 넉백의 결합은 **
 
 | 순위 | 무기 (캐릭터 에셋) | 동작 | 기존 재사용 | 신규 | 복잡도 |
 |---|---|---|---|---|---|
-| 1 | SawGun (`BearDefault`) | 직선 일정 거리 관통 | `ProjectileSpawnContext.MaxUniqueTargetsHit`, `ProjectileHitDetector` 고유 적중 기록, `MaxDistance`, 메시 `Saw.fbx` | `WeaponAttackController`의 상수 `MAX_UNIQUE_TARGETS_HIT`(= 1)를 `WeaponDefinition` 필드로 이전 (W10 미니건 진화 관통과 동일 작업) | 낮음 |
+| 1 | SawGun (`BearDefault`) | 직선 일정 거리 관통 | `ProjectileSpawnContext.MaxUniqueTargetsHit`, `ProjectileHitDetector` 고유 적중 기록, `MaxDistance`, 메시 `Saw.fbx` | ~~`WeaponAttackController`의 상수 `MAX_UNIQUE_TARGETS_HIT`(= 1)를 `WeaponDefinition` 필드로 이전~~ (이전 완료 2026-11-24 : `WeaponDefinition._pierceCount`) | 낮음 |
 | 2 | Bazooka (`SoldierDefault`) | 착탄 지점 원형 광역 | 적중 판정, Enemy 레이어, 메시 `BazookaMissile.fbx` | `Projectile` 적중 후 동작 분리 (현재 `target.TakeDamage` 고정), `OverlapSphereNonAlloc` 범위 피해, 폭발 연출 (VFX 에셋 없음) | 중간 |
 | 3 | ElectricGun (`AlienDefault`) | 착탄 지점 인접 N마리 전기 피해 | 적중 판정, `Enemy.ActiveEnemies`, `WeaponTargeting.FindNearest` (1마리) | 적중 후 동작 분리 (Bazooka와 공통), k-최근접 선택, 전기 연출 (LineRenderer 등, 탄 메시·VFX 없음) | 높음 |
 
@@ -422,6 +437,7 @@ GDD/Roadmap에서 Flow Field·Spatial Hash·Separation과 넉백의 결합은 **
 
 ### 변경 이력
 
+- **2026-11-24 / Lv.3 효과·넉백 계약·관통 데이터화 구현 반영(`art/fix-inven-ui`):** §5.3 Lv.3을 감소율 방식(`level3SpreadReduction`, 다른 탄퍼짐 감소와 합산 후 상한, 1회 적용)으로 수정하고 기본 관통 2와 진화 관통 3을 구분. §5.2 "관통 없이 첫 적에 닿으면 반환"을 관통 수 데이터(현재 3)로, Lv.3 넉백 요청을 `EnemyMovement.AddKnockback` 계약으로 수정. §8.1 승인된 넉백 계약(펠릿마다 누적, 상한만, 점감 없음, 보스 강도 × (1 − 저항)) 추가. §11 권총·샷건·미니건 Lv.3 행, 공통 관통·공격력 범위 행 추가·수정. 의견 절 `MAX_UNIQUE_TARGETS_HIT` 이전 완료 표기. 수치는 모두 임시값.
 - **2026-11-23 / 고유 아이템 해제 효과·헤비거너 특성 수치 확정:** §3.6 탈착 표를 카우보이 공격속도 +60%·확산각 70°(±35°), 전투 조끼 이동속도 +30%·최대 체력 -30%(받는 피해 증가 삭제), 헤비거너 이동속도 -20%·정확도 +10%로 수정. §5.3 헤비거너 정확도 +20%(해제 시 최종 이동속도 -30%·정확도 +30%), 냉각기 인접 감소 등 탄퍼짐 감소 계열은 모두 합산 후 탄퍼짐 각도 × (1 − 합계) 1회 적용으로 확정(곱셈 합성 삭제).
 
 - **2026-11-18 / 플레이 피드백 기록(#8):** `## 의견 (플레이 피드백)` 절 신설. 광역 공격 무기 후보 3종의 구현 복잡도·결정 필요 항목·추천 순서 기록. 설계 본문 변경 없음.
