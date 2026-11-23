@@ -15,7 +15,10 @@ MonoBehaviour:
   _id: 3
   _itemName: Minigun
   _icon: {fileID: 21300000, guid: 85583c327046deb4a8d798d4c388521c, type: 3}
-  _description: Minigun
+  _description: "\uC801\uC744 \uD5A5\uD574 \uC881\uC740 \uAC01\uB3C4\uB85C \uD0C4\uC744
+    \uD769\uBFCC\uB9AC\uBA70 \uBE60\uB974\uAC8C \uC5F0\uC0AC\uD569\uB2C8\uB2E4. \uD0C4\uCC3D\uC774
+    \uBE44\uBA74 \uC7AC\uC7A5\uC804\uD558\uBA70, Lv.3\uBD80\uD130 \uD0C4\uD37C\uC9D0\uC774
+    \uC904\uC5B4\uB4ED\uB2C8\uB2E4."
   _itemType: 0
   _itemShape:
   - {x: 2, y: 0}
@@ -23,4 +26,8 @@ MonoBehaviour:
   - {x: 1, y: 1}
   - {x: 2, y: 1}
   _maxLevel: 5
+  _isSellable: 1
   _weaponDefinition: {fileID: 11400000, guid: a69205e25301dde4f9879a8219f2abb9, type: 2}
+  _equippedEffect: 
+  _unequippedBuff: 
+  _unequippedDebuff: 

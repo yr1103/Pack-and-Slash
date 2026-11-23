@@ -43,6 +43,7 @@ public class LevelUpPanel : MonoBehaviour
     [SerializeField] private CanvasGroup _itemLayerGroup; // Selecting 중 아이템 드래그 차단
     [SerializeField] private InventoryUI _inventoryUI;
     [SerializeField] private SellConfirmPopup _sellPopup;
+    [SerializeField] private ItemTooltipUI _tooltip; // 생성한 Temporary 아이템 UI에 주입
 
     private readonly System.Random _random = new System.Random();
     private readonly List<int> _selectedIndices = new List<int>(); // 선택한 카드 인덱스 (선택 순서대로 Temporary 배치)
@@ -235,7 +236,7 @@ public class LevelUpPanel : MonoBehaviour
         _inventory.MoveToTemporary(item, position, 0);
 
         InventoryItemUI itemUI = Instantiate(_itemPrefab, _itemLayer);
-        itemUI.Initialize(item, _inventory, _inventoryUI, _sellPopup);
+        itemUI.Initialize(item, _inventory, _inventoryUI, _sellPopup, _tooltip);
     }
 
     // 표시 중인 회차 종류의 횟수만 차감 (표시 중 도착한 다른 종류 요청이 잘못 차감되지 않도록), 남은 회차가 있으면 다음 회차 표시

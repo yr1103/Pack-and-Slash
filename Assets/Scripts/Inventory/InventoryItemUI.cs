@@ -5,7 +5,8 @@ using UnityEngine.UI;
 
 // DragHandler = 드래그 시작, 드래그 하는 중, 드래그 종료 함수
 // PointerClickHandler 이미지 클릭 시 사용하는 함수
-public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler, ICanvasRaycastFilter
+public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler, ICanvasRaycastFilter,
+    IPointerEnterHandler, IPointerExitHandler
 {
     private const int ROTATION_COUNT = 4; // 90도 단위 회전 상태 수
     private const float ROTATION_STEP_ANGLE = 90f;
@@ -18,6 +19,7 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     [SerializeField] private Inventory inventory;
     [SerializeField] private InventoryUI inventoryUI;
     [SerializeField] private SellConfirmPopup _sellPopup;
+    [SerializeField] private ItemTooltipUI _tooltip; // 씬 배치 테스트 아이템은 미연결일 수 있음 (null이면 툴팁 없음)
 
     private Inventory.ItemInstance item;
     private RectTransform rectTransform;
@@ -53,6 +55,10 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         // 판매로 비활성화된 아이템이 회전 입력 대상으로 남지 않도록 해제
         if (selectedItem == this)
             selectedItem = null;
+
+        // 판매 등으로 비활성화되면 Exit가 오지 않으므로 직접 숨김
+        if (_tooltip != null)
+            _tooltip.Hide(this);
     }
 
     private void Update()
@@ -148,8 +154,26 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         Debug.Log($"{item?.Data?.ItemName} 선택 완료");
     }
 
+    // 드래그 중에는 다른 아이템 위를 지나도 툴팁을 띄우지 않음
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (_tooltip == null || item == null || eventData.dragging || _draggingItem != null)
+            return;
+
+        _tooltip.Show(item, this);
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (_tooltip != null)
+            _tooltip.Hide(this);
+    }
+
     public void OnBeginDrag(PointerEventData eventData)
     {
+        if (_tooltip != null)
+            _tooltip.Hide(this);
+
         transform.SetAsLastSibling();
         originalPosition = rectTransform.position;
         hasGrabbedCell = false;
@@ -336,11 +360,12 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     /// <summary>런타임 생성 아이템용 의존성 주입, 아이콘·크기 설정 후 표시 (표시 위치를 데이터에서 읽으므로 영역 이동 후 호출)</summary>
     public void Initialize(Inventory.ItemInstance target, Inventory targetInventory, InventoryUI targetInventoryUI,
-        SellConfirmPopup sellPopup)
+        SellConfirmPopup sellPopup, ItemTooltipUI tooltip)
     {
         inventory = targetInventory;
         inventoryUI = targetInventoryUI;
         _sellPopup = sellPopup;
+        _tooltip = tooltip;
 
         _image.sprite = target.Data.Icon;
 

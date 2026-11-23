@@ -15,7 +15,10 @@ MonoBehaviour:
   _id: 4
   _itemName: GunStock
   _icon: {fileID: 21300000, guid: 5d1d61d9a0526334395ff3bfe13b2707, type: 3}
-  _description: GunStock
+  _description: "\uB9DE\uB2FF\uC740 \uBB34\uAE30\uC758 \uBC1C\uC0AC \uAC04\uACA9\uC744
+    \uC904\uC785\uB2C8\uB2E4. Lv.3\uBD80\uD130 \uC7A5\uCC29 \uC911 \uD68D\uB4DD\uD558\uB294
+    \uACBD\uD5D8\uCE58\uAC00 \uB298\uC5B4\uB0A9\uB2C8\uB2E4. \uAD8C\uCD1D\uC758 \uC9C4\uD654\uC5D0
+    \uC0AC\uC6A9\uD569\uB2C8\uB2E4."
   _itemType: 1
   _itemShape:
   - {x: 0, y: 0}
@@ -24,3 +27,6 @@ MonoBehaviour:
   _maxLevel: 5
   _isSellable: 1
   _weaponDefinition: {fileID: 0}
+  _equippedEffect: 
+  _unequippedBuff: 
+  _unequippedDebuff: 

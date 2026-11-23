@@ -15,10 +15,16 @@ MonoBehaviour:
   _id: 6
   _itemName: GunCooler
   _icon: {fileID: 21300000, guid: 10fd57cb0ed64794b8bfcd1ee75fc792, type: 3}
-  _description: GunCooler
+  _description: "\uB9DE\uB2FF\uC740 \uBB34\uAE30\uC758 \uBB34\uC791\uC704 \uD0C4\uD37C\uC9D0\uC744
+    \uC904\uC785\uB2C8\uB2E4. Lv.3\uBD80\uD130 \uC7A5\uCC29 \uC911 \uB354 \uBA3C
+    \uACF3\uC758 \uACBD\uD5D8\uCE58 \uBCF4\uC11D\uC744 \uC218\uC9D1\uD569\uB2C8\uB2E4.
+    \uBBF8\uB2C8\uAC74\uC758 \uC9C4\uD654\uC5D0 \uC0AC\uC6A9\uD569\uB2C8\uB2E4."
   _itemType: 1
   _itemShape:
   - {x: 0, y: 0}
   _maxLevel: 5
   _isSellable: 1
   _weaponDefinition: {fileID: 0}
+  _equippedEffect: 
+  _unequippedBuff: 
+  _unequippedDebuff: 

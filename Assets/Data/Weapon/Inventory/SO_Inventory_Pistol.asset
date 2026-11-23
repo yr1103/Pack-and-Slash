@@ -15,10 +15,17 @@ MonoBehaviour:
   _id: 1
   _itemName: Pistol
   _icon: {fileID: 21300000, guid: d3fce8c551f36034aa41a3cdced7bc16, type: 3}
-  _description: "\uAD8C"
+  _description: "\uBA3C \uAC70\uB9AC\uC758 \uC801\uC744 \uD5A5\uD574 \uD55C \uBC1C\uC529
+    \uC790\uB3D9 \uC0AC\uACA9\uD569\uB2C8\uB2E4. \uC7AC\uC7A5\uC804 \uC5C6\uC774
+    \uBC1C\uC0AC\uD558\uBA70, Lv.3\uBD80\uD130 \uAD8C\uCD1D \uB450 \uC790\uB8E8\uB85C
+    \uACF5\uACA9\uD569\uB2C8\uB2E4."
   _itemType: 0
   _itemShape:
   - {x: 0, y: 0}
   - {x: 0, y: 1}
   _maxLevel: 5
+  _isSellable: 1
   _weaponDefinition: {fileID: 11400000, guid: c8428468fe4d08940ba664176b113bc1, type: 2}
+  _equippedEffect: 
+  _unequippedBuff: 
+  _unequippedDebuff: 

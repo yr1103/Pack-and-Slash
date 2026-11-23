@@ -339,10 +339,20 @@ public class Inventory : MonoBehaviour
     /// <returns>item 또는 item.Data가 null이면 0 (CanSell과 동일한 null 기준)</returns>
     public int GetSellPrice(ItemInstance item)
     {
-        if (item == null || item.Data == null)
+        if (item == null)
             return 0;
 
-        return item.Level * SELL_PRICE_PER_LEVEL;
+        return GetSellPrice(item.Data, item.Level);
+    }
+
+    /// <summary>보유하지 않은 아이템(보상 후보 등)의 레벨 기준 판매가</summary>
+    /// <returns>data가 null이면 0</returns>
+    public int GetSellPrice(InventoryData data, int level)
+    {
+        if (data == null)
+            return 0;
+
+        return level * SELL_PRICE_PER_LEVEL;
     }
 
     /// <summary>판매 가능 여부 (판매 불가 아이템·어느 영역에도 없는 아이템은 false)</summary>

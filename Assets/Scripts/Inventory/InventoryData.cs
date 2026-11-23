@@ -10,7 +10,7 @@ public class InventoryData : ScriptableObject
     [SerializeField] private int _id;
     [SerializeField] private string _itemName;
     [SerializeField] private Sprite _icon;
-    [SerializeField] private string _description;
+    [SerializeField, TextArea] private string _description;
     [SerializeField] private ItemType _itemType;
     [SerializeField] private Vector2Int[] _itemShape; // 몇칸 차지하는지
     [SerializeField] private int _maxLevel;
@@ -18,8 +18,13 @@ public class InventoryData : ScriptableObject
 
     // 무기 설정 참조하는 필드
     [SerializeField] private WeaponDefinition _weaponDefinition;
-    
-    
+
+    // 툴팁 표시 전용 텍스트 (전투 수치와 연결하지 않음, 비어 있으면 툴팁에서 숨김)
+    [SerializeField, TextArea] private string _equippedEffect; // 장착 효과
+    [SerializeField, TextArea] private string _unequippedBuff; // 해제 시 버프
+    [SerializeField, TextArea] private string _unequippedDebuff; // 해제 시 디버프
+
+
     public int Id => _id;
     public string ItemName => _itemName;
     public Sprite Icon => _icon;
@@ -30,7 +35,10 @@ public class InventoryData : ScriptableObject
     public bool IsSellable => _isSellable;
 
     public WeaponDefinition WeaponDefinition => _weaponDefinition;
-    
+    public string EquippedEffect => _equippedEffect;
+    public string UnequippedBuff => _unequippedBuff;
+    public string UnequippedDebuff => _unequippedDebuff;
+
     public void SetData(int id, string itemName, Sprite icon, ItemType itemType, string description, Vector2Int[] itemShape, int maxLevel, WeaponDefinition weaponDefinition)
     {
         _id = id;

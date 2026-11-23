@@ -628,6 +628,14 @@ public class InventoryTests
         Assert.AreEqual(expectedPrice, _inventory.GetSellPrice(_pistolA));
     }
 
+    // 보상 후보처럼 ItemInstance 없이 데이터·레벨로 조회
+    [Test]
+    public void GetSellPrice_DataAndLevel_ReturnsLevelTimesPricePerLevel()
+    {
+        Assert.AreEqual(3, _inventory.GetSellPrice(_pistolData, 3));
+        Assert.AreEqual(0, _inventory.GetSellPrice((InventoryData)null, 1));
+    }
+
     private void FillStorage()
     {
         for (int i = 0; i < Inventory.STORAGE_CAPACITY; i++)

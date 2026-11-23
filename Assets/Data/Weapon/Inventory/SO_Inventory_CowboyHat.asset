@@ -15,7 +15,10 @@ MonoBehaviour:
   _id: 10
   _itemName: CowboyHat
   _icon: {fileID: 21300000, guid: 519c938cd31e39f4fae59fdee0f38664, type: 3}
-  _description: CowboyHat
+  _description: "\uCE74\uC6B0\uBCF4\uC774\uC758 \uC790\uC874\uC2EC\uC774 \uB2F4\uAE34
+    \uBAA8\uC790. \uBAA8\uC790\uB97C \uC4F0\uACE0 \uC788\uC744 \uB54C\uB294 \uCE68\uCC29\uD558\uACE0
+    \uC815\uD655\uD558\uAC8C \uC0AC\uACA9\uD558\uC9C0\uB9CC, \uBAA8\uC790\uB97C \uBC97\uC73C\uBA74
+    \uC774\uC131\uC744 \uC783\uACE0 \uCD1D\uC744 \uB09C\uC0AC\uD558\uAE30 \uC2DC\uC791\uD55C\uB2E4."
   _itemType: 3
   _itemShape:
   - {x: 0, y: 0}
@@ -23,3 +26,6 @@ MonoBehaviour:
   _maxLevel: 1
   _isSellable: 1
   _weaponDefinition: {fileID: 0}
+  _equippedEffect: "\uAD8C\uCD1D \uACF5\uACA9\uB825 +10%"
+  _unequippedBuff: "\uAD8C\uCD1D \uACF5\uACA9\uC18D\uB3C4 +60%"
+  _unequippedDebuff: "\uAD8C\uCD1D \uC804\uCCB4 \uD655\uC0B0\uAC01 80\xB0"
