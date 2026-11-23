@@ -19,14 +19,20 @@ public class InventoryUI : MonoBehaviour
     // 화면의 마우스 위치를 인벤토리 좌표로 변환
     public bool TryGetCellPosition(PointerEventData eventData, out Vector2Int cellPosition)
     {
+        return TryGetCellPosition(eventData.position, eventData.pressEventCamera, out cellPosition);
+    }
+
+    // 레이캐스트 필터처럼 PointerEventData 없이 화면 좌표만 있는 경우용
+    public bool TryGetCellPosition(Vector2 screenPosition, Camera eventCamera, out Vector2Int cellPosition)
+    {
         cellPosition = Vector2Int.zero;
 
         Vector2 localPoint;
 
         bool success = RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 gridRect,
-                eventData.position,
-                eventData.pressEventCamera,
+                screenPosition,
+                eventCamera,
                 out localPoint
             );
 

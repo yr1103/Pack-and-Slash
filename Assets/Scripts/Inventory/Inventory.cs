@@ -51,7 +51,8 @@ public class Inventory : MonoBehaviour
     }
 
     // 2. 회전된 Shape 좌표 계산
-    private Vector2Int[] GetRotatedShape(
+    /// <summary>회전 적용 후 최소 좌표가 (0,0)이 되도록 정규화한 Shape (UI 표시 위치 계산에도 사용)</summary>
+    public Vector2Int[] GetRotatedShape(
         ItemInstance item, int rotation)
     {
         Vector2Int[] original = item.Data.ItemShape;

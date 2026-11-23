@@ -1,32 +1,35 @@
+using System;
 using UnityEngine;
 
+// 다중 아이템 배치 테스트 전용, 테스트 종료 후 삭제
 public class InventoryDragTest : MonoBehaviour
 {
-    [SerializeField] private Inventory inventory;
-    [SerializeField] private InventoryData pistolData;
-    [SerializeField] private InventoryItemUI pistolUI;
+    [Serializable]
+    private class TestItem
+    {
+        public InventoryData data;
+        public InventoryItemUI ui;
+        public Vector2Int position;
+    }
+
+    [SerializeField] private Inventory _inventory;
+    [SerializeField] private TestItem[] _testItems;
 
     private void Start()
     {
-        // 1. 실제 권총 아이템 생성
-        Inventory.ItemInstance pistol =
-            new Inventory.ItemInstance(pistolData);
-
-        // 2. 인벤토리 (4, 2)에 배치
-        bool success = inventory.PlaceItem(
-            pistol,
-            new Vector2Int(4, 2)
-        );
-
-        if (!success)
+        foreach (TestItem testItem in _testItems)
         {
-            Debug.LogError("권총 배치 실패");
-            return;
+            Inventory.ItemInstance item =
+                new Inventory.ItemInstance(testItem.data);
+
+            if (!_inventory.PlaceItem(item, testItem.position))
+            {
+                Debug.LogError($"{testItem.data?.ItemName} 배치 실패: {testItem.position}");
+                continue;
+            }
+
+            // UI 이미지와 실제 아이템 연결
+            testItem.ui.Initialize(item);
         }
-
-        // 3. UI 이미지와 실제 권총 연결
-        pistolUI.Initialize(pistol);
-
-        Debug.Log("권총 배치 성공");
     }
 }
