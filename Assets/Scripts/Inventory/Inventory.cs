@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class Inventory : MonoBehaviour
@@ -10,6 +11,18 @@ public class Inventory : MonoBehaviour
     public const int STORAGE_CAPACITY = 5;
 
     private const int SELL_PRICE_PER_LEVEL = 1; // 판매가 = 레벨 × 이 값 (특수 재화)
+
+    private const float WEAPON_LEVEL_BONUS_PER_LEVEL = 0.1f; // 무기 레벨 배율 = 1 + (레벨 - 1) × 이 값 (복리 아님)
+    private const float ADJACENCY_BONUS_PER_LEVEL = 0.1f; // 패시브 인접 효과 = 레벨 × 이 값
+    private const int LEVEL3_EFFECT_LEVEL = 3; // Lv.3 특수 효과 활성 최소 레벨
+    private const float MAX_FIRE_INTERVAL_REDUCTION = 0.5f; // 발사 간격 감소율 상한 (간격이 0 이하가 되지 않도록)
+    private const float MAX_SPREAD_REDUCTION = 0.7f; // 탄퍼짐 감소율 상한
+
+    // 인접 판정 방향 (상하좌우만, 대각선 제외)
+    private static readonly Vector2Int[] _adjacentDirections =
+    {
+        Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right,
+    };
 
     private InventoryCell[,] cells = new InventoryCell[Width, Height];
     private ItemInstance[] _storageSlots = new ItemInstance[STORAGE_CAPACITY];
@@ -403,6 +416,100 @@ public class Inventory : MonoBehaviour
 
         NotifyLocationChanged(previousLocation, ItemLocation.None);
         return true;
+    }
+
+    /// <summary>Inventory에 배치된 item의 점유 셀과 상하좌우로 맞닿은 다른 아이템 (회전 반영, 중복 없음)</summary>
+    /// <returns>item이 Inventory에 배치되지 않았으면 빈 집합</returns>
+    public HashSet<ItemInstance> GetAdjacentItems(ItemInstance item)
+    {
+        HashSet<ItemInstance> adjacentItems = new HashSet<ItemInstance>();
+
+        if (item == null || item.Data == null || !item.IsPlaced)
+            return adjacentItems;
+
+        foreach (Vector2Int offset in GetRotatedShape(item, item.Rotation))
+        {
+            Vector2Int cell = item.Position + offset;
+
+            foreach (Vector2Int direction in _adjacentDirections)
+            {
+                Vector2Int neighbor = cell + direction;
+
+                if (neighbor.x < 0 || neighbor.x >= Width ||
+                    neighbor.y < 0 || neighbor.y >= Height)
+                    continue;
+
+                ItemInstance occupant = cells[neighbor.x, neighbor.y].hasEquipped;
+
+                if (occupant != null && occupant != item)
+                    adjacentItems.Add(occupant);
+            }
+        }
+
+        return adjacentItems;
+    }
+
+    /// <summary>배치된 무기에 맞닿은 패시브 중 effectType 효과의 레벨 기준 합계 (상한 미적용, 호출 시점마다 재계산)</summary>
+    /// <returns>weapon이 배치된 무기가 아니거나 effectType이 None이면 0</returns>
+    public float GetAdjacencyBonus(ItemInstance weapon, AdjacencyEffectType effectType)
+    {
+        if (weapon == null || weapon.Data == null || weapon.Data.ItemType != ItemType.Weapon ||
+            effectType == AdjacencyEffectType.None)
+            return 0f;
+
+        float bonus = 0f;
+
+        // 같은 패시브가 여러 셀로 닿아도 집합이라 1회만 합산
+        foreach (ItemInstance adjacentItem in GetAdjacentItems(weapon))
+        {
+            if (adjacentItem.Data == null || adjacentItem.Data.ItemType != ItemType.Passive ||
+                adjacentItem.Data.AdjacencyEffectType != effectType)
+                continue;
+
+            bonus += GetPassiveAdjacencyBonus(adjacentItem.Level);
+        }
+
+        return bonus;
+    }
+
+    /// <summary>GetAdjacencyBonus에 효과별 상한 적용 (발사 간격 0.5, 탄퍼짐 0.7, 공격력 상한 없음)</summary>
+    public float GetEffectiveAdjacencyBonus(ItemInstance weapon, AdjacencyEffectType effectType)
+    {
+        float bonus = GetAdjacencyBonus(weapon, effectType);
+
+        switch (effectType)
+        {
+            case AdjacencyEffectType.FireInterval:
+                return Mathf.Clamp(bonus, 0f, MAX_FIRE_INTERVAL_REDUCTION);
+
+            case AdjacencyEffectType.Spread:
+                return Mathf.Clamp(bonus, 0f, MAX_SPREAD_REDUCTION);
+
+            default:
+                return bonus;
+        }
+    }
+
+    /// <summary>패시브 1개가 주는 인접 효과 수치 (레벨 × 0.1)</summary>
+    public static float GetPassiveAdjacencyBonus(int level)
+    {
+        return level * ADJACENCY_BONUS_PER_LEVEL;
+    }
+
+    /// <summary>무기 레벨 공격력 배율 (1 + (레벨 - 1) × 0.1)</summary>
+    public static float GetWeaponLevelMultiplier(int level)
+    {
+        return 1f + (level - 1) * WEAPON_LEVEL_BONUS_PER_LEVEL;
+    }
+
+    /// <summary>Lv.3 특수 효과 활성 여부 (무기는 Lv.3 이상, 패시브는 Lv.3 이상이면서 Inventory 배치, 그 외 false)</summary>
+    public bool IsLevel3EffectActive(ItemInstance item)
+    {
+        if (item == null || item.Data == null || item.Level < LEVEL3_EFFECT_LEVEL)
+            return false;
+
+        return item.Data.ItemType == ItemType.Weapon ||
+               (item.Data.ItemType == ItemType.Passive && item.IsPlaced);
     }
 
     /// <summary>보관함 슬롯 아이템 (비어 있으면 null)</summary>

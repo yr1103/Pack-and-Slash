@@ -26,6 +26,7 @@ MonoBehaviour:
   - {x: 1, y: 1}
   _maxLevel: 5
   _isSellable: 1
+  _adjacencyEffectType: 2
   _weaponDefinition: {fileID: 0}
   _equippedEffect: 
   _unequippedBuff: 

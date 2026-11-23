@@ -8,7 +8,8 @@ using Object = UnityEngine.Object;
 /// 다중 아이템 배치·이동·회전 시 충돌, 잠긴 셀·범위 밖 실패, 실패 시 상태 유지, Shape 원본 불변,
 /// Inventory·Storage·Temporary 영역 간 이동 시 점유·카운트·회전·개수 변화 이벤트·실패 시 원본 유지,
 /// 영역별 판매 해제·판매 불가·None 판매 실패·판매가 검증,
-/// 영역 9개 조합 합성 시 재료 해제·결과 아이템 위치 유지·카운트·이벤트, 합성 불가 조건(최대 레벨·다른 Id·다른 Level·자기 자신·고유·None·null) 상태 유지 검증
+/// 영역 9개 조합 합성 시 재료 해제·결과 아이템 위치 유지·카운트·이벤트, 합성 불가 조건(최대 레벨·다른 Id·다른 Level·자기 자신·고유·None·null) 상태 유지 검증,
+/// 무기 레벨 배율·패시브 인접 효과(상하좌우·대각선 제외·중복 1회·합산·회전·영역 이동·제거·고유 제외·상한)·Lv.3 효과 활성 검증
 /// </summary>
 public class InventoryTests
 {
@@ -23,6 +24,15 @@ public class InventoryTests
     private const int MERGE_MAX_LEVEL = 5;
     private const int UNIQUE_MAX_LEVEL = 1;
     private const int MERGE_ROTATION = 1; // 결과 아이템 회전 유지 확인용 (Storage는 0으로 초기화)
+
+    // 인접 효과 테스트 데이터 (모두 MaxLevel 5, 합성 대상끼리만 같은 Id)
+    private const string ADJACENCY_EFFECT_TYPE_FIELD = "_adjacencyEffectType";
+    private const float FLOAT_TOLERANCE = 0.0001f;
+    private const int ADJACENCY_WEAPON_ID = 10;
+    private const int LONG_WEAPON_ID = 11;
+    private const int PASSIVE_ID = 12;
+    private const int LONG_PASSIVE_ID = 13;
+    private const int ESSENTIAL_ID = 14;
 
     // 기본 배치 (활성 영역 x 3~6, y 1~4)
     private static readonly Vector2Int _shotgunPosition = new Vector2Int(3, 1);
@@ -44,6 +54,11 @@ public class InventoryTests
     private static readonly Vector2Int _mergeTargetCell = new Vector2Int(6, 4);
     private static readonly Vector2 _mergeTargetTemporaryPosition = new Vector2(30f, 40f);
 
+    // 인접 효과 Shape·배치 (무기 1칸을 활성 영역 안쪽 (4,2)에 두어 상하좌우가 모두 활성 셀)
+    private static readonly Vector2Int[] _singleCellShape = { new Vector2Int(0, 0) };
+    private static readonly Vector2Int[] _verticalTwoCellShape = { new Vector2Int(0, 0), new Vector2Int(0, 1) };
+    private static readonly Vector2Int _adjacencyWeaponCell = new Vector2Int(4, 2);
+
     private GameObject _inventoryObject;
     private Inventory _inventory;
     private InventoryData _pistolData;
@@ -53,6 +68,11 @@ public class InventoryTests
     private InventoryData _mergeData;
     private InventoryData _otherMergeData;
     private InventoryData _uniqueData;
+    private InventoryData _adjacencyWeaponData;
+    private InventoryData _longWeaponData;
+    private InventoryData _passiveData;
+    private InventoryData _longPassiveData;
+    private InventoryData _essentialData;
     private Inventory.ItemInstance _shotgun;
     private Inventory.ItemInstance _minigun;
     private Inventory.ItemInstance _pistolA;
@@ -72,6 +92,17 @@ public class InventoryTests
         _mergeData = CreateMergeData(MERGE_ITEM_ID, "MergeItem", MERGE_MAX_LEVEL);
         _otherMergeData = CreateMergeData(OTHER_MERGE_ITEM_ID, "OtherMergeItem", MERGE_MAX_LEVEL);
         _uniqueData = CreateMergeData(UNIQUE_ITEM_ID, "UniqueItem", UNIQUE_MAX_LEVEL);
+        _adjacencyWeaponData = CreateAdjacencyData(ADJACENCY_WEAPON_ID, ItemType.Weapon,
+            AdjacencyEffectType.None, _singleCellShape);
+        _longWeaponData = CreateAdjacencyData(LONG_WEAPON_ID, ItemType.Weapon,
+            AdjacencyEffectType.None, _verticalTwoCellShape);
+        _passiveData = CreateAdjacencyData(PASSIVE_ID, ItemType.Passive,
+            AdjacencyEffectType.Damage, _singleCellShape);
+        _longPassiveData = CreateAdjacencyData(LONG_PASSIVE_ID, ItemType.Passive,
+            AdjacencyEffectType.Damage, _verticalTwoCellShape);
+        // 효과 종류를 지정해도 고유 아이템은 주지도 받지도 않아야 함
+        _essentialData = CreateAdjacencyData(ESSENTIAL_ID, ItemType.Essential,
+            AdjacencyEffectType.Damage, _singleCellShape);
 
         // EditMode에서는 AddComponent 시 Awake가 호출되지 않아 리플렉션으로 그리드 초기화
         _inventoryObject = new GameObject();
@@ -98,6 +129,11 @@ public class InventoryTests
         Object.DestroyImmediate(_mergeData);
         Object.DestroyImmediate(_otherMergeData);
         Object.DestroyImmediate(_uniqueData);
+        Object.DestroyImmediate(_adjacencyWeaponData);
+        Object.DestroyImmediate(_longWeaponData);
+        Object.DestroyImmediate(_passiveData);
+        Object.DestroyImmediate(_longPassiveData);
+        Object.DestroyImmediate(_essentialData);
     }
 
     [Test]
@@ -820,6 +856,203 @@ public class InventoryTests
         AssertOccupied(_mergeSourceCell);
     }
 
+    [TestCase(1, 1.0f)]
+    [TestCase(2, 1.1f)]
+    [TestCase(3, 1.2f)]
+    [TestCase(4, 1.3f)]
+    [TestCase(5, 1.4f)]
+    public void GetWeaponLevelMultiplier_ReturnsLinearMultiplier(int level, float expected)
+    {
+        Assert.AreEqual(expected, Inventory.GetWeaponLevelMultiplier(level), FLOAT_TOLERANCE);
+    }
+
+    [TestCase(1, 0.1f)]
+    [TestCase(2, 0.2f)]
+    [TestCase(3, 0.3f)]
+    [TestCase(4, 0.4f)]
+    [TestCase(5, 0.5f)]
+    public void GetPassiveAdjacencyBonus_ReturnsLevelTimesTenPercent(int level, float expected)
+    {
+        Assert.AreEqual(expected, Inventory.GetPassiveAdjacencyBonus(level), FLOAT_TOLERANCE);
+    }
+
+    // 무기는 배치 여부와 무관하게 레벨로만 판정 (미배치 상태로 확인)
+    [TestCase(2, false)]
+    [TestCase(3, true)]
+    [TestCase(4, true)]
+    [TestCase(5, true)]
+    public void IsLevel3EffectActive_Weapon_ActiveFromLevel3(int level, bool expected)
+    {
+        Inventory.ItemInstance weapon = new Inventory.ItemInstance(_adjacencyWeaponData) { Level = level };
+
+        Assert.AreEqual(expected, _inventory.IsLevel3EffectActive(weapon));
+    }
+
+    // 인접 무기 없이 Inventory에 배치만 되어 있어도 활성
+    [TestCase(2, false)]
+    [TestCase(3, true)]
+    [TestCase(4, true)]
+    [TestCase(5, true)]
+    public void IsLevel3EffectActive_PlacedPassive_ActiveFromLevel3(int level, bool expected)
+    {
+        Inventory.ItemInstance passive = PlaceAdjacencyItem(_passiveData, _adjacencyWeaponCell, level);
+
+        Assert.AreEqual(expected, _inventory.IsLevel3EffectActive(passive));
+    }
+
+    [Test]
+    public void IsLevel3EffectActive_PassiveInStorage_Inactive()
+    {
+        Inventory.ItemInstance passive = new Inventory.ItemInstance(_passiveData) { Level = 3 };
+        Assert.IsTrue(_inventory.TryStore(passive));
+
+        Assert.IsFalse(_inventory.IsLevel3EffectActive(passive));
+    }
+
+    [TestCase(0, 1)]
+    [TestCase(0, -1)]
+    [TestCase(-1, 0)]
+    [TestCase(1, 0)]
+    public void GetAdjacencyBonus_PassiveOrthogonal_Applies(int offsetX, int offsetY)
+    {
+        Inventory.ItemInstance weapon = PlaceAdjacencyItem(_adjacencyWeaponData, _adjacencyWeaponCell, 1);
+        Inventory.ItemInstance passive = PlaceAdjacencyItem(_passiveData,
+            _adjacencyWeaponCell + new Vector2Int(offsetX, offsetY), 1);
+
+        Assert.IsTrue(_inventory.GetAdjacentItems(weapon).Contains(passive));
+        Assert.AreEqual(0.1f, _inventory.GetAdjacencyBonus(weapon, AdjacencyEffectType.Damage), FLOAT_TOLERANCE);
+        // 패시브 효과 종류와 다른 수치에는 반영되지 않음
+        Assert.AreEqual(0f, _inventory.GetAdjacencyBonus(weapon, AdjacencyEffectType.FireInterval));
+    }
+
+    [TestCase(1, 1)]
+    [TestCase(1, -1)]
+    [TestCase(-1, 1)]
+    [TestCase(-1, -1)]
+    public void GetAdjacencyBonus_PassiveDiagonal_NotApplied(int offsetX, int offsetY)
+    {
+        Inventory.ItemInstance weapon = PlaceAdjacencyItem(_adjacencyWeaponData, _adjacencyWeaponCell, 1);
+        Inventory.ItemInstance passive = PlaceAdjacencyItem(_passiveData,
+            _adjacencyWeaponCell + new Vector2Int(offsetX, offsetY), 1);
+
+        Assert.IsFalse(_inventory.GetAdjacentItems(weapon).Contains(passive));
+        Assert.AreEqual(0f, _inventory.GetAdjacencyBonus(weapon, AdjacencyEffectType.Damage));
+    }
+
+    // 세로 2칸 무기 (4,2),(4,3)과 세로 2칸 패시브 (5,2),(5,3)이 두 셀로 맞닿음
+    [Test]
+    public void GetAdjacencyBonus_SamePassiveTouchingMultipleCells_CountedOnce()
+    {
+        Inventory.ItemInstance weapon = PlaceAdjacencyItem(_longWeaponData, _adjacencyWeaponCell, 1);
+        PlaceAdjacencyItem(_longPassiveData, new Vector2Int(5, 2), 1);
+
+        Assert.AreEqual(1, _inventory.GetAdjacentItems(weapon).Count);
+        Assert.AreEqual(0.1f, _inventory.GetAdjacencyBonus(weapon, AdjacencyEffectType.Damage), FLOAT_TOLERANCE);
+    }
+
+    [Test]
+    public void GetAdjacencyBonus_TwoPassiveInstances_Summed()
+    {
+        Inventory.ItemInstance weapon = PlaceAdjacencyItem(_adjacencyWeaponData, _adjacencyWeaponCell, 1);
+        PlaceAdjacencyItem(_passiveData, new Vector2Int(3, 2), 1);
+        PlaceAdjacencyItem(_passiveData, new Vector2Int(5, 2), 2);
+
+        Assert.AreEqual(0.3f, _inventory.GetAdjacencyBonus(weapon, AdjacencyEffectType.Damage), FLOAT_TOLERANCE);
+    }
+
+    // 세로 무기 (3,1),(3,2)는 (3,3) 패시브와 맞닿고, 가로 회전 (3,1),(4,1)은 떨어짐
+    [Test]
+    public void GetAdjacencyBonus_AfterRotation_UsesRotatedCells()
+    {
+        Inventory.ItemInstance weapon = PlaceAdjacencyItem(_longWeaponData, new Vector2Int(3, 1), 1);
+        PlaceAdjacencyItem(_passiveData, new Vector2Int(3, 3), 1);
+        Assert.AreEqual(0.1f, _inventory.GetAdjacencyBonus(weapon, AdjacencyEffectType.Damage), FLOAT_TOLERANCE);
+
+        Assert.IsTrue(_inventory.RotateItem(weapon));
+
+        Assert.AreEqual(0f, _inventory.GetAdjacencyBonus(weapon, AdjacencyEffectType.Damage));
+    }
+
+    [TestCase(ItemLocation.Storage)]
+    [TestCase(ItemLocation.Temporary)]
+    public void GetAdjacencyBonus_PassiveMovedOutOfInventory_NotApplied(ItemLocation location)
+    {
+        Inventory.ItemInstance weapon = PlaceAdjacencyItem(_adjacencyWeaponData, _adjacencyWeaponCell, 1);
+        Inventory.ItemInstance passive = PlaceAdjacencyItem(_passiveData, new Vector2Int(3, 2), 1);
+        Assert.AreEqual(0.1f, _inventory.GetAdjacencyBonus(weapon, AdjacencyEffectType.Damage), FLOAT_TOLERANCE);
+
+        PutItem(passive, location, _mergeSourceCell, _temporaryPosition);
+
+        Assert.IsFalse(_inventory.GetAdjacentItems(weapon).Contains(passive));
+        Assert.AreEqual(0f, _inventory.GetAdjacencyBonus(weapon, AdjacencyEffectType.Damage));
+    }
+
+    [Test]
+    public void GetAdjacencyBonus_PassiveSold_Released()
+    {
+        Inventory.ItemInstance weapon = PlaceAdjacencyItem(_adjacencyWeaponData, _adjacencyWeaponCell, 1);
+        Inventory.ItemInstance passive = PlaceAdjacencyItem(_passiveData, new Vector2Int(3, 2), 1);
+
+        Assert.IsTrue(_inventory.TrySell(passive));
+
+        Assert.AreEqual(0f, _inventory.GetAdjacencyBonus(weapon, AdjacencyEffectType.Damage));
+    }
+
+    // 고유 (3,2)가 무기 (4,2)에 주지 않고, 패시브 (3,3)도 고유에 주지 않음
+    [Test]
+    public void GetAdjacencyBonus_EssentialItem_NeitherGivesNorReceives()
+    {
+        Inventory.ItemInstance weapon = PlaceAdjacencyItem(_adjacencyWeaponData, _adjacencyWeaponCell, 1);
+        Inventory.ItemInstance essential = PlaceAdjacencyItem(_essentialData, new Vector2Int(3, 2), 1);
+        PlaceAdjacencyItem(_passiveData, new Vector2Int(3, 3), 1);
+
+        Assert.AreEqual(0f, _inventory.GetAdjacencyBonus(weapon, AdjacencyEffectType.Damage));
+        Assert.AreEqual(0f, _inventory.GetAdjacencyBonus(essential, AdjacencyEffectType.Damage));
+    }
+
+    [Test]
+    public void TryMerge_ReachLevel3_AppliesLevelBonusAndLevel3Effect()
+    {
+        Inventory.ItemInstance weapon = PlaceAdjacencyItem(_adjacencyWeaponData, _adjacencyWeaponCell, 2);
+        Inventory.ItemInstance passive = PlaceAdjacencyItem(_passiveData, new Vector2Int(3, 2), 2);
+        Inventory.ItemInstance weaponSource = new Inventory.ItemInstance(_adjacencyWeaponData) { Level = 2 };
+        Inventory.ItemInstance passiveSource = new Inventory.ItemInstance(_passiveData) { Level = 2 };
+        Assert.IsTrue(_inventory.TryStore(weaponSource));
+        Assert.IsTrue(_inventory.TryStore(passiveSource));
+        Assert.IsFalse(_inventory.IsLevel3EffectActive(weapon));
+        Assert.IsFalse(_inventory.IsLevel3EffectActive(passive));
+
+        Assert.IsTrue(_inventory.TryMerge(weaponSource, weapon));
+        Assert.IsTrue(_inventory.TryMerge(passiveSource, passive));
+
+        Assert.AreEqual(1.2f, Inventory.GetWeaponLevelMultiplier(weapon.Level), FLOAT_TOLERANCE);
+        Assert.AreEqual(0.3f, _inventory.GetAdjacencyBonus(weapon, AdjacencyEffectType.Damage), FLOAT_TOLERANCE);
+        Assert.IsTrue(_inventory.IsLevel3EffectActive(weapon));
+        Assert.IsTrue(_inventory.IsLevel3EffectActive(passive));
+    }
+
+    // Lv.5 패시브 2개 = 합계 1.0
+    [TestCase(AdjacencyEffectType.FireInterval, 0.5f)]
+    [TestCase(AdjacencyEffectType.Spread, 0.7f)]
+    [TestCase(AdjacencyEffectType.Damage, 1.0f)]
+    public void GetEffectiveAdjacencyBonus_AppliesCapPerEffect(AdjacencyEffectType effectType, float expected)
+    {
+        SetAdjacencyEffectType(_passiveData, effectType);
+        Inventory.ItemInstance weapon = PlaceAdjacencyItem(_adjacencyWeaponData, _adjacencyWeaponCell, 1);
+        PlaceAdjacencyItem(_passiveData, new Vector2Int(3, 2), 5);
+        PlaceAdjacencyItem(_passiveData, new Vector2Int(5, 2), 5);
+
+        Assert.AreEqual(1.0f, _inventory.GetAdjacencyBonus(weapon, effectType), FLOAT_TOLERANCE);
+        Assert.AreEqual(expected, _inventory.GetEffectiveAdjacencyBonus(weapon, effectType), FLOAT_TOLERANCE);
+    }
+
+    private Inventory.ItemInstance PlaceAdjacencyItem(InventoryData data, Vector2Int cell, int level)
+    {
+        Inventory.ItemInstance item = new Inventory.ItemInstance(data) { Level = level };
+        Assert.IsTrue(_inventory.PlaceItem(item, cell));
+        return item;
+    }
+
     private void FillStorage()
     {
         for (int i = 0; i < Inventory.STORAGE_CAPACITY; i++)
@@ -881,6 +1114,23 @@ public class InventoryTests
         InventoryData data = ScriptableObject.CreateInstance<InventoryData>();
         data.SetData(id, itemName, null, ItemType.Weapon, string.Empty, new[] { new Vector2Int(0, 0) }, maxLevel, null);
         return data;
+    }
+
+    // 인접 판정에 종류·효과·Shape가 필요하고, 효과 종류는 SetData에 없어 직렬화 필드로 설정
+    private static InventoryData CreateAdjacencyData(int id, ItemType itemType, AdjacencyEffectType effectType,
+        Vector2Int[] shape)
+    {
+        InventoryData data = ScriptableObject.CreateInstance<InventoryData>();
+        data.SetData(id, string.Empty, null, itemType, string.Empty, shape, MERGE_MAX_LEVEL, null);
+        SetAdjacencyEffectType(data, effectType);
+        return data;
+    }
+
+    private static void SetAdjacencyEffectType(InventoryData data, AdjacencyEffectType effectType)
+    {
+        SerializedObject serializedData = new SerializedObject(data);
+        serializedData.FindProperty(ADJACENCY_EFFECT_TYPE_FIELD).enumValueIndex = (int)effectType;
+        serializedData.ApplyModifiedPropertiesWithoutUndo();
     }
 
     // None은 배치하지 않음, Inventory·Temporary는 MERGE_ROTATION으로 배치

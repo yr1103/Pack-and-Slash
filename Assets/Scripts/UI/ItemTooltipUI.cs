@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -9,7 +10,16 @@ public class ItemTooltipUI : MonoBehaviour
 {
     private const int REWARD_LEVEL = 1; // 보상은 항상 1레벨로 지급
     private const string LEVEL_FORMAT = "Lv.{0}";
-    private const string ATTACK_FORMAT = "공격력 {0}";
+    private const float PERCENT = 100f;
+    private const string LINE_SEPARATOR = "\n";
+    private const string BASE_ATTACK_FORMAT = "기본 공격력 {0}";
+    private const string LEVEL_BONUS_FORMAT = "레벨 보너스 +{0:0}%";
+    private const string ADJACENT_DAMAGE_FORMAT = "인접 효과 공격력 +{0:0}%";
+    private const string ADJACENT_FIRE_INTERVAL_FORMAT = "인접 효과 발사 간격 -{0:0}%";
+    private const string ADJACENT_SPREAD_FORMAT = "인접 효과 탄퍼짐 -{0:0}%";
+    private const string FINAL_ATTACK_FORMAT = "최종 공격력 {0:0.#}";
+    private const string LEVEL3_ACTIVE_TEXT = "Lv.3 효과 활성";
+    private const string LEVEL3_INACTIVE_TEXT = "Lv.3 효과 비활성";
     private const string EQUIPPED_FORMAT = "장착: {0}";
     private const string UNEQUIPPED_FORMAT = "해제 시: {0}";
     private const string SELL_PRICE_FORMAT = "판매가 {0}";
@@ -62,13 +72,15 @@ public class ItemTooltipUI : MonoBehaviour
     /// <summary>보유 아이템 표시 (현재 레벨·판매가)</summary>
     public void Show(Inventory.ItemInstance item, object source)
     {
-        Display(item.Data, item.Level, _inventory.GetSellPrice(item), source);
+        Display(item, _inventory.GetSellPrice(item), source);
     }
 
-    /// <summary>보상 후보 표시 (1레벨 기준 판매가)</summary>
+    /// <summary>보상 후보 표시 (1레벨·인접 없음 기준)</summary>
     public void Show(InventoryData data, object source)
     {
-        Display(data, REWARD_LEVEL, _inventory.GetSellPrice(data, REWARD_LEVEL), source);
+        // 미배치(Location None) 인스턴스라 Inventory 계산이 인접 없음·Lv.1 기준으로 나옴
+        Inventory.ItemInstance candidate = new Inventory.ItemInstance(data) { Level = REWARD_LEVEL };
+        Display(candidate, _inventory.GetSellPrice(data, REWARD_LEVEL), source);
     }
 
     /// <summary>source가 현재 표시 요청자일 때만 숨김 (다른 아이템 Enter 직후 이전 아이템 Exit 무시)</summary>
@@ -82,9 +94,10 @@ public class ItemTooltipUI : MonoBehaviour
     }
 
     // 값이 없는 줄은 비활성화해 레이아웃 공간 제거
-    private void Display(InventoryData data, int level, int sellPrice, object source)
+    private void Display(Inventory.ItemInstance item, int sellPrice, object source)
     {
         _source = source;
+        InventoryData data = item.Data;
 
         _icon.sprite = data.Icon;
         _nameText.text = data.ItemName;
@@ -92,13 +105,12 @@ public class ItemTooltipUI : MonoBehaviour
         _descriptionText.text = data.Description;
 
         _levelText.gameObject.SetActive(data.MaxLevel > 1);
-        _levelText.text = string.Format(LEVEL_FORMAT, level);
+        _levelText.text = string.Format(LEVEL_FORMAT, item.Level);
 
-        // shortcut: 레벨별 공격력 계산이 없어 기본 ProjectileDamage 표시, 무기 레벨 성장 구현 시 레벨 반영
-        bool isWeapon = data.WeaponDefinition != null;
-        _attackText.gameObject.SetActive(isWeapon);
-        if (isWeapon)
-            _attackText.text = string.Format(ATTACK_FORMAT, data.WeaponDefinition.ProjectileDamage);
+        string statText = GetStatText(item);
+        _attackText.gameObject.SetActive(statText != null);
+        if (statText != null)
+            _attackText.text = statText;
 
         bool hasEquipped = SetEffectLine(_equippedEffectText, EQUIPPED_FORMAT, data.EquippedEffect);
         bool hasBuff = SetEffectLine(_unequippedBuffText, UNEQUIPPED_FORMAT, data.UnequippedBuff);
@@ -112,6 +124,65 @@ public class ItemTooltipUI : MonoBehaviour
         // 줄 활성 상태가 바뀐 직후 크기를 반영해야 위치 보정이 맞음
         LayoutRebuilder.ForceRebuildLayoutImmediate(_tooltipRect);
         UpdatePosition();
+    }
+
+    // 무기는 공격력·인접 효과·Lv.3, 패시브는 인접 효과·Lv.3 여러 줄, 그 외 null (줄 숨김)
+    private string GetStatText(Inventory.ItemInstance item)
+    {
+        InventoryData data = item.Data;
+        List<string> lines = new List<string>();
+
+        if (data.ItemType == ItemType.Weapon && data.WeaponDefinition != null)
+        {
+            float baseDamage = data.WeaponDefinition.ProjectileDamage;
+            float levelMultiplier = Inventory.GetWeaponLevelMultiplier(item.Level);
+            float damageBonus = _inventory.GetEffectiveAdjacencyBonus(item, AdjacencyEffectType.Damage);
+
+            lines.Add(string.Format(BASE_ATTACK_FORMAT, baseDamage));
+            lines.Add(string.Format(LEVEL_BONUS_FORMAT, (levelMultiplier - 1f) * PERCENT));
+            AddAdjacencyLine(lines, AdjacencyEffectType.Damage, damageBonus);
+            AddAdjacencyLine(lines, AdjacencyEffectType.FireInterval,
+                _inventory.GetEffectiveAdjacencyBonus(item, AdjacencyEffectType.FireInterval));
+            AddAdjacencyLine(lines, AdjacencyEffectType.Spread,
+                _inventory.GetEffectiveAdjacencyBonus(item, AdjacencyEffectType.Spread));
+            // TODO : 전투 연결 시 최종 공격력 공식을 Inventory로 옮겨 툴팁·전투가 함께 사용
+            lines.Add(string.Format(FINAL_ATTACK_FORMAT, baseDamage * levelMultiplier * (1f + damageBonus)));
+        }
+        else if (data.ItemType == ItemType.Passive)
+        {
+            if (data.AdjacencyEffectType != AdjacencyEffectType.None)
+                AddAdjacencyLine(lines, data.AdjacencyEffectType, Inventory.GetPassiveAdjacencyBonus(item.Level));
+        }
+        else
+        {
+            return null;
+        }
+
+        lines.Add(_inventory.IsLevel3EffectActive(item) ? LEVEL3_ACTIVE_TEXT : LEVEL3_INACTIVE_TEXT);
+        return string.Join(LINE_SEPARATOR, lines);
+    }
+
+    // 값이 0인 인접 효과 줄은 생략
+    private static void AddAdjacencyLine(List<string> lines, AdjacencyEffectType effectType, float bonus)
+    {
+        if (bonus <= 0f)
+            return;
+
+        lines.Add(string.Format(GetAdjacencyFormat(effectType), bonus * PERCENT));
+    }
+
+    // None은 호출 전에 걸러지므로 default는 Spread
+    private static string GetAdjacencyFormat(AdjacencyEffectType effectType)
+    {
+        switch (effectType)
+        {
+            case AdjacencyEffectType.Damage:
+                return ADJACENT_DAMAGE_FORMAT;
+            case AdjacencyEffectType.FireInterval:
+                return ADJACENT_FIRE_INTERVAL_FORMAT;
+            default:
+                return ADJACENT_SPREAD_FORMAT;
+        }
     }
 
     // 값이 비어 있으면 줄을 숨기고 false 반환

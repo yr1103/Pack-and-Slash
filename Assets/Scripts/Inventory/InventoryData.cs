@@ -15,6 +15,7 @@ public class InventoryData : ScriptableObject
     [SerializeField] private Vector2Int[] _itemShape; // 몇칸 차지하는지
     [SerializeField] private int _maxLevel;
     [SerializeField] private bool _isSellable = true; // 진화 무기는 false (판매 불가)
+    [SerializeField] private AdjacencyEffectType _adjacencyEffectType; // 패시브가 맞닿은 무기에 주는 효과 종류 (수치는 레벨 기준 공통)
 
     // 무기 설정 참조하는 필드
     [SerializeField] private WeaponDefinition _weaponDefinition;
@@ -33,6 +34,7 @@ public class InventoryData : ScriptableObject
     public Vector2Int[] ItemShape => _itemShape;
     public int MaxLevel => _maxLevel;
     public bool IsSellable => _isSellable;
+    public AdjacencyEffectType AdjacencyEffectType => _adjacencyEffectType;
 
     public WeaponDefinition WeaponDefinition => _weaponDefinition;
     public string EquippedEffect => _equippedEffect;
@@ -58,4 +60,15 @@ public  enum ItemType
     Passive,
     Expendables, // 소비
     Essential, // 캐릭터 고유 아이템 (기존 SO 직렬화 정수값 보존을 위해 끝에 추가)
+}
+
+/// <summary>
+/// 패시브 인접 효과 종류 (SO 직렬화 정수값 보존을 위해 추가 시 끝에 둘 것)
+/// </summary>
+public enum AdjacencyEffectType
+{
+    None,
+    Damage, // 공격력 증가
+    FireInterval, // 발사 간격 감소
+    Spread, // 탄퍼짐 감소
 }
