@@ -23,10 +23,13 @@ public class InventoryUI : MonoBehaviour
     private const int Width = 10;
     private const int Height = 6;
 
+    private bool _isRotateEnabled = true; // 보상 선택 단계에서 꺼둔 상태가 패널 재활성화 시에도 유지되도록 보관
+
     // 아이템 UI 하나가 비활성화(판매)돼도 공유 액션이 꺼지지 않도록 패널 수명 기준으로 활성화 소유
     private void OnEnable()
     {
-        _rotateAction.action.Enable();
+        if (_isRotateEnabled)
+            _rotateAction.action.Enable();
     }
 
     private void OnDisable()
@@ -131,6 +134,34 @@ public class InventoryUI : MonoBehaviour
     public Vector3 GetTemporaryWorldPosition(Vector2 temporaryPosition)
     {
         return _temporaryArea.TransformPoint(temporaryPosition);
+    }
+
+    /// <summary>회전 입력 허용 여부 설정 (비활성 중이면 다음 OnEnable에 반영)</summary>
+    public void SetRotateEnabled(bool isEnabled)
+    {
+        _isRotateEnabled = isEnabled;
+
+        // 비활성 중 Enable하면 OnDisable 짝이 맞지 않아 패널 밖에서도 회전 입력이 살아남음
+        if (!isActiveAndEnabled)
+            return;
+
+        if (isEnabled)
+            _rotateAction.action.Enable();
+        else
+            _rotateAction.action.Disable();
+    }
+
+    /// <summary>회전 0 정규화 Shape의 바운딩 칸 수에 맞는 아이템 이미지 크기 (셀 간격 포함)</summary>
+    public Vector2 GetItemSize(Vector2Int[] shape)
+    {
+        Vector2Int cellCount = Vector2Int.zero;
+
+        foreach (Vector2Int offset in shape)
+        {
+            cellCount = Vector2Int.Max(cellCount, offset + Vector2Int.one);
+        }
+
+        return (Vector2)cellCount * cellSize + (Vector2)(cellCount - Vector2Int.one) * spacing;
     }
 
     /// <summary>보관함 슬롯 표시 위치·크기 기준</summary>

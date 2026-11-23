@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 // DragHandler = 드래그 시작, 드래그 하는 중, 드래그 종료 함수
 // PointerClickHandler 이미지 클릭 시 사용하는 함수
@@ -20,6 +21,7 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     private Inventory.ItemInstance item;
     private RectTransform rectTransform;
+    private Image _image;
     private Vector3 originalPosition;
     private Vector2 dragOffset; // 잡은 지점과 이미지 중심의 화면상 차이
     private int _grabbedShapeIndex; // 잡은 칸의 Shape 배열 인덱스 (회전과 무관하게 같은 칸)
@@ -35,8 +37,9 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
+        _image = GetComponent<Image>();
     }
-    
+
     // --- 회전 ------------------------------------
     
 
@@ -117,7 +120,7 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         item = target;
         RefreshPosition();
     }
-    
+
     // Image 사각형이 아닌 실제 점유 셀만 클릭 판정 (빈 칸 클릭은 아래 아이템으로 통과)
     public bool IsRaycastLocationValid(Vector2 screenPoint, Camera eventCamera)
     {
@@ -331,6 +334,23 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         return nearestIndex;
     }
 
+    /// <summary>런타임 생성 아이템용 의존성 주입, 아이콘·크기 설정 후 표시 (표시 위치를 데이터에서 읽으므로 영역 이동 후 호출)</summary>
+    public void Initialize(Inventory.ItemInstance target, Inventory targetInventory, InventoryUI targetInventoryUI,
+        SellConfirmPopup sellPopup)
+    {
+        inventory = targetInventory;
+        inventoryUI = targetInventoryUI;
+        _sellPopup = sellPopup;
+
+        _image.sprite = target.Data.Icon;
+
+        // 회전은 localRotation으로 표시하므로 크기는 회전 0 기준
+        Vector2 size = inventoryUI.GetItemSize(inventory.GetRotatedShape(target, 0));
+        rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, size.x);
+        rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, size.y);
+
+        Initialize(target);
+    }
 }
 
 
