@@ -8,9 +8,19 @@ using UnityEngine.InputSystem;
 public class PlayerMovement : MonoBehaviour
 {
     [SerializeField] private InputActionReference _moveAction;
-    [SerializeField] private float _moveSpeed = 5f;
+    [SerializeField] private float _moveSpeed = 5f; // 기본 이동속도 (배율 적용 전)
 
     private CharacterController _characterController;
+    private float _moveSpeedMultiplier = 1f;
+
+    /// <summary>배율이 적용된 현재 이동속도</summary>
+    public float MoveSpeed => _moveSpeed * _moveSpeedMultiplier;
+
+    /// <summary>이동속도 배율 설정 (기본 _moveSpeed는 유지, 매번 기본값 기준으로 적용)</summary>
+    public void SetMoveSpeedMultiplier(float multiplier)
+    {
+        _moveSpeedMultiplier = multiplier;
+    }
 
     private void Awake()
     {
@@ -34,7 +44,7 @@ public class PlayerMovement : MonoBehaviour
         Vector3 moveDirection = new Vector3(moveInput.x, 0f, moveInput.y);
 
         // 입력이 없어도 중력 적용을 위해 매 프레임 호출
-        _characterController.SimpleMove(moveDirection * _moveSpeed);
+        _characterController.SimpleMove(moveDirection * MoveSpeed);
     }
 
     private void CacheComponents()

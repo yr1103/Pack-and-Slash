@@ -6,17 +6,38 @@ using UnityEngine;
 /// </summary>
 public class WeaponInstance
 {
+    private const int MIN_GUN_COUNT = 1;
+    private const string INVALID_GUN_COUNT_WARNING_FORMAT = "[WeaponInstance] GunCount {0}는 1 미만이라 1로 보정";
+
     /// <summary>장착 목록 안에서 고유한 인스턴스 ID</summary>
     public int InstanceId { get; }
 
     /// <summary>공유 설정 데이터</summary>
     public WeaponDefinition Definition { get; }
 
-    /// <summary>현재 레벨</summary>
-    public int Level { get; }
+    /// <summary>현재 레벨 (ApplyStats로만 변경)</summary>
+    public int Level { get; private set; }
 
     /// <summary>진화 여부</summary>
     public bool IsEvolved { get; }
+
+    /// <summary>탄 1발 피해량 (생성 시 Definition 값, ApplyStats로만 변경)</summary>
+    public float Damage { get; private set; }
+
+    /// <summary>발사 간격(초) (생성 시 Definition 값, ApplyStats로만 변경)</summary>
+    public float FireInterval { get; private set; }
+
+    /// <summary>부채꼴 전체 각도(도) (생성 시 Definition 값, ApplyStats로만 변경)</summary>
+    public float SpreadAngle { get; private set; }
+
+    /// <summary>true면 확산각 안 무작위 방향, false면 균등 분배 (생성 시 Definition 값, ApplyStats로만 변경)</summary>
+    public bool RandomSpread { get; private set; }
+
+    /// <summary>총기 자루 수, 발사 1회에 자루마다 동시 발사 (생성 시 1, ApplyStats로만 변경)</summary>
+    public int GunCount { get; private set; } = 1;
+
+    /// <summary>탄 적중 시 넉백 속도, 0 = 넉백 없음 (생성 시 0, ApplyStats로만 변경)</summary>
+    public float KnockbackStrength { get; private set; }
 
     /// <summary>다음 발사까지 남은 시간(초), 0 이하면 발사 가능 (음수 = 발사 예정 시각을 넘긴 시간)</summary>
     public float ShotCooldown { get; private set; }
@@ -29,6 +50,11 @@ public class WeaponInstance
 
     /// <summary>남은 재장전 시간(초), 재장전 중이 아니면 0</summary>
     public float ReloadRemaining { get; private set; }
+
+    /// <summary>재장전 진행률(0~1), 재장전 중이 아니거나 재장전 시간이 0 이하면 0</summary>
+    public float ReloadProgress => IsReloading && Definition.ReloadDuration > 0f
+        ? 1f - ReloadRemaining / Definition.ReloadDuration
+        : 0f;
 
     /// <summary>이번 프레임 탐색한 표적, 없으면 null (WeaponAttackController가 Update에서 갱신, 다른 컴포넌트는 LateUpdate에서 읽음)</summary>
     public ITargetable CurrentTarget { get; set; }
@@ -50,6 +76,30 @@ public class WeaponInstance
         Level = level;
         IsEvolved = isEvolved;
         CurrentAmmo = definition.MagazineCapacity;
+        Damage = definition.ProjectileDamage;
+        FireInterval = definition.FireInterval;
+        SpreadAngle = definition.SpreadAngle;
+        RandomSpread = definition.RandomSpread;
+    }
+
+    /// <summary>레벨·런타임 스탯 갱신 (남은 쿨다운·잔탄·재장전은 유지, 새 발사 간격은 다음 ScheduleNextShot부터 적용)</summary>
+    public void ApplyStats(int level, float damage, float fireInterval, float spreadAngle, bool randomSpread,
+        int gunCount, float knockbackStrength)
+    {
+        // 자루 0개면 뷰·총구 인덱스가 성립하지 않아 1로 보정
+        if (gunCount < MIN_GUN_COUNT)
+        {
+            Debug.LogWarningFormat(INVALID_GUN_COUNT_WARNING_FORMAT, gunCount);
+            gunCount = MIN_GUN_COUNT;
+        }
+
+        Level = level;
+        Damage = damage;
+        FireInterval = fireInterval;
+        SpreadAngle = spreadAngle;
+        RandomSpread = randomSpread;
+        GunCount = gunCount;
+        KnockbackStrength = knockbackStrength;
     }
 
     /// <summary>발사 쿨다운·재장전 시간을 경과 시간만큼 감소 (쿨다운은 음수까지 내려감)</summary>
@@ -73,7 +123,7 @@ public class WeaponInstance
     /// <summary>다음 발사 예정 시각을 발사 간격만큼 뒤로 미룸 (넘긴 시간을 이월해 FPS와 무관한 연사 속도 유지)</summary>
     public void ScheduleNextShot()
     {
-        ShotCooldown += Definition.FireInterval;
+        ShotCooldown += FireInterval;
     }
 
     /// <summary>넘긴 시간(음수 쿨다운)을 버리고 0으로 되돌림 (표적 없음·재장전 중 몰아 쏘기 방지)</summary>

@@ -3,15 +3,15 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// 전투 HUD 표시 (생존 시간·처치 수는 값이 바뀔 때만, 경험치 바·레벨은 PlayerExperience 이벤트로 갱신)
+/// 전투 HUD 표시 (생존 시간·처치 수는 값이 바뀔 때만, 경험치 바·레벨은 PlayerExperience 이벤트로, 재화는 Currency.Changed 이벤트로 갱신)
 /// </summary>
 public class GameHUD : MonoBehaviour
 {
     private const string LEVEL_FORMAT = "LV {0}";
-    private const string INITIAL_CURRENCY_TEXT = "0"; // 재화 획득 경로 구현 전 고정 표시
 
     [SerializeField] private GameSession _gameSession;
     [SerializeField] private PlayerExperience _playerExperience;
+    [SerializeField] private Currency _currency;
     [SerializeField] private TMP_Text _timerText;
     [SerializeField] private TMP_Text _levelText;
     [SerializeField] private TMP_Text _killCountText;
@@ -25,11 +25,12 @@ public class GameHUD : MonoBehaviour
     private void OnEnable()
     {
         _playerExperience.ExperienceGained += HandleExperienceGained;
+        _currency.Changed += RefreshCurrency;
     }
 
     private void Start()
     {
-        _currencyText.text = INITIAL_CURRENCY_TEXT;
+        RefreshCurrency(_currency.Balance);
         RefreshExperience();
     }
 
@@ -55,6 +56,7 @@ public class GameHUD : MonoBehaviour
     private void OnDisable()
     {
         _playerExperience.ExperienceGained -= HandleExperienceGained;
+        _currency.Changed -= RefreshCurrency;
     }
 
     // 레벨업 시에도 LevelChanged 이후 발생하므로 이 이벤트만으로 경험치 바·레벨 갱신
@@ -67,5 +69,10 @@ public class GameHUD : MonoBehaviour
     {
         _experienceFill.fillAmount = (float)_playerExperience.CurrentLevelExperience / _playerExperience.RequiredExperience;
         _levelText.text = string.Format(LEVEL_FORMAT, _playerExperience.Level);
+    }
+
+    private void RefreshCurrency(int balance)
+    {
+        _currencyText.text = balance.ToString();
     }
 }

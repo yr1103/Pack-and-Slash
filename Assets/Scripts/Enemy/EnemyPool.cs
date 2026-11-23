@@ -29,8 +29,9 @@ public class EnemyPool : MonoBehaviour
         }
 
         Enemy enemy = pool.Get();
-        // 재사용 Enemy의 이전 위치·회전 제거
+        // 위치 지정 후 활성화: Auto Sync Transforms가 꺼져 있어 먼저 켜면 같은 프레임 물리 판정이 이전 위치(사망 지점 등)에 남아 오피격 발생
         enemy.transform.SetPositionAndRotation(position, Quaternion.identity);
+        enemy.gameObject.SetActive(true);
         enemy.Initialize(flowFieldManager, player, pool);
         enemy.GetComponents(_shootPatterns);
         foreach (BossShootPattern shootPattern in _shootPatterns)
@@ -39,11 +40,6 @@ public class EnemyPool : MonoBehaviour
         }
 
         return enemy;
-    }
-
-    private static void ActivateEnemy(Enemy enemy)
-    {
-        enemy.gameObject.SetActive(true);
     }
 
     private static void DeactivateEnemy(Enemy enemy)
@@ -57,9 +53,17 @@ public class EnemyPool : MonoBehaviour
         Destroy(enemy.gameObject);
     }
 
+    // 새 Enemy도 부모 원점에서 활성 상태로 물리에 등록되지 않도록 비활성으로 생성, Spawn에서 위치 지정 후 활성화
+    private Enemy CreateInactiveEnemy(Enemy prefab)
+    {
+        Enemy enemy = Instantiate(prefab, _enemyParent);
+        enemy.gameObject.SetActive(false);
+        return enemy;
+    }
+
     private ObjectPool<Enemy> CreatePool(Enemy prefab)
     {
-        return new ObjectPool<Enemy>(() => Instantiate(prefab, _enemyParent), ActivateEnemy,
+        return new ObjectPool<Enemy>(() => CreateInactiveEnemy(prefab), null,
             DeactivateEnemy, DestroyEnemy, collectionCheck: true, defaultCapacity: _defaultCapacity,
             maxSize: _maxSize);
     }

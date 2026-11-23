@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 536773cbcdc1fb346b8d675e4a057e6c, type: 3}
+  m_Name: SO_Inventory_CombatVest
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryData
+  _id: 11
+  _itemName: CombatVest
+  _icon: {fileID: 21300000, guid: 6390a72a5bc35084ea7c48f776d44797, type: 3}
+  _description: "\uAC81\uC774 \uB9CE\uC740 \uC0DD\uC874\uC790\uAC00 \uC548\uC804\uC744
+    \uC704\uD574 \uCC29\uC6A9\uD55C \uB450\uAEBC\uC6B4 \uC804\uD22C \uC870\uB07C.
+    \uC870\uB07C\uB97C \uBC97\uC73C\uBA74 \uBAB8\uC774 \uAC00\uBCBC\uC6CC\uC838 \uB3C4\uB9DD\uCE58\uB294
+    \uC18D\uB3C4\uB294 \uBE68\uB77C\uC9C0\uC9C0\uB9CC, \uACF5\uACA9\uC744 \uBC84\uD2F8
+    \uC790\uC2E0\uB3C4 \uD568\uAED8 \uC0AC\uB77C\uC9C4\uB2E4."
+  _itemType: 3
+  _itemShape:
+  - {x: 0, y: 0}
+  - {x: 1, y: 0}
+  - {x: 0, y: 1}
+  - {x: 1, y: 1}
+  _maxLevel: 1
+  _isSellable: 1
+  _weaponDefinition: {fileID: 0}
+  _equippedEffect: "\uAE30\uC874 \uCE90\uB9AD\uD130 \uAE30\uBCF8 \uD6A8\uACFC \uC720\uC9C0"
+  _unequippedBuff: "\uC774\uB3D9\uC18D\uB3C4 +30%"
+  _unequippedDebuff: "\uCD5C\uB300 \uCCB4\uB825 -30%"

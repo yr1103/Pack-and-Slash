@@ -1,6 +1,6 @@
 # Enemy·스폰·피격·경험치 젬 (Enemy)
 
-> 근거 : `Assets/Scripts/Enemy/Enemy.cs`, `Assets/Scripts/Enemy/EnemyPool.cs`, `Assets/Scripts/Enemy/EnemySpawner.cs`, `Assets/Scripts/Enemy/TempEnemySpawner.cs`, `Assets/Scripts/Enemy/EnemyHitFeedback.cs`, `Assets/Scripts/Enemy/{BossCharge,BossChargePattern,BossShootPattern,BossPatternSequencer,IBossPattern,EnemyMovement}.cs`, `Assets/Scripts/UI/GameSettings.cs`, `Assets/Scripts/UI/LevelUpPanel.cs`(`RequestChestReward`), `Assets/Scripts/GameFlow/GameSession.cs`(`HandleEnemyDied`, `_endFreezeDelay`), `Assets/Scripts/Player/PlayerHealth.cs`(`TakeDamage`), `Assets/Scripts/Weapon/Projectile/{Projectile,ProjectileHitDetector}.cs`, `Assets/Scripts/Combat/Health.cs`, `Assets/Scripts/Combat/DamageGate.cs`, `Assets/Scripts/Combat/ExperienceGem.cs`, `Assets/Scripts/Combat/ExperienceGemPool.cs`, `Assets/Scripts/Combat/{TreasureChest,TreasureChestSpawner}.cs`, `Assets/Tests/Editor/{HealthTests,DamageGateTests,ExperienceGemTests,EnemySpawnerTests,BossChargeTests,BossShootPatternTests}.cs`, `Assets/Prefabs/Enemy/*.prefab`, `Assets/Prefabs/Combat/{PFB_ExperienceGem,PFB_ExperienceGemElite,PFB_TreasureChest}.prefab`, `Assets/Prefabs/FX/PFB_DamageNumberComic.prefab`, `Assets/Materials/{MAT_ChargeWarning,MAT_BossBullet}.mat`, `Assets/Animations/Enemy/*`, `ProjectSettings/TagManager.asset`(레이어 번호), `Assets/Scenes/GameScene.unity`, `Assets/Scenes/TestMap.unity`, `Assets/Imports/Other/BTM_Assets/BTM_Items_Gems/Scripts/SimpleGemsAnim.cs`, `Assets/Imports/Fonts/DamageNumbersPro/Scripts/Internal/DamageNumber.cs`(`Spawn` 시그니처)
+> 근거 : `Assets/Scripts/Enemy/Enemy.cs`, `Assets/Scripts/Enemy/EnemyPool.cs`, `Assets/Scripts/Enemy/EnemySpawner.cs`, `Assets/Scripts/Enemy/TempEnemySpawner.cs`, `Assets/Scripts/Enemy/EnemyHitFeedback.cs`, `Assets/Scripts/Enemy/{BossCharge,BossChargePattern,BossShootPattern,BossPatternSequencer,IBossPattern,EnemyMovement}.cs`, `Assets/Scripts/UI/GameSettings.cs`, `Assets/Scripts/UI/LevelUpPanel.cs`(`RequestChestReward`), `Assets/Scripts/GameFlow/GameSession.cs`(`HandleEnemyDied`, `_endFreezeDelay`), `Assets/Scripts/Player/PlayerHealth.cs`(`TakeDamage`), `Assets/Scripts/Weapon/Projectile/{Projectile,ProjectileHitDetector}.cs`, `Assets/Scripts/Combat/Health.cs`, `Assets/Scripts/Combat/DamageGate.cs`, `Assets/Scripts/Combat/ExperienceGem.cs`, `Assets/Scripts/Combat/ExperienceGemPool.cs`, `Assets/Scripts/Combat/{TreasureChest,TreasureChestSpawner}.cs`, `Assets/Tests/Editor/{HealthTests,DamageGateTests,ExperienceGemTests,EnemySpawnerTests,BossChargeTests,BossShootPatternTests,EnemyMovementTests}.cs`, `Assets/Prefabs/Enemy/*.prefab`, `Assets/Prefabs/Combat/{PFB_ExperienceGem,PFB_ExperienceGemElite,PFB_TreasureChest}.prefab`, `Assets/Prefabs/FX/PFB_DamageNumberComic.prefab`, `Assets/Materials/{MAT_ChargeWarning,MAT_BossBullet}.mat`, `Assets/Animations/Enemy/*`, `ProjectSettings/TagManager.asset`(레이어 번호), `Assets/Scenes/GameScene.unity`, `Assets/Scenes/TestMap.unity`, `Assets/Imports/Other/BTM_Assets/BTM_Items_Gems/Scripts/SimpleGemsAnim.cs`, `Assets/Imports/Fonts/DamageNumbersPro/Scripts/Internal/DamageNumber.cs`(`Spawn` 시그니처)
 >
 > 설계 원본 : `Docs/Spec/Enemy/MonsterSystem.md` (이 문서는 현재 구현 상태만 기술한다)
 >
@@ -20,6 +20,7 @@
 |---|---|
 | 포함 | Issue #8 : `Enemy`(체력·피격·사망·풀 반환), `EnemyPool`, `EnemySpawner`(시야 밖 생성·해금·상한), 피격 연출(`EnemyHitFeedback`), 경험치 젬·젬 풀, 공용 `Health`·`DamageGate`, 일반 몬스터 Prefab 3종 |
 | 포함 | Issue #19 (M06~M12) : 보스·강화몹 스케줄(`EnemySpawner._bossSchedule`), 보스 패턴(`BossCharge`, `BossChargePattern`, `BossShootPattern`, `BossPatternSequencer`, `IBossPattern`), 보스 탄(`PFB_BossBullet`, 기존 `Projectile`·`ProjectilePool` 재사용), 보물 상자(`TreasureChest`, `TreasureChestSpawner`), 젬 Prefab별 풀, 원형 대량 스폰, 보스 4종·강화몹 3종·`PFB_EnemyGolem` Prefab |
+| 포함 | 이슈 미등록 (브랜치 `art/fix-inven-ui`) : `EnemyMovement` 넉백(`AddKnockback`, `CalculateKnockbackVelocity`, 보스 넉백 저항), `EnemyPool`의 위치 지정 후 활성화(스폰 시 이전 위치 오피격 방지). 수치는 모두 임시값 |
 | 제외 (후속) | 코드의 `shortcut` 주석 기준 : `EnemyManager`(static 활성 목록 이관, `Enemy.cs`). `EnemySpawner` 책임 분리(주의사항 l). 보물 상자 보상 내용(보상 화면 표시까지만 구현, `Docs/TechDocs/GameFlow.md`). M13(통합·Profiler·회귀 테스트). 그 밖의 후속 범위는 `Docs/Spec/Enemy/MonsterSystem.md` 참고 |
 
 ## 주요 클래스와 역할
@@ -27,7 +28,7 @@
 | 클래스 | 책임 | 의존성 |
 |---|---|---|
 | `Enemy` (MonoBehaviour) | `ITargetable`·`IDamageable` 구현. 체력(`Health`) 소유, 피해 적용·사망 1회 처리, 사망 연출 시간(`_deathDuration`) 뒤 풀 반환. static 활성 목록 `ActiveEnemies`(무기 표적 후보), static 이벤트 `Died`, 인스턴스 이벤트 `Damaged`. 접촉 피해량 `ContactDamage`, 드롭 경험치 `ExperienceValue`, 드롭 젬 Prefab `GemPrefab`, 보물 상자 드롭 여부 `DropsTreasureChest`, 처치 시 클리어 여부 `ClearsSessionOnDeath` 노출 | `Health`, `EnemyMovement`·`Collider`(`Awake`에서 `GetComponent`), `Animator`(선택), `IObjectPool<Enemy>` |
-| `EnemyPool` (MonoBehaviour) | 프리팹마다 `UnityEngine.Pool.ObjectPool<Enemy>`를 따로 둔다(`Dictionary<Enemy, ObjectPool<Enemy>>`). `Spawn(prefab, position, flowFieldManager, player)` : 풀에서 꺼내 위치 지정 후 `Enemy.Initialize` 호출, 이어서 꺼낸 Enemy의 모든 `BossShootPattern`에 `_projectilePool`을 주입(`Initialize`). 프리팹의 풀은 그 프리팹의 첫 `Spawn` 때 생성 | `Enemy`, `FlowFieldManager`, `ProjectilePool`(`_projectilePool`), `BossShootPattern` |
+| `EnemyPool` (MonoBehaviour) | 프리팹마다 `UnityEngine.Pool.ObjectPool<Enemy>`를 따로 둔다(`Dictionary<Enemy, ObjectPool<Enemy>>`). `Spawn(prefab, position, flowFieldManager, player)` : 풀에서 비활성 상태로 꺼내 위치 지정 → 활성화 → `Enemy.Initialize` 호출, 이어서 꺼낸 Enemy의 모든 `BossShootPattern`에 `_projectilePool`을 주입(`Initialize`). 프리팹의 풀은 그 프리팹의 첫 `Spawn` 때 생성 | `Enemy`, `FlowFieldManager`, `ProjectilePool`(`_projectilePool`), `BossShootPattern` |
 | `EnemySpawner` (MonoBehaviour) | `GameSession.ElapsedTime` 기준 `_spawnInterval`마다 해금된 프리팹 중 균등 랜덤으로 `_spawnCountPerTick`마리를 시야 사다리꼴 바깥에 생성. 보스·강화몹은 `_bossSchedule` 순서대로 예정 시각에 1마리씩 시야 밖 격자 변 중점에 생성. 원형 대량 스폰 시각(`_ringSpawnTimes`)마다 플레이어 중심 원 위에 `_ringPrefab`을 일괄 생성. 동시 활성 상한 `_maxActiveEnemies`(일반·원형 스폰은 스케줄 길이만큼 예약 제외). 판정 함수 `IsUnlocked`, `HasCapacity`, `GetDistanceToBoundary`, `SelectBossSpawnIndex`, `GetRingPoint`(static) | `GameSession`, `EnemyPool`, `FlowFieldManager`(`CostField`), 플레이어 `Transform`, `Camera`, `Enemy.ActiveEnemies` |
 | `BossCharge` (일반 클래스) | 보스 패턴 공용 상태 전환 `ChargeState`(`Chase` → `Warn` → `Charge` → `EndCharge`로 `Chase`). 범위 판정·경고 시간·쿨다운 타이머. `Tick(deltaTime, distanceToPlayer)`, `EndCharge()`, `Reset()` | 없음 |
 | `IBossPattern` (interface) | 보스 패턴 계약. 이벤트 `Finished`(패턴 1회 실행 완료) 하나 | 없음 |
@@ -36,6 +37,7 @@
 | `BossPatternSequencer` (MonoBehaviour) | `_patterns` 배열의 패턴 컴포넌트를 한 번에 하나만 켜고, `Finished` 후 `_interval`초 뒤 다음 패턴으로 순환 | `Enemy`, `IBossPattern`(`Behaviour`로 직렬화) |
 | `TreasureChestSpawner` (MonoBehaviour) | `Enemy.Died` 구독. `DropsTreasureChest`인 Enemy가 죽으면 그 위치(높이 `_spawnHeight`)에 상자를 `Instantiate`하고 `Initialize`. 풀 없음 | `TreasureChest`, `Enemy`, 플레이어 `Transform`, `LevelUpPanel` |
 | `TreasureChest` (MonoBehaviour) | 매 프레임 플레이어가 획득 반경(`_pickupRadius`, XZ) 안이면 `LevelUpPanel.RequestChestReward()` 1회 후 `Destroy` | `ExperienceGem.IsInCollectRadius`(static), 플레이어 `Transform`, `LevelUpPanel` |
+| `EnemyMovement` (MonoBehaviour, 넉백 부분만) | Flow Field 이동과 별도인 XZ 넉백 속도 `_knockbackVelocity` 소유. `AddKnockback(direction, strength)`로 누적, 매 `Update`에서 이동·선형 감속. 계산 함수 `CalculateKnockbackVelocity`(static). 이동 알고리즘(Flow Field·Separation)은 `Docs/TechDocs/Map.md` | `CostField`(`WorldToTile`, `IsInBounds`, `IsWalkable`). 호출자 `Projectile`(`Docs/TechDocs/Weapon.md`) |
 | `TempEnemySpawner` (MonoBehaviour, 임시) | `TestMap` 전용. `Start`에서 `_spawnCount`마리를 자기 위치 기준 반경 `_spawnRadius` 원 위 랜덤 각도에 `EnemyPool`로 일괄 생성. 프리팹은 `_enemyPrefabs`에서 생성마다 균등 랜덤 | `EnemyPool`, `FlowFieldManager`, 플레이어 `Transform` |
 | `EnemyHitFeedback` (MonoBehaviour) | `Enemy.Damaged` 구독. 피해마다 `_renderer.sharedMaterial`을 `_flashMaterial`로 `_flashDuration`초 교체, `DamageNumber.Spawn(위치, 피해량)`으로 피해 숫자 표시. 각각 `GameSettings` 설정이 꺼져 있으면 생략 | `Enemy`, `Renderer`, `Material`, `DamageNumbersPro.DamageNumber`, `GameSettings` |
 | `Health` (일반 클래스) | 최대·현재 체력, `ApplyDamage`(0 미만으로 내려가지 않음, 처음 사망한 호출만 `true`), `ResetToMax`. `Enemy`·`PlayerHealth`가 사용 | 없음 |
@@ -242,10 +244,32 @@
 - 젬 Prefab마다 풀을 따로 둔다 (`Dictionary<ExperienceGem, ObjectPool<ExperienceGem>>`, 외형이 다른 젬끼리 섞여 재사용되지 않도록, 코드 주석). 각 Prefab의 풀은 그 Prefab의 첫 생성 때 만든다 (Issue #19 이전의 `Awake` 단일 풀 생성은 없어짐).
 - `SpawnGem(enemy)` : `enemy.ExperienceValue ≤ 0`이면 무시. Prefab = `enemy.GemPrefab`이 있으면 그것, 없으면 `_gemPrefab`(기본 젬). 위치 = Enemy 위치(Y는 `_spawnHeight`), 회전 초기화 후 `Initialize(_playerExperience, enemy.ExperienceValue, 그 Prefab의 풀)`.
 
+### 넉백 (`EnemyMovement`)
+
+| 필드 (임시값) | 내용 | Prefab 값 |
+|---|---|---|
+| `_knockbackDeceleration` | 넉백 속도의 초당 감소량 (`Min(0)`) | 코드 기본값 20. 보스 4종 Prefab 20 |
+| `_maxKnockbackSpeed` | 누적 넉백 속도 크기 상한 (`Min(0)`) | 코드 기본값 10. 보스 4종 Prefab 10 |
+| `_knockbackResistance` | 넉백 감소율 (`Range(0, 1)`, 0 = 저항 없음, 1 = 넉백 무효) | 코드 기본값 0. `PFB_BossSalamander`·`PFB_BossNaga`·`PFB_BossBishop`·`PFB_BossBlackKnight` 0.7 |
+
+- 일반 몬스터·강화몹 Prefab에는 세 필드의 직렬화 값이 없어 코드 기본값(20 / 10 / 0)을 쓴다 (Prefab에 키 없음 확인).
+- `AddKnockback(direction, strength)` : `_knockbackVelocity = CalculateKnockbackVelocity(현재, direction, strength, _knockbackResistance, _maxKnockbackSpeed)`.
+- `CalculateKnockbackVelocity(current, direction, strength, resistance, maxSpeed)` = `ClampMagnitude(current + XZ 정규화(direction) × strength × (1 − resistance), maxSpeed)`. 방향의 Y 성분은 버리며, XZ가 0이면 현재 속도를 그대로 둔다(상한만 적용). 적중마다 더하므로 샷건 펠릿이 여러 발 맞으면 누적되고, 크기는 상한으로만 제한된다 (점감 없음). 보스 저항은 더하기 전 강도에 곱한다.
+- 적용 (`Update` → `ApplyKnockback`, Flow 이동보다 먼저) : 정지 거리 안 등 조기 반환 경로에서도 밀려나도록 먼저 적용한다 (코드 주석). 속도가 0이면 건너뛴다.
+    1. 다음 위치 = 현재 위치 + 넉백 속도 × `Time.deltaTime`.
+    2. 현재 타일이 격자 안이고 다음 위치 타일이 이동 불가(`!IsWalkable`)면 넉백 속도를 0으로 하고 끝낸다 (이번 프레임 이동 없음). 격자 밖에서는 기존 이동처럼 타일 검사를 생략한다.
+    3. 그 밖에는 다음 위치로 이동하고 넉백 속도를 `MoveTowards(…, 0, _knockbackDeceleration × deltaTime)`로 선형 감속한다.
+- 넉백 이동은 Flow·Separation 이동(`direction × moveDistance`)과 별도로 위치에 더해진다. Flow 방향·`_velocity`는 바꾸지 않는다.
+- 일시정지 : `Time.deltaTime` 기준이라 `timeScale` 0이면 이동·감속이 모두 멈춘다 (코드 주석).
+- `FlowFieldManager`·`FlowField`가 없으면 `Update`가 먼저 반환해 넉백도 적용되지 않는다. `EnemyMovement`가 꺼진 동안(사망, 보스 돌진·사격 패턴 중)에는 `Update`가 돌지 않아 넉백이 멈춘 채 남고, 다시 켜지면 이어서 적용된다 (코드 기준, Play 미검증).
+- 초기화 : `Initialize`에서 `_knockbackVelocity`를 0으로 한다 (풀 재사용 시 이전 생애의 넉백 제거, 코드 주석).
+- 한계 (코드의 `shortcut` 주석) : 중심점의 다음 타일만 검사해 ㄱ자 모서리 대각 통과·몸체 일부 벽 겹침이 가능하다. 문제되면 몸체 반폭 기준 검사로 교체한다.
+
 ### 풀 공통 (`EnemyPool`, `ExperienceGemPool`)
 
 - `ObjectPool` 기본 동작 : 비어 있으면 새로 생성, `_maxSize`를 넘겨 반환된 개체는 `Destroy`. `collectionCheck: true`.
-- 꺼낼 때 `SetActive(true)`, 반환 시 `SetActive(false)`.
+- 반환 시 `SetActive(false)`. `ExperienceGemPool`은 꺼낼 때(`actionOnGet`) `SetActive(true)`.
+- `EnemyPool` 꺼내기 : `actionOnGet`이 없다. 새 개체는 `Instantiate` 직후 `SetActive(false)`로 비활성 생성하고(활성 프리팹이라 생성 순간 부모 원점에서 활성화·OnEnable이 실행되지만 같은 호출에서 바로 비활성화해 물리 판정 전에 해제), `Spawn`이 `SetPositionAndRotation(위치, identity)` → `SetActive(true)` 순서로 위치를 먼저 정한 뒤 활성화한다. 프로젝트의 Auto Sync Transforms가 꺼져 있어, 먼저 켜면 같은 프레임 물리 판정이 이전 위치(사망 지점 등)에 남아 오피격이 생기기 때문이다 (`ProjectSettings/DynamicsManager.asset`의 `m_AutoSyncTransforms: 0`).
 - 두 풀 모두 `_defaultCapacity`·`_maxSize`는 프리팹별 풀마다 각각 적용된다.
 - `EnemyPool.Spawn`은 `Enemy.Initialize` 뒤 `GetComponents<BossShootPattern>(재사용 List)`로 사격 패턴을 모아 `Initialize(_projectilePool)`을 호출한다. 스폰마다 리스트를 새로 할당하지 않는다 (코드 주석). 사격 패턴이 없는 Enemy는 빈 목록이다.
 
@@ -273,12 +297,12 @@
                └─ EnemyPool.Spawn(랜덤 해금 프리팹, 위치, FlowFieldManager, 플레이어)
 
 EnemyPool.Spawn(prefab, 위치, FlowFieldManager, 플레이어)
-  ├─ (프리팹 풀 없으면 생성) → pool.Get()
-  │    → (새 개체면 Instantiate → Awake → OnEnable) / (재사용이면 SetActive(true) → OnEnable)
+  ├─ (프리팹 풀 없으면 생성) → pool.Get()   (비활성 개체 반환. 새 개체면 Instantiate(Awake·OnEnable) 직후 SetActive(false))
+  ├─ SetPositionAndRotation(위치, identity)   (활성화 전, Auto Sync Transforms 꺼짐 대비)
+  ├─ SetActive(true) → OnEnable
   │      Enemy.OnEnable : SpawnId 발급, 체력 복구, 이동·Collider 켬, ActiveEnemies 등록
   │      보스 패턴 OnEnable : BossCharge.Reset (돌진 패턴은 경고선 끔), 시퀀서는 첫 패턴만 켬
-  ├─ SetPositionAndRotation(위치, identity)
-  ├─ Enemy.Initialize(FlowFieldManager, 플레이어, pool) → EnemyMovement.Initialize
+  ├─ Enemy.Initialize(FlowFieldManager, 플레이어, pool) → EnemyMovement.Initialize (넉백 속도 0)
   └─ GetComponents<BossShootPattern> → 각 Initialize(_projectilePool)
 
 [매 프레임 Update] 보스 패턴 (켜진 것만, IsAlive일 때만)
@@ -293,6 +317,7 @@ EnemyPool.Spawn(prefab, 위치, FlowFieldManager, 플레이어)
 [보스 탄 적중] Projectile → PlayerHealth.TakeDamage → DamageGate.TryPass (접촉 피해와 공유)   (GameFlow.md)
 
 [피격] Projectile 적중 → IDamageable.TakeDamage(피해)   (Weapon.md `투사체 적중·반환`)
+  └─ (탄 넉백 > 0 && 피해 후 IsAlive) EnemyMovement.AddKnockback(탄 진행 방향, 넉백) → 다음 Update의 ApplyKnockback에서 이동·감속
 Enemy.TakeDamage
   ├─ IsAlive 아니면 무시
   ├─ Health.ApplyDamage(피해)
@@ -608,6 +633,8 @@ Managers
 | p | `PFB_BossBlackKnight`의 사망 연출 `_deathDuration`(2초)이 `GameSession._endFreezeDelay`(1.5초)보다 길다. 최종 보스 처치 클리어 시 1.5초 뒤 `Time.timeScale` 0으로 정지하므로 사망 애니메이션이 끝나기 전에 멈출 수 있다 (코드·값 기준, 실제 표시는 미검증) | 사망 연출·종료 대기 조정 시 |
 | q | 보스 관련 Inspector 연결 누락 시 `null` 검사가 없다. 돌진 패턴 `_warningLine`이 비면 `OnEnable`에서, 사격 패턴 `_projectilePrefab`이 비면 첫 발사의 `ProjectilePool` `Dictionary` 조회에서, 시퀀서 `_patterns`가 비거나 `null` 원소가 있으면 `OnEnable`에서, `TreasureChestSpawner`의 `_chestPrefab`·`_levelUpPanel`이 비면 상자 생성·획득 시 예외가 난다. `EnemyPool._projectilePool`이 비면 예외 없이 사격 패턴이 동작하지 않는다 | 보스 추가 시 연결 필수 |
 | r | 원형 대량 스폰에는 카메라 시야 조건이 없다. `_ringRadius`가 화면 반경보다 작으면 화면 안에 생성된다 | 수치 확정 시 |
+| s | 넉백은 중심점의 다음 타일만 검사한다 (코드의 `shortcut` 주석). ㄱ자 모서리 대각 통과, 몸체 일부가 벽과 겹치는 상황이 가능하다. 넉백 위치 이동에는 Separation·정지 거리 판정이 없어 플레이어 쪽으로 밀리는 방향이면 정지 거리 안으로 들어갈 수 있다 (코드 기준 추정, 미검증) | 문제되면 몸체 반폭 기준 검사로 교체 |
+| t | 넉백 누적은 상한(`_maxKnockbackSpeed`)만 있고 점감은 없다. 보스 저항은 펠릿마다 강도에 곱해진다. 수치(감속 20, 상한 10, 보스 저항 0.7, 샷건 Lv.3 강도 6)는 모두 임시값이다 | 밸런스 조정 시 |
 
 ### 검증 방법
 
@@ -623,6 +650,7 @@ Managers
     - `EnemySpawnerTests` : `SelectBossSpawnIndex` 모두 시야 밖이면 가장 가까운 후보, 가장 가까운 후보가 시야 안이면 다음으로 가까운 시야 밖 후보, 모두 시야 안이면 -1, 경계 위는 안쪽으로 취급. `GetRingPoint` 모든 지점이 중심에서 반지름 거리, 이웃 지점 사이 각도 균등, index 0은 중심 + 반지름 × (+X)
     - `BossChargeTests` : 범위 밖이면 `Chase` 유지, 범위 안이면 `Warn`, 경고 시간 경과 시 `Charge`, `EndCharge` 후 `Chase` 복귀·쿨다운 중 재경고 없음, 쿨다운 후 재경고
     - `BossShootPatternTests` : `GetSpreadDirection` 1발 중심, 8발 360° 균등(index 0 = 중심), 3발 40° = −20°/0°/+20°, 기울어진 입력은 평탄화·정규화
+- 브랜치 `art/fix-inven-ui` EditMode 테스트 (추가분, 메서드 존재만 확인) : `EnemyMovementTests.CalculateKnockbackVelocity_Resistance_ScalesStrengthAndIgnoresY`(저항 배율·Y 무시), `CalculateKnockbackVelocity_Accumulated_ClampedToMaxSpeed`(누적 상한). 실행 결과·Play 모드 확인 결과(넉백, 스폰 오피격 방지)는 이 문서 작성 입력에 포함되지 않았다 (미검증). `ApplyKnockback`(이동·감속·이동 불가 타일 종료)을 검증하는 EditMode 테스트는 없다.
 - Issue #19 테스트 실행 결과·Play 모드 확인 항목별 결과는 이 문서 작성 입력에 포함되지 않았다 (미검증으로 표기). `TreasureChest`·`TreasureChestSpawner`·`BossPatternSequencer`·`BossChargePattern`·`BossShootPattern`의 MonoBehaviour 동작(이동·발사·순환·상자 획득)을 검증하는 EditMode 테스트는 없다.
 
 ## 관련 Issue/PR
@@ -631,3 +659,4 @@ Managers
 - PR : 미정
 - Issue #19 (몬스터 최종 M06~M12 : 보스 스케줄, Salamander 돌진, Naga·Bishop 사격, 보물 상자·보상 요청, BlackKnight 시퀀서·처치 클리어, 강화몹·금색 젬, 원형 대량 스폰). 브랜치 `feat/monster-final`. PR : 미정
 - Issue #7 (맵 프로토타입, Enemy 이동 `EnemyMovement`·`TempEnemySpawner` 최초 도입. `Docs/TechDocs/Map.md`)
+- 이슈 미등록 (브랜치 `art/fix-inven-ui` : `EnemyMovement` 넉백, `EnemyPool` 위치 지정 후 활성화). PR : 미정

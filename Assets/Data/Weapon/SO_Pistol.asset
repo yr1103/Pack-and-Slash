@@ -13,17 +13,21 @@ MonoBehaviour:
   m_Name: SO_Pistol
   m_EditorClassIdentifier: Assembly-CSharp::WeaponDefinition
   _weaponType: 0
-  _fireInterval: 1.5
+  _fireInterval: 1.2
   _magazineCapacity: 0
   _reloadDuration: 0
   _detectionRange: 15
   _projectileSpeed: 22
   _projectileMaxDistance: 40
   _projectileMaxLifetime: 5
-  _projectileDamage: 15
+  _projectileDamage: 25
+  _damageVariance: 0.13
   _disableOutsideGameCamera: 1
+  _pierceCount: 2
   _projectilesPerShot: 1
   _spreadAngle: 0
   _randomSpread: 0
+  _level3SpreadReduction: 0
+  _level3GunCount: 2
   _projectilePrefab: {fileID: 4426899373576748405, guid: 620b91c9bed8bc047a210bf8d37f9d52, type: 3}
   _floatingViewPrefab: {fileID: 2513688473513759035, guid: 09985ec916f86d44bad4e75d8692c666, type: 3}

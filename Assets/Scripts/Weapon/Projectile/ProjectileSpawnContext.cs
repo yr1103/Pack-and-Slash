@@ -29,9 +29,15 @@ public readonly struct ProjectileSpawnContext
     /// <summary>서로 다른 적에게 피해를 줄 수 있는 최대 수, 도달 시 반환</summary>
     public int MaxUniqueTargetsHit { get; }
 
+    /// <summary>적중 시 대상 EnemyMovement에 탄 진행 방향으로 더할 넉백 속도, 0 = 넉백 없음</summary>
+    public float KnockbackStrength { get; }
+
+    // 넉백은 플레이어 무기 Lv.3 효과만 사용해 기본값 0 (보스 탄 호출부 변경 불필요)
     public ProjectileSpawnContext(Vector3 spawnPosition, Vector3 direction, float speed, float damage,
-        float maxDistance, float maxLifetime, bool requireCameraVisibility, int maxUniqueTargetsHit)
+        float maxDistance, float maxLifetime, bool requireCameraVisibility, int maxUniqueTargetsHit,
+        float knockbackStrength = 0f)
     {
+        KnockbackStrength = knockbackStrength;
         SpawnPosition = spawnPosition;
         Direction = direction;
         Speed = speed;

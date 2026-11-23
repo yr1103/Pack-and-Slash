@@ -21,7 +21,9 @@ public class WeaponViewController : MonoBehaviour
     [SerializeField] private float _slotMoveSpeed = 6f; // 초당 슬롯 이동 거리
     [SerializeField] private float _floatingTurnSpeed = 720f; // 초당 부유 총기 회전 각도(도)
 
-    private readonly Dictionary<WeaponInstance, FloatingWeaponView> _floatingViews = new Dictionary<WeaponInstance, FloatingWeaponView>();
+    // 무기별 부유 뷰 (주무기는 gun 1부터, 나머지는 gun 0부터 자루마다 1개)
+    private readonly Dictionary<WeaponInstance, List<FloatingWeaponView>> _floatingViews =
+        new Dictionary<WeaponInstance, List<FloatingWeaponView>>();
     private readonly List<WeaponInstance> _staleWeapons = new List<WeaponInstance>(); // 동기화 중 파괴할 뷰의 무기
     private HandWeaponEntry _activeHandWeapon; // 주무기 종류의 손 무기, 없으면 null
 
@@ -37,7 +39,7 @@ public class WeaponViewController : MonoBehaviour
         _loadout.WeaponsChanged -= SyncFloatingViews;
     }
 
-    // WeaponLoadout.Awake의 고유 무기 장착은 구독 전에 끝나므로 여기서 한 번 반영
+    // 장착 전(무기 0개)이어도 손 무기를 모두 끈 상태로 한 번 반영, 이후 장착은 이벤트로 반영
     private void Start()
     {
         ApplyAppearance();
@@ -48,6 +50,7 @@ public class WeaponViewController : MonoBehaviour
     private void LateUpdate()
     {
         IReadOnlyList<WeaponInstance> weapons = _loadout.Weapons;
+        int totalGunCount = GetTotalGunCount();
         float maxDistance = _slotMoveSpeed * Time.deltaTime;
         float maxAngle = _floatingTurnSpeed * Time.deltaTime;
         int slotIndex = FIRST_FLOATING_SLOT;
@@ -55,36 +58,35 @@ public class WeaponViewController : MonoBehaviour
         for (int i = 0; i < weapons.Count; i++)
         {
             WeaponInstance weapon = weapons[i];
-            if (weapon == _loadout.Primary)
+            List<FloatingWeaponView> views = _floatingViews[weapon];
+            for (int j = 0; j < views.Count; j++)
             {
-                continue;
+                views[j].MoveTowardsSlot(GetSlotPosition(slotIndex, totalGunCount), maxDistance);
+                views[j].TurnTowards(weapon.CurrentTarget, maxAngle);
+                slotIndex++;
             }
-
-            FloatingWeaponView view = _floatingViews[weapon];
-            view.MoveTowardsSlot(GetSlotPosition(slotIndex, weapons.Count), maxDistance);
-            view.TurnTowards(weapon.CurrentTarget, maxAngle);
-            slotIndex++;
         }
     }
 
     /// <summary>슬롯의 모델 정면 기준 Y 회전 각도(도), 총 수만큼 원을 균등 분할</summary>
     /// <param name="slotIndex">0 = 주무기, 1부터 부유 총기</param>
-    /// <param name="gunCount">장착 무기 수 (1 이상)</param>
+    /// <param name="gunCount">전체 총기 수 (모든 장착 무기 GunCount 합, 1 이상)</param>
     public static float GetSlotAngle(int slotIndex, int gunCount)
     {
         return slotIndex * FULL_CIRCLE_DEGREES / gunCount;
     }
 
-    /// <summary>무기의 탄 생성 기준 총구 (주무기면 활성 손 무기, 아니면 부유 총기)</summary>
+    /// <summary>무기 자루의 탄 생성 기준 총구 (주무기 gun 0이면 활성 손 무기, 아니면 부유 총기)</summary>
     /// <param name="weapon">현재 장착 중인 무기</param>
-    public Transform GetMuzzle(WeaponInstance weapon)
+    /// <param name="gunIndex">0 ~ weapon.GunCount - 1</param>
+    public Transform GetMuzzle(WeaponInstance weapon, int gunIndex)
     {
-        if (weapon == _loadout.Primary)
+        if (weapon != _loadout.Primary)
         {
-            return _activeHandWeapon.Muzzle;
+            return _floatingViews[weapon][gunIndex].Muzzle;
         }
 
-        return _floatingViews[weapon].Muzzle;
+        return gunIndex == 0 ? _activeHandWeapon.Muzzle : _floatingViews[weapon][gunIndex - 1].Muzzle;
     }
 
     private void OnPrimaryChanged()
@@ -110,11 +112,12 @@ public class WeaponViewController : MonoBehaviour
         }
     }
 
-    // 주무기가 아닌 장착 무기마다 뷰 1개를 유지, 새 뷰는 슬롯에 즉시 배치
-    // shortcut: 풀링 없이 생성·파괴, 장착 변경은 인벤토리 확정 시점에만 발생. 잦아지면 풀링
+    // 장착 무기마다 부유 뷰 목록을 유지 (주무기는 GunCount - 1개, 나머지는 GunCount개), 기존 뷰는 재사용하고 부족분만 슬롯에 즉시 생성
+    // shortcut: 풀링 없이 생성·파괴, 장착·레벨 변경은 인벤토리 확정 시점에만 발생. 잦아지면 풀링
     private void SyncFloatingViews()
     {
         IReadOnlyList<WeaponInstance> weapons = _loadout.Weapons;
+        int totalGunCount = GetTotalGunCount();
         _staleWeapons.Clear();
         _staleWeapons.AddRange(_floatingViews.Keys);
         int slotIndex = FIRST_FLOATING_SLOT;
@@ -122,29 +125,58 @@ public class WeaponViewController : MonoBehaviour
         for (int i = 0; i < weapons.Count; i++)
         {
             WeaponInstance weapon = weapons[i];
-            if (weapon == _loadout.Primary)
+            _staleWeapons.Remove(weapon);
+            if (!_floatingViews.TryGetValue(weapon, out List<FloatingWeaponView> views))
             {
-                continue;
+                views = new List<FloatingWeaponView>();
+                _floatingViews.Add(weapon, views);
             }
 
-            _staleWeapons.Remove(weapon);
-            if (!_floatingViews.ContainsKey(weapon))
+            int viewCount = GetFloatingViewCount(weapon);
+            while (views.Count > viewCount)
+            {
+                Destroy(views[views.Count - 1].gameObject);
+                views.RemoveAt(views.Count - 1);
+            }
+
+            while (views.Count < viewCount)
             {
                 // 모델 아래에 두면 몸통 회전에 끌려가므로 회전하지 않는 이 오브젝트 아래에 생성
-                FloatingWeaponView view = Instantiate(weapon.Definition.FloatingViewPrefab,
-                    GetSlotPosition(slotIndex, weapons.Count), _visualRoot.rotation, transform);
-                _floatingViews.Add(weapon, view);
+                views.Add(Instantiate(weapon.Definition.FloatingViewPrefab,
+                    GetSlotPosition(slotIndex + views.Count, totalGunCount), _visualRoot.rotation, transform));
             }
 
-            slotIndex++;
+            slotIndex += viewCount;
         }
 
         for (int i = 0; i < _staleWeapons.Count; i++)
         {
-            WeaponInstance weapon = _staleWeapons[i];
-            Destroy(_floatingViews[weapon].gameObject);
-            _floatingViews.Remove(weapon);
+            List<FloatingWeaponView> views = _floatingViews[_staleWeapons[i]];
+            for (int j = 0; j < views.Count; j++)
+            {
+                Destroy(views[j].gameObject);
+            }
+
+            _floatingViews.Remove(_staleWeapons[i]);
         }
+    }
+
+    // 주무기 gun 0은 손 무기라 부유 뷰에서 제외
+    private int GetFloatingViewCount(WeaponInstance weapon)
+    {
+        return weapon == _loadout.Primary ? weapon.GunCount - 1 : weapon.GunCount;
+    }
+
+    private int GetTotalGunCount()
+    {
+        IReadOnlyList<WeaponInstance> weapons = _loadout.Weapons;
+        int total = 0;
+        for (int i = 0; i < weapons.Count; i++)
+        {
+            total += weapons[i].GunCount;
+        }
+
+        return total;
     }
 
     private Vector3 GetSlotPosition(int slotIndex, int gunCount)

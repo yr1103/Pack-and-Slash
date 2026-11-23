@@ -111,6 +111,9 @@ MonoBehaviour:
   _enemyLayer:
     serializedVersion: 2
     m_Bits: 64
+  _knockbackDeceleration: 20
+  _maxKnockbackSpeed: 10
+  _knockbackResistance: 0.7
 --- !u!114 &4268184432913942235
 MonoBehaviour:
   m_ObjectHideFlags: 0
