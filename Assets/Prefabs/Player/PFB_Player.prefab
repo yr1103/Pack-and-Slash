@@ -530,7 +530,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
   _maxHealth: 100
   _invulnerabilityDuration: 0.5
-  _contactRadius: 0.6
+  _contactRadius: 0.45
   _enemyLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -550,7 +550,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e91d6508e38dbd49b12152dbee9846e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerExperience
-  _collectRadius: 0.4
+  _collectRadius: 0.8
 --- !u!1001 &4587042763216714343
 PrefabInstance:
   m_ObjectHideFlags: 0
