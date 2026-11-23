@@ -49,7 +49,8 @@ public class WeaponAttackController : MonoBehaviour
                         Vector3 spawnPosition = muzzle.position + direction * definition.ProjectileSpeed * overshoot;
                         _pool.Fire(definition.ProjectilePrefab, new ProjectileSpawnContext(spawnPosition, direction,
                             definition.ProjectileSpeed, weapon.Damage, definition.ProjectileMaxDistance,
-                            definition.ProjectileMaxLifetime, definition.DisableOutsideGameCamera, MAX_UNIQUE_TARGETS_HIT));
+                            definition.ProjectileMaxLifetime, definition.DisableOutsideGameCamera, MAX_UNIQUE_TARGETS_HIT,
+                            weapon.KnockbackStrength));
                     }
                 }
 

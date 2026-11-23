@@ -164,7 +164,7 @@ public class WeaponInstanceTests
         weapon.ConsumeAmmo();
         float cooldownBefore = weapon.ShotCooldown;
 
-        weapon.ApplyStats(APPLIED_LEVEL, APPLIED_DAMAGE, APPLIED_FIRE_INTERVAL, APPLIED_SPREAD_ANGLE, true, 1);
+        weapon.ApplyStats(APPLIED_LEVEL, APPLIED_DAMAGE, APPLIED_FIRE_INTERVAL, APPLIED_SPREAD_ANGLE, true, 1, 0f);
 
         Assert.IsTrue(weapon.RandomSpread);
 

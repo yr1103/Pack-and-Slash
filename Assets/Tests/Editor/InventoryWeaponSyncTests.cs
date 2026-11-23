@@ -28,6 +28,7 @@ public class InventoryWeaponSyncTests
     private const float LEVEL3_SPREAD_REDUCTION = 0.2f;
     private const string LEVEL3_SPREAD_REDUCTION_FIELD = "_level3SpreadReduction";
     private const string LEVEL3_GUN_COUNT_FIELD = "_level3GunCount";
+    private const string LEVEL3_KNOCKBACK_STRENGTH_FIELD = "_level3KnockbackStrength";
 
     private static readonly Vector2Int[] _singleCellShape = { new Vector2Int(0, 0) };
 
@@ -345,6 +346,20 @@ public class InventoryWeaponSyncTests
         weapon.Level = 3;
 
         Assert.AreEqual(1, _inventory.GetWeaponStats(weapon).GunCount);
+    }
+
+    [Test]
+    public void GetWeaponStats_Level3KnockbackStrength_AppliedFromLevel3()
+    {
+        SerializedObject serializedDefinition = new SerializedObject(_weaponDefinition);
+        serializedDefinition.FindProperty(LEVEL3_KNOCKBACK_STRENGTH_FIELD).floatValue = 6f;
+        serializedDefinition.ApplyModifiedPropertiesWithoutUndo();
+        Inventory.ItemInstance weapon = CreateWeapon();
+        weapon.Level = 2;
+        Assert.AreEqual(0f, _inventory.GetWeaponStats(weapon).KnockbackStrength, FLOAT_TOLERANCE);
+
+        weapon.Level = 3;
+        Assert.AreEqual(6f, _inventory.GetWeaponStats(weapon).KnockbackStrength, FLOAT_TOLERANCE);
     }
 
     [Test]
