@@ -46,11 +46,17 @@ public class Inventory : MonoBehaviour
         }
     }
 
+    public int GridWidth => Width; // 잠금 칸 포함
+    public int GridHeight => Height;
+
     /// <summary>Temporary 영역에 아이템이 들어오거나 나갈 때만, 도착 영역 기록 후 발생 (Temporary 내 좌표 이동은 제외)</summary>
     public event Action TemporaryCountChanged;
 
     /// <summary>보관함에 아이템이 들어오거나 나갈 때만, 도착 영역 기록 후 발생</summary>
     public event Action StorageCountChanged;
+
+    /// <summary>공개 조작(배치·이동·회전·제거·보관·Temporary 이동·판매·합성)이 성공해 상태가 확정된 뒤 1회 발생, 실패·조회 시 미발생</summary>
+    public event Action Changed;
 
     // 실제 아이템 하나
     public class ItemInstance
@@ -80,6 +86,21 @@ public class Inventory : MonoBehaviour
     {
         public bool IsAvailable;
         public ItemInstance hasEquipped;
+    }
+
+    /// <summary>최종 무기 스탯 (GetWeaponStats 결과, SO 원본과 별개인 값)</summary>
+    public readonly struct WeaponStats
+    {
+        public float Damage { get; }
+        public float FireInterval { get; }
+        public float SpreadAngle { get; } // 부채꼴 전체 각도(도)
+
+        public WeaponStats(float damage, float fireInterval, float spreadAngle)
+        {
+            Damage = damage;
+            FireInterval = fireInterval;
+            SpreadAngle = spreadAngle;
+        }
     }
 
     private void Awake()
@@ -203,6 +224,7 @@ public class Inventory : MonoBehaviour
         item.Location = ItemLocation.Inventory;
 
         FillCells(item);
+        Changed?.Invoke();
         return true;
     }
 
@@ -212,6 +234,14 @@ public class Inventory : MonoBehaviour
         if (item == null || !item.IsPlaced)
             return;
 
+        ClearCells(item);
+        item.Location = ItemLocation.None;
+        Changed?.Invoke();
+    }
+
+    // 내부 조작용 셀 해제, 중간 상태에서 Changed가 발생하지 않도록 RemoveItem과 분리
+    private void ClearCells(ItemInstance item)
+    {
         Vector2Int[] shape =
             GetRotatedShape(item, item.Rotation);
 
@@ -220,8 +250,6 @@ public class Inventory : MonoBehaviour
             Vector2Int pos = item.Position + offset;
             cells[pos.x, pos.y].hasEquipped = null;
         }
-
-        item.Location = ItemLocation.None;
     }
 
     // 아이템 이동
@@ -233,12 +261,12 @@ public class Inventory : MonoBehaviour
         if (!CanPlace(item, newPosition, item.Rotation))
             return false;
 
-        RemoveItem(item);
+        ClearCells(item);
 
         item.Position = newPosition;
-        item.Location = ItemLocation.Inventory;
         FillCells(item);
 
+        Changed?.Invoke();
         return true;
     }
 
@@ -255,6 +283,7 @@ public class Inventory : MonoBehaviour
         if (item.Location == ItemLocation.Temporary)
         {
             item.Rotation = nextRotation;
+            Changed?.Invoke();
             return true;
         }
 
@@ -264,12 +293,13 @@ public class Inventory : MonoBehaviour
         if (!CanPlace(item, item.Position, nextRotation))
             return false;
 
-        RemoveItem(item);
+        // 해제는 기존 회전 기준이라 회전 갱신보다 먼저
+        ClearCells(item);
 
         item.Rotation = nextRotation;
-        item.Location = ItemLocation.Inventory;
         FillCells(item);
 
+        Changed?.Invoke();
         return true;
     }
 
@@ -295,6 +325,7 @@ public class Inventory : MonoBehaviour
         FillCells(item);
 
         NotifyLocationChanged(previousLocation, ItemLocation.Inventory);
+        Changed?.Invoke();
         return true;
     }
 
@@ -321,6 +352,7 @@ public class Inventory : MonoBehaviour
         item.Location = ItemLocation.Storage;
 
         NotifyLocationChanged(previousLocation, ItemLocation.Storage);
+        Changed?.Invoke();
         return true;
     }
 
@@ -346,6 +378,7 @@ public class Inventory : MonoBehaviour
         item.Rotation = rotation;
 
         NotifyLocationChanged(previousLocation, ItemLocation.Temporary);
+        Changed?.Invoke();
     }
 
     /// <summary>판매 시 지급할 특수 재화 (레벨 × 레벨당 판매가)</summary>
@@ -388,6 +421,7 @@ public class Inventory : MonoBehaviour
         ReleaseLocation(item);
 
         NotifyLocationChanged(previousLocation, ItemLocation.None);
+        Changed?.Invoke();
         return true;
     }
 
@@ -415,6 +449,7 @@ public class Inventory : MonoBehaviour
         target.Level++;
 
         NotifyLocationChanged(previousLocation, ItemLocation.None);
+        Changed?.Invoke();
         return true;
     }
 
@@ -447,6 +482,20 @@ public class Inventory : MonoBehaviour
         }
 
         return adjacentItems;
+    }
+
+    /// <summary>Inventory 그리드에 배치된 아이템 (중복 없음, 호출 시점마다 새 집합)</summary>
+    public HashSet<ItemInstance> GetPlacedItems()
+    {
+        HashSet<ItemInstance> placedItems = new HashSet<ItemInstance>();
+
+        foreach (InventoryCell cell in cells)
+        {
+            if (cell.hasEquipped != null)
+                placedItems.Add(cell.hasEquipped);
+        }
+
+        return placedItems;
     }
 
     /// <summary>배치된 무기에 맞닿은 패시브 중 effectType 효과의 레벨 기준 합계 (상한 미적용, 호출 시점마다 재계산)</summary>
@@ -490,6 +539,24 @@ public class Inventory : MonoBehaviour
         }
     }
 
+    /// <summary>레벨·인접 효과(상한 적용)를 반영한 최종 무기 스탯, 툴팁·전투 공통 계산 경로 (미배치 아이템은 인접 효과 0)</summary>
+    /// <returns>weapon·Data·WeaponDefinition 중 하나라도 null이면 모든 값 0</returns>
+    public WeaponStats GetWeaponStats(ItemInstance weapon)
+    {
+        if (weapon == null || weapon.Data == null || weapon.Data.WeaponDefinition == null)
+            return default;
+
+        WeaponDefinition definition = weapon.Data.WeaponDefinition;
+        float damage = definition.ProjectileDamage * GetWeaponLevelMultiplier(weapon.Level) *
+                       (1f + GetEffectiveAdjacencyBonus(weapon, AdjacencyEffectType.Damage));
+        float fireInterval = definition.FireInterval *
+                             (1f - GetEffectiveAdjacencyBonus(weapon, AdjacencyEffectType.FireInterval));
+        float spreadAngle = definition.SpreadAngle *
+                            (1f - GetEffectiveAdjacencyBonus(weapon, AdjacencyEffectType.Spread));
+
+        return new WeaponStats(damage, fireInterval, spreadAngle);
+    }
+
     /// <summary>패시브 1개가 주는 인접 효과 수치 (레벨 × 0.1)</summary>
     public static float GetPassiveAdjacencyBonus(int level)
     {
@@ -530,7 +597,7 @@ public class Inventory : MonoBehaviour
         switch (item.Location)
         {
             case ItemLocation.Inventory:
-                RemoveItem(item);
+                ClearCells(item);
                 break;
 
             case ItemLocation.Storage:

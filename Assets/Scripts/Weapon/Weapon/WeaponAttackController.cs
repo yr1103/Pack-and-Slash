@@ -40,12 +40,12 @@ public class WeaponAttackController : MonoBehaviour
                 for (int j = 0; j < projectileCount; j++)
                 {
                     Vector3 direction = definition.RandomSpread
-                        ? WeaponTargeting.GetRandomSpreadDirection(centerDirection, definition.SpreadAngle, Random.value)
-                        : WeaponTargeting.GetSpreadDirection(centerDirection, definition.SpreadAngle, projectileCount, j);
+                        ? WeaponTargeting.GetRandomSpreadDirection(centerDirection, weapon.SpreadAngle, Random.value)
+                        : WeaponTargeting.GetSpreadDirection(centerDirection, weapon.SpreadAngle, projectileCount, j);
                     // shortcut: 넘긴 시간만큼 탄을 앞당겨 생성해 탄 간격을 고르게 함, 긴 프레임 끊김 시 총구~생성 위치 사이 적은 판정 누락. 누락이 문제되면 생성 구간 SphereCast 추가
                     Vector3 spawnPosition = muzzle.position + direction * definition.ProjectileSpeed * overshoot;
                     _pool.Fire(definition.ProjectilePrefab, new ProjectileSpawnContext(spawnPosition, direction,
-                        definition.ProjectileSpeed, definition.ProjectileDamage, definition.ProjectileMaxDistance,
+                        definition.ProjectileSpeed, weapon.Damage, definition.ProjectileMaxDistance,
                         definition.ProjectileMaxLifetime, definition.DisableOutsideGameCamera, MAX_UNIQUE_TARGETS_HIT));
                 }
 

@@ -18,3 +18,5 @@ MonoBehaviour:
   _portrait: {fileID: 21300000, guid: 41f554c2e58cab447986913eb5b92489, type: 3}
   _startWeaponName: "\uBBF8\uB2C8\uAC74"
   _startWeapon: {fileID: 11400000, guid: a69205e25301dde4f9879a8219f2abb9, type: 2}
+  _startWeaponItem: {fileID: 11400000, guid: 1096b1f86a29e2446818180457353a45, type: 2}
+  _uniqueItem: {fileID: 11400000, guid: 68bab949396421244b0010c410f8d20c, type: 2}

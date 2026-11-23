@@ -37,7 +37,7 @@ public class WeaponViewController : MonoBehaviour
         _loadout.WeaponsChanged -= SyncFloatingViews;
     }
 
-    // WeaponLoadout.Awake의 고유 무기 장착은 구독 전에 끝나므로 여기서 한 번 반영
+    // 장착 전(무기 0개)이어도 손 무기를 모두 끈 상태로 한 번 반영, 이후 장착은 이벤트로 반영
     private void Start()
     {
         ApplyAppearance();

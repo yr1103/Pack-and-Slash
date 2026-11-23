@@ -14,6 +14,10 @@ public class WeaponInstanceTests
     private const float OVERDUE_TICK_DELTA_TIME = 0.7f; // 발사 간격보다 긴 프레임
     private const float TOLERANCE = 0.0001f;
     private const string DEFAULT_CHARACTER_FIELD = "_defaultCharacter";
+    private const int APPLIED_LEVEL = 3;
+    private const float APPLIED_DAMAGE = 12f;
+    private const float APPLIED_FIRE_INTERVAL = 0.25f;
+    private const float APPLIED_SPREAD_ANGLE = 6f;
 
     private WeaponDefinition _definition;
 
@@ -148,6 +152,28 @@ public class WeaponInstanceTests
         weapon.ScheduleNextShot();
         weapon.ClearOverdueShotCooldown();
         Assert.AreEqual(FIRE_INTERVAL, weapon.ShotCooldown, TOLERANCE);
+    }
+
+    // 남은 쿨다운·잔탄은 유지하고 새 발사 간격은 다음 예약부터 적용
+    [Test]
+    public void ApplyStats_KeepsCooldownAndAmmo_NextShotUsesNewInterval()
+    {
+        WeaponInstance weapon = new WeaponInstance(1, _definition, 1);
+        weapon.ScheduleNextShot();
+        weapon.Tick(TICK_DELTA_TIME);
+        weapon.ConsumeAmmo();
+        float cooldownBefore = weapon.ShotCooldown;
+
+        weapon.ApplyStats(APPLIED_LEVEL, APPLIED_DAMAGE, APPLIED_FIRE_INTERVAL, APPLIED_SPREAD_ANGLE);
+
+        Assert.AreEqual(cooldownBefore, weapon.ShotCooldown, TOLERANCE);
+        Assert.AreEqual(MAGAZINE_CAPACITY - 1, weapon.CurrentAmmo);
+        Assert.AreEqual(APPLIED_LEVEL, weapon.Level);
+        Assert.AreEqual(APPLIED_DAMAGE, weapon.Damage, TOLERANCE);
+        Assert.AreEqual(APPLIED_SPREAD_ANGLE, weapon.SpreadAngle, TOLERANCE);
+
+        weapon.ScheduleNextShot();
+        Assert.AreEqual(cooldownBefore + APPLIED_FIRE_INTERVAL, weapon.ShotCooldown, TOLERANCE);
     }
 
     [Test]

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 장착 무기 목록과 주무기 소유 (시작 시 선택 캐릭터의 고유 무기 장착, 인벤토리 연결 전 임시 구현)
+/// 장착 무기 목록과 주무기 소유 (장착·해제는 InventoryWeaponSync가 Inventory 배치에 맞춰 호출)
 /// </summary>
 public class WeaponLoadout : MonoBehaviour
 {
@@ -33,17 +33,11 @@ public class WeaponLoadout : MonoBehaviour
     /// <summary>장착·해제가 성공할 때마다 Primary 갱신 후 발생</summary>
     public event Action WeaponsChanged;
 
-    // 다른 컴포넌트가 Start·Update에서 장착 목록을 읽기 전에 고유 무기를 채움
-    private void Awake()
-    {
-        Equip(SignatureWeapon);
-    }
-
-    /// <summary>새 인스턴스 ID를 발급해 레벨 1 무기를 장착 (주무기가 없으면 주무기로 지정)</summary>
+    /// <summary>새 인스턴스 ID를 발급해 지정 레벨 무기를 장착 (주무기가 없으면 주무기로 지정)</summary>
     /// <returns>생성된 무기 인스턴스</returns>
-    public WeaponInstance Equip(WeaponDefinition definition)
+    public WeaponInstance Equip(WeaponDefinition definition, int level = START_LEVEL)
     {
-        WeaponInstance weapon = new WeaponInstance(_nextInstanceId, definition, START_LEVEL);
+        WeaponInstance weapon = new WeaponInstance(_nextInstanceId, definition, level);
         _nextInstanceId++;
         _weapons.Add(weapon);
         if (Primary == null)

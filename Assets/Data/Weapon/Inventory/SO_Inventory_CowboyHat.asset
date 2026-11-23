@@ -28,4 +28,4 @@ MonoBehaviour:
   _weaponDefinition: {fileID: 0}
   _equippedEffect: "\uAD8C\uCD1D \uACF5\uACA9\uB825 +10%"
   _unequippedBuff: "\uAD8C\uCD1D \uACF5\uACA9\uC18D\uB3C4 +60%"
-  _unequippedDebuff: "\uAD8C\uCD1D \uC804\uCCB4 \uD655\uC0B0\uAC01 80\xB0"
+  _unequippedDebuff: "\uAD8C\uCD1D \uC804\uCCB4 \uD655\uC0B0\uAC01 70\xB0"

@@ -10,11 +10,15 @@ public class CharacterDefinition : ScriptableObject
     [SerializeField, TextArea] private string _description;
     [SerializeField] private Sprite _portrait;
     [SerializeField] private string _startWeaponName; // 선택 화면 표시용
-    [SerializeField] private WeaponDefinition _startWeapon; // 시작 시 장착하는 고유 무기
+    [SerializeField] private WeaponDefinition _startWeapon; // 고유 무기 (주무기 재선정 우선순위 기준)
+    [SerializeField] private InventoryData _startWeaponItem; // 시작 시 Inventory에 지급하는 무기 아이템 (_startWeapon과 같은 무기)
+    [SerializeField] private InventoryData _uniqueItem; // 시작 시 Inventory에 지급하는 고유 아이템
 
     public string DisplayName => _displayName;
     public string Description => _description;
     public Sprite Portrait => _portrait;
     public string StartWeaponName => _startWeaponName;
     public WeaponDefinition StartWeapon => _startWeapon;
+    public InventoryData StartWeaponItem => _startWeaponItem;
+    public InventoryData UniqueItem => _uniqueItem;
 }

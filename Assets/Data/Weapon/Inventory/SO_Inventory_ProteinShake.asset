@@ -28,5 +28,5 @@ MonoBehaviour:
   _isSellable: 1
   _weaponDefinition: {fileID: 0}
   _equippedEffect: "\uAE30\uC874 \uCE90\uB9AD\uD130 \uAE30\uBCF8 \uD6A8\uACFC \uC720\uC9C0"
-  _unequippedBuff: "\uC815\uD655\uB3C4 +20% (\uD37C\uC9D0 \uAC01\uB3C4 -20)"
-  _unequippedDebuff: "\uC774\uB3D9\uC18D\uB3C4 -10%"
+  _unequippedBuff: "\uC815\uD655\uB3C4 +10%"
+  _unequippedDebuff: "\uC774\uB3D9\uC18D\uB3C4 -20%"

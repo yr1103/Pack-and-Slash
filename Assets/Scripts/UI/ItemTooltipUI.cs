@@ -145,8 +145,7 @@ public class ItemTooltipUI : MonoBehaviour
                 _inventory.GetEffectiveAdjacencyBonus(item, AdjacencyEffectType.FireInterval));
             AddAdjacencyLine(lines, AdjacencyEffectType.Spread,
                 _inventory.GetEffectiveAdjacencyBonus(item, AdjacencyEffectType.Spread));
-            // TODO : 전투 연결 시 최종 공격력 공식을 Inventory로 옮겨 툴팁·전투가 함께 사용
-            lines.Add(string.Format(FINAL_ATTACK_FORMAT, baseDamage * levelMultiplier * (1f + damageBonus)));
+            lines.Add(string.Format(FINAL_ATTACK_FORMAT, _inventory.GetWeaponStats(item).Damage));
         }
         else if (data.ItemType == ItemType.Passive)
         {

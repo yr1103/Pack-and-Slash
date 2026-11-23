@@ -12,11 +12,20 @@ public class WeaponInstance
     /// <summary>공유 설정 데이터</summary>
     public WeaponDefinition Definition { get; }
 
-    /// <summary>현재 레벨</summary>
-    public int Level { get; }
+    /// <summary>현재 레벨 (ApplyStats로만 변경)</summary>
+    public int Level { get; private set; }
 
     /// <summary>진화 여부</summary>
     public bool IsEvolved { get; }
+
+    /// <summary>탄 1발 피해량 (생성 시 Definition 값, ApplyStats로만 변경)</summary>
+    public float Damage { get; private set; }
+
+    /// <summary>발사 간격(초) (생성 시 Definition 값, ApplyStats로만 변경)</summary>
+    public float FireInterval { get; private set; }
+
+    /// <summary>부채꼴 전체 각도(도) (생성 시 Definition 값, ApplyStats로만 변경)</summary>
+    public float SpreadAngle { get; private set; }
 
     /// <summary>다음 발사까지 남은 시간(초), 0 이하면 발사 가능 (음수 = 발사 예정 시각을 넘긴 시간)</summary>
     public float ShotCooldown { get; private set; }
@@ -50,6 +59,18 @@ public class WeaponInstance
         Level = level;
         IsEvolved = isEvolved;
         CurrentAmmo = definition.MagazineCapacity;
+        Damage = definition.ProjectileDamage;
+        FireInterval = definition.FireInterval;
+        SpreadAngle = definition.SpreadAngle;
+    }
+
+    /// <summary>레벨·런타임 스탯 갱신 (남은 쿨다운·잔탄·재장전은 유지, 새 발사 간격은 다음 ScheduleNextShot부터 적용)</summary>
+    public void ApplyStats(int level, float damage, float fireInterval, float spreadAngle)
+    {
+        Level = level;
+        Damage = damage;
+        FireInterval = fireInterval;
+        SpreadAngle = spreadAngle;
     }
 
     /// <summary>발사 쿨다운·재장전 시간을 경과 시간만큼 감소 (쿨다운은 음수까지 내려감)</summary>
@@ -73,7 +94,7 @@ public class WeaponInstance
     /// <summary>다음 발사 예정 시각을 발사 간격만큼 뒤로 미룸 (넘긴 시간을 이월해 FPS와 무관한 연사 속도 유지)</summary>
     public void ScheduleNextShot()
     {
-        ShotCooldown += Definition.FireInterval;
+        ShotCooldown += FireInterval;
     }
 
     /// <summary>넘긴 시간(음수 쿨다운)을 버리고 0으로 되돌림 (표적 없음·재장전 중 몰아 쏘기 방지)</summary>

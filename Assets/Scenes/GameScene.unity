@@ -11957,7 +11957,7 @@ PrefabInstance:
       objectReference: {fileID: 836134593}
     - target: {fileID: 7179500189625430858, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
       propertyPath: _extraWeapons.Array.size
-      value: 3
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7179500189625430858, guid: db1321dbc6b9bd644a684b7dfc8a5d40, type: 3}
       propertyPath: '_extraWeapons.Array.data[2]'
@@ -13747,6 +13747,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1367929131}
   - component: {fileID: 1367929132}
+  - component: {fileID: 1367929133}
   m_Layer: 0
   m_Name: InventorySystem
   m_TagString: Untagged
@@ -13781,6 +13782,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dc93011243116ce40a341556c08b9b80, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory
+--- !u!114 &1367929133
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1367929130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 407ff823f0280ac4fbb563395d25cdd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryWeaponSync
+  _inventory: {fileID: 1367929132}
+  _loadout: {fileID: 1136806272}
+  _itemPrefab: {fileID: 885483881079418279, guid: 7fcf8b260f63164428b2aa061a1ef996, type: 3}
+  _itemLayer: {fileID: 1450319198}
+  _inventoryUI: {fileID: 2844778135830479358}
+  _sellPopup: {fileID: 1667666515}
+  _tooltip: {fileID: 1087517654}
 --- !u!1001 &1377491903
 PrefabInstance:
   m_ObjectHideFlags: 0
