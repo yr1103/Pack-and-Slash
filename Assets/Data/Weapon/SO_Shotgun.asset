@@ -21,6 +21,7 @@ MonoBehaviour:
   _projectileMaxDistance: 10
   _projectileMaxLifetime: 1
   _projectileDamage: 5
+  _damageVariance: 0.2
   _disableOutsideGameCamera: 0
   _projectilesPerShot: 5
   _spreadAngle: 35

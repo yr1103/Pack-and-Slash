@@ -21,7 +21,9 @@ public class ItemTooltipUI : MonoBehaviour
     private const string UNIQUE_ATTACK_SPEED_FORMAT = "고유 효과 공격속도 +{0:0}%";
     private const string UNIQUE_SPREAD_ANGLE_FORMAT = "고유 효과 확산각 {0:0}°";
     private const string UNIQUE_ACCURACY_FORMAT = "무기 정확도 +{0:0}%"; // 캐릭터 기본 특성 + 고유 아이템 해제 효과 합계
-    private const string FINAL_ATTACK_FORMAT = "최종 공격력 {0:0.#}";
+    private const string FINAL_ATTACK_FORMAT = "최종 공격력 {0:0}~{1:0}"; // 탄별 피해 범위 (최소~최대, 반올림 정수)
+    private const float MIN_DAMAGE_RATIO = 0f;
+    private const float MAX_DAMAGE_RATIO = 1f;
     private const string LEVEL3_ACTIVE_TEXT = "Lv.3 효과 활성";
     private const string LEVEL3_INACTIVE_TEXT = "Lv.3 효과 비활성";
     private const string EQUIPPED_FORMAT = "장착: {0}";
@@ -153,7 +155,11 @@ public class ItemTooltipUI : MonoBehaviour
             AddUniqueLine(lines, UNIQUE_ATTACK_SPEED_FORMAT, _inventory.GetUniqueAttackSpeedBonus(item) * PERCENT);
             AddUniqueLine(lines, UNIQUE_SPREAD_ANGLE_FORMAT, _inventory.GetUniqueSpreadAngle(item));
             AddUniqueLine(lines, UNIQUE_ACCURACY_FORMAT, _inventory.GetCharacterAccuracyBonus(item) * PERCENT);
-            lines.Add(string.Format(FINAL_ATTACK_FORMAT, _inventory.GetWeaponStats(item).Damage));
+            float finalDamage = _inventory.GetWeaponStats(item).Damage;
+            float variance = data.WeaponDefinition.DamageVariance;
+            lines.Add(string.Format(FINAL_ATTACK_FORMAT,
+                WeaponDefinition.GetRolledDamage(finalDamage, variance, MIN_DAMAGE_RATIO),
+                WeaponDefinition.GetRolledDamage(finalDamage, variance, MAX_DAMAGE_RATIO)));
         }
         else if (data.ItemType == ItemType.Passive)
         {

@@ -18,6 +18,7 @@ public class WeaponDefinition : ScriptableObject
     [SerializeField, Min(0f)] private float _projectileMaxDistance; // 탄 비행 한계, 탐지 거리(DetectionRange)와 별개
     [SerializeField, Min(0f)] private float _projectileMaxLifetime;
     [SerializeField, Min(0f)] private float _projectileDamage;
+    [SerializeField, Range(0f, 1f)] private float _damageVariance; // 최종 공격력 기준 탄별 피해 ±비율, 0 = 고정
     [SerializeField] private bool _disableOutsideGameCamera; // 출력 카메라 화면 밖이면 탄 반환·피해 무효 (권총·미니건 true)
     [SerializeField, Min(1)] private int _projectilesPerShot = 1;
     [SerializeField, Min(0f)] private float _spreadAngle; // 부채꼴 전체 각도(도), 양 끝 탄 포함
@@ -37,6 +38,7 @@ public class WeaponDefinition : ScriptableObject
     public float ProjectileMaxDistance => _projectileMaxDistance;
     public float ProjectileMaxLifetime => _projectileMaxLifetime;
     public float ProjectileDamage => _projectileDamage;
+    public float DamageVariance => _damageVariance;
     public bool DisableOutsideGameCamera => _disableOutsideGameCamera;
     public int ProjectilesPerShot => _projectilesPerShot;
     public float SpreadAngle => _spreadAngle;
@@ -46,6 +48,15 @@ public class WeaponDefinition : ScriptableObject
     public float Level3KnockbackStrength => _level3KnockbackStrength;
     public Projectile ProjectilePrefab => _projectilePrefab;
     public FloatingWeaponView FloatingViewPrefab => _floatingViewPrefab;
+
+    /// <summary>
+    /// 탄 1발의 피해량 (damage × (1 - variance) ~ damage × (1 + variance) 구간)
+    /// </summary>
+    /// <param name="randomRatio">0 = 최소, 1 = 최대 (발사 시 Random.value, 툴팁 범위 표시 시 0·1)</param>
+    public static float GetRolledDamage(float damage, float variance, float randomRatio)
+    {
+        return damage * Mathf.Lerp(1f - variance, 1f + variance, randomRatio);
+    }
 }
 
 /// <summary>무기 종류</summary>
