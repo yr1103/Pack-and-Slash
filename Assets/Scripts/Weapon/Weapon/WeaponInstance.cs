@@ -51,6 +51,11 @@ public class WeaponInstance
     /// <summary>남은 재장전 시간(초), 재장전 중이 아니면 0</summary>
     public float ReloadRemaining { get; private set; }
 
+    /// <summary>재장전 진행률(0~1), 재장전 중이 아니거나 재장전 시간이 0 이하면 0</summary>
+    public float ReloadProgress => IsReloading && Definition.ReloadDuration > 0f
+        ? 1f - ReloadRemaining / Definition.ReloadDuration
+        : 0f;
+
     /// <summary>이번 프레임 탐색한 표적, 없으면 null (WeaponAttackController가 Update에서 갱신, 다른 컴포넌트는 LateUpdate에서 읽음)</summary>
     public ITargetable CurrentTarget { get; set; }
 

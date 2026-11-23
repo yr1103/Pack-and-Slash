@@ -115,6 +115,20 @@ public class WeaponInstanceTests
     }
 
     [Test]
+    public void ReloadProgress_StartHalfFinished_ReturnsZeroHalfZero()
+    {
+        WeaponInstance weapon = new WeaponInstance(1, _definition, 1);
+        ConsumeWholeMagazine(weapon);
+        Assert.AreEqual(0f, weapon.ReloadProgress, TOLERANCE);
+
+        weapon.Tick(RELOAD_DURATION * 0.5f);
+        Assert.AreEqual(0.5f, weapon.ReloadProgress, TOLERANCE);
+
+        weapon.Tick(RELOAD_DURATION);
+        Assert.AreEqual(0f, weapon.ReloadProgress);
+    }
+
+    [Test]
     public void ConsumeAmmo_NoMagazine_DoesNotReload()
     {
         SerializedObject serializedDefinition = new SerializedObject(_definition);
