@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -12,6 +13,7 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private const float ROTATION_STEP_ANGLE = 90f;
 
     private static readonly Vector2 _cellCenterOffset = new Vector2(0.5f, 0.5f); // 칸 좌표 → 칸 중심
+    private static readonly List<RaycastResult> _raycastResults = new List<RaycastResult>(); // 드롭 시 합성 대상 탐색용 재사용 버퍼
 
     // 회전
     [SerializeField] private InputActionReference rotateAction;
@@ -230,6 +232,10 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
             return;
         }
 
+        // 합성 불가면 아래 영역별 처리로 그대로 진행
+        if (TryMergeIntoItemUnderPointer(eventData))
+            return;
+
         bool isInside = inventoryUI.TryGetCellPosition(
             eventData, out Vector2Int newPosition);
 
@@ -264,6 +270,45 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
         // 실패 시에도 데이터는 원래 영역·회전 상태 그대로라 다시 표시하면 원위치·원회전 복귀
         RefreshPosition();
+    }
+
+    // 포인터 아래 가장 위의 다른 아이템과 합성, 성공 시 재료(자신) UI 비활성화 (빈 칸은 IsRaycastLocationValid가 제외)
+    private bool TryMergeIntoItemUnderPointer(PointerEventData eventData)
+    {
+        EventSystem.current.RaycastAll(eventData, _raycastResults);
+
+        InventoryItemUI targetUI = null;
+
+        foreach (RaycastResult result in _raycastResults)
+        {
+            InventoryItemUI hitItemUI = result.gameObject.GetComponent<InventoryItemUI>();
+
+            if (hitItemUI != null && hitItemUI != this)
+            {
+                targetUI = hitItemUI;
+                break;
+            }
+        }
+
+        _raycastResults.Clear();
+
+        if (targetUI == null)
+            return false;
+
+        // 합성 성공 시 재료·대상 레벨이 같으므로 재료 레벨로 기록 (대상 item은 미초기화일 수 있음)
+        int previousLevel = item.Level;
+
+        if (!inventory.TryMerge(item, targetUI.item))
+            return false;
+
+        string itemName = item.Data.ItemName;
+        Debug.Log($"[InventoryMerge] {itemName} Lv.{previousLevel} + {itemName} Lv.{previousLevel} → {itemName} Lv.{targetUI.item.Level}");
+
+        // shortcut: 결과 아이템 UI에 레벨 표시가 없어 갱신하지 않음, 레벨 표시 UI 추가 시 대상 UI 갱신 필요
+
+        // 판매와 같은 방식, OnDisable이 툴팁·선택·드래그 상태 정리
+        gameObject.SetActive(false);
+        return true;
     }
 
     private void RefreshPosition()

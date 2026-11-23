@@ -7,13 +7,22 @@ using Object = UnityEngine.Object;
 /// <summary>
 /// 다중 아이템 배치·이동·회전 시 충돌, 잠긴 셀·범위 밖 실패, 실패 시 상태 유지, Shape 원본 불변,
 /// Inventory·Storage·Temporary 영역 간 이동 시 점유·카운트·회전·개수 변화 이벤트·실패 시 원본 유지,
-/// 영역별 판매 해제·판매 불가·None 판매 실패·판매가 검증
+/// 영역별 판매 해제·판매 불가·None 판매 실패·판매가 검증,
+/// 영역 9개 조합 합성 시 재료 해제·결과 아이템 위치 유지·카운트·이벤트, 합성 불가 조건(최대 레벨·다른 Id·다른 Level·자기 자신·고유·None·null) 상태 유지 검증
 /// </summary>
 public class InventoryTests
 {
     private const string AWAKE_METHOD = "Awake";
     private const string IS_SELLABLE_FIELD = "_isSellable";
     private const int ROTATION_COUNT = 4;
+
+    // 합성 테스트 데이터 (일반 무기·패시브 MaxLevel 5, 고유 아이템 MaxLevel 1)
+    private const int MERGE_ITEM_ID = 1;
+    private const int OTHER_MERGE_ITEM_ID = 2;
+    private const int UNIQUE_ITEM_ID = 3;
+    private const int MERGE_MAX_LEVEL = 5;
+    private const int UNIQUE_MAX_LEVEL = 1;
+    private const int MERGE_ROTATION = 1; // 결과 아이템 회전 유지 확인용 (Storage는 0으로 초기화)
 
     // 기본 배치 (활성 영역 x 3~6, y 1~4)
     private static readonly Vector2Int _shotgunPosition = new Vector2Int(3, 1);
@@ -30,12 +39,20 @@ public class InventoryTests
 
     private static readonly Vector2 _temporaryPosition = new Vector2(10f, 20f);
 
+    // 합성 재료·대상 배치 (1칸 아이템, 서로 겹치지 않는 활성 셀·Temporary 좌표)
+    private static readonly Vector2Int _mergeSourceCell = new Vector2Int(3, 1);
+    private static readonly Vector2Int _mergeTargetCell = new Vector2Int(6, 4);
+    private static readonly Vector2 _mergeTargetTemporaryPosition = new Vector2(30f, 40f);
+
     private GameObject _inventoryObject;
     private Inventory _inventory;
     private InventoryData _pistolData;
     private InventoryData _shotgunData;
     private InventoryData _minigunData;
     private InventoryData _probeData;
+    private InventoryData _mergeData;
+    private InventoryData _otherMergeData;
+    private InventoryData _uniqueData;
     private Inventory.ItemInstance _shotgun;
     private Inventory.ItemInstance _minigun;
     private Inventory.ItemInstance _pistolA;
@@ -52,6 +69,9 @@ public class InventoryTests
             new[] { new Vector2Int(2, 0), new Vector2Int(0, 1), new Vector2Int(1, 1), new Vector2Int(2, 1) });
         // 1칸 아이템으로 CanPlace를 시도해 셀 점유 여부를 public API만으로 확인
         _probeData = CreateData("Probe", new[] { new Vector2Int(0, 0) });
+        _mergeData = CreateMergeData(MERGE_ITEM_ID, "MergeItem", MERGE_MAX_LEVEL);
+        _otherMergeData = CreateMergeData(OTHER_MERGE_ITEM_ID, "OtherMergeItem", MERGE_MAX_LEVEL);
+        _uniqueData = CreateMergeData(UNIQUE_ITEM_ID, "UniqueItem", UNIQUE_MAX_LEVEL);
 
         // EditMode에서는 AddComponent 시 Awake가 호출되지 않아 리플렉션으로 그리드 초기화
         _inventoryObject = new GameObject();
@@ -75,6 +95,9 @@ public class InventoryTests
         Object.DestroyImmediate(_shotgunData);
         Object.DestroyImmediate(_minigunData);
         Object.DestroyImmediate(_probeData);
+        Object.DestroyImmediate(_mergeData);
+        Object.DestroyImmediate(_otherMergeData);
+        Object.DestroyImmediate(_uniqueData);
     }
 
     [Test]
@@ -636,6 +659,167 @@ public class InventoryTests
         Assert.AreEqual(0, _inventory.GetSellPrice((InventoryData)null, 1));
     }
 
+    [TestCase(1)]
+    [TestCase(2)]
+    [TestCase(3)]
+    [TestCase(4)]
+    public void TryMerge_SameIdAndLevel_IncreasesTargetLevel(int level)
+    {
+        Inventory.ItemInstance source = new Inventory.ItemInstance(_mergeData) { Level = level };
+        Inventory.ItemInstance target = new Inventory.ItemInstance(_mergeData) { Level = level };
+        Inventory.ItemInstance bystander = new Inventory.ItemInstance(_mergeData) { Level = level };
+        PutItem(source, ItemLocation.Inventory, _mergeSourceCell, _temporaryPosition);
+        PutItem(target, ItemLocation.Inventory, _mergeTargetCell, _mergeTargetTemporaryPosition);
+
+        Assert.IsTrue(_inventory.CanMerge(source, target));
+        Assert.IsTrue(_inventory.TryMerge(source, target));
+
+        Assert.AreEqual(level + 1, target.Level);
+        Assert.AreEqual(ItemLocation.None, source.Location);
+        // 레벨은 인스턴스에만 반영, 같은 데이터를 공유하는 다른 인스턴스·데이터 원본 불변
+        Assert.AreEqual(level, bystander.Level);
+        Assert.AreSame(_mergeData, target.Data);
+        Assert.AreEqual(MERGE_ITEM_ID, _mergeData.Id);
+        Assert.AreEqual(MERGE_MAX_LEVEL, _mergeData.MaxLevel);
+    }
+
+    [TestCase(ItemLocation.Inventory, ItemLocation.Inventory)]
+    [TestCase(ItemLocation.Inventory, ItemLocation.Storage)]
+    [TestCase(ItemLocation.Inventory, ItemLocation.Temporary)]
+    [TestCase(ItemLocation.Storage, ItemLocation.Inventory)]
+    [TestCase(ItemLocation.Storage, ItemLocation.Storage)]
+    [TestCase(ItemLocation.Storage, ItemLocation.Temporary)]
+    [TestCase(ItemLocation.Temporary, ItemLocation.Inventory)]
+    [TestCase(ItemLocation.Temporary, ItemLocation.Storage)]
+    [TestCase(ItemLocation.Temporary, ItemLocation.Temporary)]
+    public void TryMerge_BetweenLocations_ReleasesSourceAndKeepsTarget(
+        ItemLocation sourceLocation, ItemLocation targetLocation)
+    {
+        Inventory.ItemInstance source = new Inventory.ItemInstance(_mergeData);
+        Inventory.ItemInstance target = new Inventory.ItemInstance(_mergeData);
+        PutItem(target, targetLocation, _mergeTargetCell, _mergeTargetTemporaryPosition);
+        PutItem(source, sourceLocation, _mergeSourceCell, _temporaryPosition);
+
+        Vector2Int targetPosition = target.Position;
+        int targetRotation = target.Rotation;
+        Vector2 targetTemporaryPosition = target.TemporaryPosition;
+        int targetStorageIndex = _inventory.GetStorageIndex(target);
+        int sourceStorageIndex = _inventory.GetStorageIndex(source);
+        int expectedStorageCount = _inventory.StorageCount - (sourceLocation == ItemLocation.Storage ? 1 : 0);
+        int expectedTemporaryCount = _inventory.TemporaryCount - (sourceLocation == ItemLocation.Temporary ? 1 : 0);
+        int storageEventCount = 0;
+        int temporaryEventCount = 0;
+        _inventory.StorageCountChanged += () => storageEventCount++;
+        _inventory.TemporaryCountChanged += () => temporaryEventCount++;
+
+        Assert.IsTrue(_inventory.TryMerge(source, target));
+
+        // 재료 해제
+        Assert.AreEqual(ItemLocation.None, source.Location);
+        Assert.AreEqual(-1, _inventory.GetStorageIndex(source));
+        if (sourceLocation == ItemLocation.Inventory)
+            AssertFree(_mergeSourceCell);
+        if (sourceLocation == ItemLocation.Storage)
+            Assert.IsNull(_inventory.GetStorageItem(sourceStorageIndex));
+
+        // 결과 아이템 유지
+        Assert.AreEqual(2, target.Level);
+        Assert.AreEqual(targetLocation, target.Location);
+        Assert.AreEqual(targetPosition, target.Position);
+        Assert.AreEqual(targetRotation, target.Rotation);
+        Assert.AreEqual(targetTemporaryPosition, target.TemporaryPosition);
+        Assert.AreEqual(targetStorageIndex, _inventory.GetStorageIndex(target));
+        if (targetLocation == ItemLocation.Inventory)
+            AssertOccupied(_mergeTargetCell);
+
+        // 카운트·개수 변화 이벤트는 재료 출발 영역 기준
+        Assert.AreEqual(expectedStorageCount, _inventory.StorageCount);
+        Assert.AreEqual(expectedTemporaryCount, _inventory.TemporaryCount);
+        Assert.AreEqual(sourceLocation == ItemLocation.Storage ? 1 : 0, storageEventCount);
+        Assert.AreEqual(sourceLocation == ItemLocation.Temporary ? 1 : 0, temporaryEventCount);
+    }
+
+    [Test]
+    public void TryMerge_MaxLevel_FailsAndKeepsState()
+    {
+        Inventory.ItemInstance source = new Inventory.ItemInstance(_mergeData) { Level = MERGE_MAX_LEVEL };
+        Inventory.ItemInstance target = new Inventory.ItemInstance(_mergeData) { Level = MERGE_MAX_LEVEL };
+        PutMergePair(source, target);
+
+        AssertMergeFailsAndKeepsState(source, target);
+    }
+
+    [Test]
+    public void TryMerge_DifferentId_FailsAndKeepsState()
+    {
+        Inventory.ItemInstance source = new Inventory.ItemInstance(_mergeData);
+        Inventory.ItemInstance target = new Inventory.ItemInstance(_otherMergeData);
+        PutMergePair(source, target);
+
+        AssertMergeFailsAndKeepsState(source, target);
+    }
+
+    [Test]
+    public void TryMerge_DifferentLevel_FailsAndKeepsState()
+    {
+        Inventory.ItemInstance source = new Inventory.ItemInstance(_mergeData) { Level = 1 };
+        Inventory.ItemInstance target = new Inventory.ItemInstance(_mergeData) { Level = 2 };
+        PutMergePair(source, target);
+
+        AssertMergeFailsAndKeepsState(source, target);
+    }
+
+    [Test]
+    public void TryMerge_Self_FailsAndKeepsState()
+    {
+        Inventory.ItemInstance source = new Inventory.ItemInstance(_mergeData);
+        PutItem(source, ItemLocation.Inventory, _mergeSourceCell, _temporaryPosition);
+
+        AssertMergeFailsAndKeepsState(source, source);
+    }
+
+    // 진화 무기·고유 아이템처럼 MaxLevel 1인 데이터
+    [Test]
+    public void TryMerge_MaxLevelOne_FailsAndKeepsState()
+    {
+        Inventory.ItemInstance source = new Inventory.ItemInstance(_uniqueData);
+        Inventory.ItemInstance target = new Inventory.ItemInstance(_uniqueData);
+        PutMergePair(source, target);
+
+        AssertMergeFailsAndKeepsState(source, target);
+        Assert.AreEqual(UNIQUE_MAX_LEVEL, _uniqueData.MaxLevel);
+    }
+
+    [Test]
+    public void TryMerge_LocationNone_FailsAndKeepsState()
+    {
+        Inventory.ItemInstance placed = new Inventory.ItemInstance(_mergeData);
+        Inventory.ItemInstance unplaced = new Inventory.ItemInstance(_mergeData);
+        PutItem(placed, ItemLocation.Inventory, _mergeSourceCell, _temporaryPosition);
+
+        AssertMergeFailsAndKeepsState(unplaced, placed);
+        AssertMergeFailsAndKeepsState(placed, unplaced);
+    }
+
+    [Test]
+    public void TryMerge_NullItemOrData_Fails()
+    {
+        Inventory.ItemInstance placed = new Inventory.ItemInstance(_mergeData);
+        Inventory.ItemInstance nullData = new Inventory.ItemInstance(_mergeData);
+        PutMergePair(placed, nullData);
+        // 배치 후 Data만 제거해 Location None이 아닌 Data null 검사만 실패 원인이 되도록 함
+        nullData.Data = null;
+
+        Assert.IsFalse(_inventory.TryMerge(null, placed));
+        Assert.IsFalse(_inventory.TryMerge(placed, null));
+        AssertMergeFailsAndKeepsState(nullData, placed);
+        AssertMergeFailsAndKeepsState(placed, nullData);
+
+        Assert.AreEqual(1, placed.Level);
+        Assert.AreEqual(ItemLocation.Inventory, placed.Location);
+        AssertOccupied(_mergeSourceCell);
+    }
+
     private void FillStorage()
     {
         for (int i = 0; i < Inventory.STORAGE_CAPACITY; i++)
@@ -689,6 +873,70 @@ public class InventoryTests
         InventoryData data = ScriptableObject.CreateInstance<InventoryData>();
         data.SetData(0, itemName, null, ItemType.Weapon, string.Empty, shape, 1, null);
         return data;
+    }
+
+    // 합성 판정에 Id·MaxLevel이 필요해 기존 CreateData(id 0, maxLevel 1)와 분리, Shape는 1칸
+    private static InventoryData CreateMergeData(int id, string itemName, int maxLevel)
+    {
+        InventoryData data = ScriptableObject.CreateInstance<InventoryData>();
+        data.SetData(id, itemName, null, ItemType.Weapon, string.Empty, new[] { new Vector2Int(0, 0) }, maxLevel, null);
+        return data;
+    }
+
+    // None은 배치하지 않음, Inventory·Temporary는 MERGE_ROTATION으로 배치
+    private void PutItem(Inventory.ItemInstance item, ItemLocation location, Vector2Int cell, Vector2 temporaryPosition)
+    {
+        switch (location)
+        {
+            case ItemLocation.Inventory:
+                Assert.IsTrue(_inventory.TryPlace(item, cell, MERGE_ROTATION));
+                break;
+
+            case ItemLocation.Storage:
+                Assert.IsTrue(_inventory.TryStore(item));
+                break;
+
+            case ItemLocation.Temporary:
+                _inventory.MoveToTemporary(item, temporaryPosition, MERGE_ROTATION);
+                break;
+        }
+    }
+
+    // 실패 검증용 기본 배치 : 재료 Inventory, 대상 Storage
+    private void PutMergePair(Inventory.ItemInstance source, Inventory.ItemInstance target)
+    {
+        PutItem(source, ItemLocation.Inventory, _mergeSourceCell, _temporaryPosition);
+        PutItem(target, ItemLocation.Storage, _mergeTargetCell, _mergeTargetTemporaryPosition);
+    }
+
+    private void AssertMergeFailsAndKeepsState(Inventory.ItemInstance source, Inventory.ItemInstance target)
+    {
+        int sourceLevel = source.Level;
+        int targetLevel = target.Level;
+        ItemLocation sourceLocation = source.Location;
+        ItemLocation targetLocation = target.Location;
+        int storageCount = _inventory.StorageCount;
+        int temporaryCount = _inventory.TemporaryCount;
+        int eventCount = 0;
+        _inventory.StorageCountChanged += () => eventCount++;
+        _inventory.TemporaryCountChanged += () => eventCount++;
+
+        Assert.IsFalse(_inventory.CanMerge(source, target));
+        Assert.IsFalse(_inventory.TryMerge(source, target));
+
+        Assert.AreEqual(sourceLevel, source.Level);
+        Assert.AreEqual(targetLevel, target.Level);
+        Assert.AreEqual(sourceLocation, source.Location);
+        Assert.AreEqual(targetLocation, target.Location);
+        Assert.AreEqual(storageCount, _inventory.StorageCount);
+        Assert.AreEqual(temporaryCount, _inventory.TemporaryCount);
+        Assert.AreEqual(0, eventCount);
+
+        // 1칸 Shape라 Position이 곧 점유 셀
+        if (source.IsPlaced)
+            AssertOccupied(source.Position);
+        if (target.IsPlaced)
+            AssertOccupied(target.Position);
     }
 
     // SetData 시그니처를 바꾸지 않도록 직렬화 필드로 설정

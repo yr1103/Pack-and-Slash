@@ -378,6 +378,33 @@ public class Inventory : MonoBehaviour
         return true;
     }
 
+    /// <summary>합성 가능 여부 (동일 Id·동일 Level·Level &lt; MaxLevel, 서로 다른 두 아이템이 모두 영역에 있음), 상태 변경 없음</summary>
+    public bool CanMerge(ItemInstance source, ItemInstance target)
+    {
+        if (source == null || target == null || source.Data == null || target.Data == null)
+            return false;
+
+        if (source == target || source.Location == ItemLocation.None || target.Location == ItemLocation.None)
+            return false;
+
+        return source.Data.Id == target.Data.Id && source.Level == target.Level && target.Level < target.Data.MaxLevel;
+    }
+
+    /// <summary>source를 소비(Location None)하고 target Level +1, target의 영역·위치·회전은 유지</summary>
+    /// <returns>CanMerge 실패 시 false, 상태 변화 없음</returns>
+    public bool TryMerge(ItemInstance source, ItemInstance target)
+    {
+        if (!CanMerge(source, target))
+            return false;
+
+        ItemLocation previousLocation = source.Location;
+        ReleaseLocation(source);
+        target.Level++;
+
+        NotifyLocationChanged(previousLocation, ItemLocation.None);
+        return true;
+    }
+
     /// <summary>보관함 슬롯 아이템 (비어 있으면 null)</summary>
     public ItemInstance GetStorageItem(int index)
     {
