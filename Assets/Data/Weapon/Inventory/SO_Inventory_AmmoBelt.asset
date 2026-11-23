@@ -25,6 +25,8 @@ MonoBehaviour:
   _maxLevel: 5
   _isSellable: 1
   _adjacencyEffectType: 1
+  _level3EffectType: 2
+  _level3EffectValue: 0.1
   _weaponDefinition: {fileID: 0}
   _equippedEffect: 
   _unequippedBuff: 

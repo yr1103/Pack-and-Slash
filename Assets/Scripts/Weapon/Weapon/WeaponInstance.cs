@@ -27,6 +27,9 @@ public class WeaponInstance
     /// <summary>부채꼴 전체 각도(도) (생성 시 Definition 값, ApplyStats로만 변경)</summary>
     public float SpreadAngle { get; private set; }
 
+    /// <summary>true면 확산각 안 무작위 방향, false면 균등 분배 (생성 시 Definition 값, ApplyStats로만 변경)</summary>
+    public bool RandomSpread { get; private set; }
+
     /// <summary>다음 발사까지 남은 시간(초), 0 이하면 발사 가능 (음수 = 발사 예정 시각을 넘긴 시간)</summary>
     public float ShotCooldown { get; private set; }
 
@@ -62,15 +65,17 @@ public class WeaponInstance
         Damage = definition.ProjectileDamage;
         FireInterval = definition.FireInterval;
         SpreadAngle = definition.SpreadAngle;
+        RandomSpread = definition.RandomSpread;
     }
 
     /// <summary>레벨·런타임 스탯 갱신 (남은 쿨다운·잔탄·재장전은 유지, 새 발사 간격은 다음 ScheduleNextShot부터 적용)</summary>
-    public void ApplyStats(int level, float damage, float fireInterval, float spreadAngle)
+    public void ApplyStats(int level, float damage, float fireInterval, float spreadAngle, bool randomSpread)
     {
         Level = level;
         Damage = damage;
         FireInterval = fireInterval;
         SpreadAngle = spreadAngle;
+        RandomSpread = randomSpread;
     }
 
     /// <summary>발사 쿨다운·재장전 시간을 경과 시간만큼 감소 (쿨다운은 음수까지 내려감)</summary>

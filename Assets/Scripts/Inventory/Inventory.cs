@@ -26,6 +26,7 @@ public class Inventory : MonoBehaviour
 
     private InventoryCell[,] cells = new InventoryCell[Width, Height];
     private ItemInstance[] _storageSlots = new ItemInstance[STORAGE_CAPACITY];
+    private CharacterDefinition _character;
 
     /// <summary>Temporary 영역에 있는 아이템 수 (1 이상이면 레벨업 완료 차단)</summary>
     public int TemporaryCount { get; private set; }
@@ -49,13 +50,24 @@ public class Inventory : MonoBehaviour
     public int GridWidth => Width; // 잠금 칸 포함
     public int GridHeight => Height;
 
+    /// <summary>고유 효과 기준 캐릭터 (null이면 고유 효과 없음), 설정 시 스탯이 바뀌므로 Changed 1회 발생</summary>
+    public CharacterDefinition Character
+    {
+        get => _character;
+        set
+        {
+            _character = value;
+            Changed?.Invoke();
+        }
+    }
+
     /// <summary>Temporary 영역에 아이템이 들어오거나 나갈 때만, 도착 영역 기록 후 발생 (Temporary 내 좌표 이동은 제외)</summary>
     public event Action TemporaryCountChanged;
 
     /// <summary>보관함에 아이템이 들어오거나 나갈 때만, 도착 영역 기록 후 발생</summary>
     public event Action StorageCountChanged;
 
-    /// <summary>공개 조작(배치·이동·회전·제거·보관·Temporary 이동·판매·합성)이 성공해 상태가 확정된 뒤 1회 발생, 실패·조회 시 미발생</summary>
+    /// <summary>공개 조작(배치·이동·회전·제거·보관·Temporary 이동·판매·합성·캐릭터 설정)이 성공해 상태가 확정된 뒤 1회 발생, 실패·조회 시 미발생</summary>
     public event Action Changed;
 
     // 실제 아이템 하나
@@ -94,12 +106,14 @@ public class Inventory : MonoBehaviour
         public float Damage { get; }
         public float FireInterval { get; }
         public float SpreadAngle { get; } // 부채꼴 전체 각도(도)
+        public bool RandomSpread { get; } // true면 확산각 안 무작위 방향, false면 균등 분배
 
-        public WeaponStats(float damage, float fireInterval, float spreadAngle)
+        public WeaponStats(float damage, float fireInterval, float spreadAngle, bool randomSpread)
         {
             Damage = damage;
             FireInterval = fireInterval;
             SpreadAngle = spreadAngle;
+            RandomSpread = randomSpread;
         }
     }
 
@@ -539,7 +553,7 @@ public class Inventory : MonoBehaviour
         }
     }
 
-    /// <summary>레벨·인접 효과(상한 적용)를 반영한 최종 무기 스탯, 툴팁·전투 공통 계산 경로 (미배치 아이템은 인접 효과 0)</summary>
+    /// <summary>레벨·인접 효과(상한 적용)·캐릭터 고유 효과를 반영한 최종 무기 스탯, 툴팁·전투 공통 계산 경로 (미배치 아이템은 인접 효과 0)</summary>
     /// <returns>weapon·Data·WeaponDefinition 중 하나라도 null이면 모든 값 0</returns>
     public WeaponStats GetWeaponStats(ItemInstance weapon)
     {
@@ -548,13 +562,95 @@ public class Inventory : MonoBehaviour
 
         WeaponDefinition definition = weapon.Data.WeaponDefinition;
         float damage = definition.ProjectileDamage * GetWeaponLevelMultiplier(weapon.Level) *
-                       (1f + GetEffectiveAdjacencyBonus(weapon, AdjacencyEffectType.Damage));
+                       (1f + GetEffectiveAdjacencyBonus(weapon, AdjacencyEffectType.Damage)) *
+                       (1f + GetUniqueDamageBonus(weapon));
         float fireInterval = definition.FireInterval *
-                             (1f - GetEffectiveAdjacencyBonus(weapon, AdjacencyEffectType.FireInterval));
-        float spreadAngle = definition.SpreadAngle *
-                            (1f - GetEffectiveAdjacencyBonus(weapon, AdjacencyEffectType.Spread));
+                             (1f - GetEffectiveAdjacencyBonus(weapon, AdjacencyEffectType.FireInterval)) /
+                             (1f + GetUniqueAttackSpeedBonus(weapon));
 
-        return new WeaponStats(damage, fireInterval, spreadAngle);
+        // 냉각기 인접과 캐릭터 정확도는 같은 탄퍼짐 감소율이라 합친 뒤 상한 적용
+        float spreadReduction = Mathf.Clamp(
+            GetAdjacencyBonus(weapon, AdjacencyEffectType.Spread) + GetCharacterAccuracyBonus(weapon),
+            0f, MAX_SPREAD_REDUCTION);
+        float uniqueSpreadAngle = GetUniqueSpreadAngle(weapon);
+        bool useUniqueSpread = uniqueSpreadAngle > 0f;
+        float spreadAngle = (useUniqueSpread ? uniqueSpreadAngle : definition.SpreadAngle) * (1f - spreadReduction);
+        bool randomSpread = useUniqueSpread || definition.RandomSpread;
+
+        return new WeaponStats(damage, fireInterval, spreadAngle, randomSpread);
+    }
+
+    /// <summary>현재 캐릭터의 고유 아이템과 같은 데이터의 아이템이 Inventory에 배치되어 있는지 (Storage·Temporary는 해제)</summary>
+    /// <returns>Character 또는 UniqueItem이 null이면 false</returns>
+    public bool IsUniqueItemEquipped()
+    {
+        if (_character == null || _character.UniqueItem == null)
+            return false;
+
+        foreach (ItemInstance item in GetPlacedItems())
+        {
+            if (item.Data == _character.UniqueItem)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>고유 아이템 장착 중 대상 무기 공격력 보너스 (적용 중이 아니면 0)</summary>
+    public float GetUniqueDamageBonus(ItemInstance weapon)
+    {
+        return IsUniqueTargetWeapon(weapon) && IsUniqueItemEquipped() ? _character.EquippedDamageBonus : 0f;
+    }
+
+    /// <summary>고유 아이템 해제 중 대상 무기 공격속도 보너스 (적용 중이 아니면 0)</summary>
+    public float GetUniqueAttackSpeedBonus(ItemInstance weapon)
+    {
+        return IsUniqueTargetWeapon(weapon) && !IsUniqueItemEquipped() ? _character.UnequippedAttackSpeedBonus : 0f;
+    }
+
+    /// <summary>고유 아이템 해제 중 대상 무기 전체 확산각(도), 0보다 크면 기본 각도 대신 사용하고 랜덤 탄퍼짐 (적용 중이 아니면 0)</summary>
+    public float GetUniqueSpreadAngle(ItemInstance weapon)
+    {
+        return IsUniqueTargetWeapon(weapon) && !IsUniqueItemEquipped() ? _character.UnequippedSpreadAngle : 0f;
+    }
+
+    /// <summary>대상 무기 정확도(탄퍼짐 감소율) 합 = 기본 특성 + 해제 중 해제 보너스 (상한 미적용, 대상 외 무기는 0)</summary>
+    public float GetCharacterAccuracyBonus(ItemInstance weapon)
+    {
+        if (!IsUniqueTargetWeapon(weapon))
+            return 0f;
+
+        float bonus = _character.BaseAccuracyBonus;
+
+        if (!IsUniqueItemEquipped())
+            bonus += _character.UnequippedAccuracyBonus;
+
+        return bonus;
+    }
+
+    /// <summary>Lv.3 효과가 활성인(Lv.3 이상·Inventory 배치) 패시브 중 effectType 효과 수치 합 (인접 무관, 상한 미적용)</summary>
+    /// <returns>effectType이 None이면 0</returns>
+    public float GetLevel3Bonus(Level3EffectType effectType)
+    {
+        if (effectType == Level3EffectType.None)
+            return 0f;
+
+        float bonus = 0f;
+
+        foreach (ItemInstance item in GetPlacedItems())
+        {
+            if (IsLevel3EffectActive(item) && item.Data.Level3EffectType == effectType)
+                bonus += item.Data.Level3EffectValue;
+        }
+
+        return bonus;
+    }
+
+    // 다른 캐릭터의 고유 효과가 섞이지 않도록 현재 Character의 대상 무기 종류만 비교
+    private bool IsUniqueTargetWeapon(ItemInstance weapon)
+    {
+        return _character != null && weapon != null && weapon.Data != null && weapon.Data.WeaponDefinition != null &&
+               weapon.Data.WeaponDefinition.WeaponType == _character.UniqueWeaponType;
     }
 
     /// <summary>패시브 1개가 주는 인접 효과 수치 (레벨 × 0.1)</summary>

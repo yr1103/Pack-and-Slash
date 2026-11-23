@@ -17,6 +17,10 @@ public class ItemTooltipUI : MonoBehaviour
     private const string ADJACENT_DAMAGE_FORMAT = "인접 효과 공격력 +{0:0}%";
     private const string ADJACENT_FIRE_INTERVAL_FORMAT = "인접 효과 발사 간격 -{0:0}%";
     private const string ADJACENT_SPREAD_FORMAT = "인접 효과 탄퍼짐 -{0:0}%";
+    private const string UNIQUE_DAMAGE_FORMAT = "고유 효과 공격력 +{0:0}%";
+    private const string UNIQUE_ATTACK_SPEED_FORMAT = "고유 효과 공격속도 +{0:0}%";
+    private const string UNIQUE_SPREAD_ANGLE_FORMAT = "고유 효과 확산각 {0:0}°";
+    private const string UNIQUE_ACCURACY_FORMAT = "무기 정확도 +{0:0}%"; // 캐릭터 기본 특성 + 고유 아이템 해제 효과 합계
     private const string FINAL_ATTACK_FORMAT = "최종 공격력 {0:0.#}";
     private const string LEVEL3_ACTIVE_TEXT = "Lv.3 효과 활성";
     private const string LEVEL3_INACTIVE_TEXT = "Lv.3 효과 비활성";
@@ -126,7 +130,7 @@ public class ItemTooltipUI : MonoBehaviour
         UpdatePosition();
     }
 
-    // 무기는 공격력·인접 효과·Lv.3, 패시브는 인접 효과·Lv.3 여러 줄, 그 외 null (줄 숨김)
+    // 무기는 공격력·인접 효과·적용 중인 고유 효과·Lv.3, 패시브는 인접 효과·Lv.3 여러 줄, 그 외 null (줄 숨김)
     private string GetStatText(Inventory.ItemInstance item)
     {
         InventoryData data = item.Data;
@@ -145,6 +149,10 @@ public class ItemTooltipUI : MonoBehaviour
                 _inventory.GetEffectiveAdjacencyBonus(item, AdjacencyEffectType.FireInterval));
             AddAdjacencyLine(lines, AdjacencyEffectType.Spread,
                 _inventory.GetEffectiveAdjacencyBonus(item, AdjacencyEffectType.Spread));
+            AddUniqueLine(lines, UNIQUE_DAMAGE_FORMAT, _inventory.GetUniqueDamageBonus(item) * PERCENT);
+            AddUniqueLine(lines, UNIQUE_ATTACK_SPEED_FORMAT, _inventory.GetUniqueAttackSpeedBonus(item) * PERCENT);
+            AddUniqueLine(lines, UNIQUE_SPREAD_ANGLE_FORMAT, _inventory.GetUniqueSpreadAngle(item));
+            AddUniqueLine(lines, UNIQUE_ACCURACY_FORMAT, _inventory.GetCharacterAccuracyBonus(item) * PERCENT);
             lines.Add(string.Format(FINAL_ATTACK_FORMAT, _inventory.GetWeaponStats(item).Damage));
         }
         else if (data.ItemType == ItemType.Passive)
@@ -168,6 +176,15 @@ public class ItemTooltipUI : MonoBehaviour
             return;
 
         lines.Add(string.Format(GetAdjacencyFormat(effectType), bonus * PERCENT));
+    }
+
+    // 적용 중이 아닌(0 이하) 고유 효과 줄은 생략
+    private static void AddUniqueLine(List<string> lines, string format, float value)
+    {
+        if (value <= 0f)
+            return;
+
+        lines.Add(string.Format(format, value));
     }
 
     // None은 호출 전에 걸러지므로 default는 Spread

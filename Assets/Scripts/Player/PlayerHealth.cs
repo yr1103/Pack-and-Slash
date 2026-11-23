@@ -20,7 +20,8 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private Health _health;
     private DamageGate _damageGate;
 
-    public float MaxHealth => _maxHealth;
+    /// <summary>배율이 적용된 현재 최대 체력 (체력바 표시용)</summary>
+    public float MaxHealth => _health.MaxHealth;
 
     /// <summary>현재 체력 (체력바 표시용)</summary>
     public float CurrentHealth => _health.CurrentHealth;
@@ -75,6 +76,12 @@ public class PlayerHealth : MonoBehaviour, IDamageable
                 return;
             }
         }
+    }
+
+    /// <summary>최대 체력 = Inspector 기본값 × multiplier (매번 기본값에서 재계산, 감소 시 현재 체력 clamp·증가 시 유지)</summary>
+    public void SetMaxHealthMultiplier(float multiplier)
+    {
+        _health.SetMaxHealth(_maxHealth * multiplier);
     }
 
     /// <summary>무적 게이트 통과 시에만 체력 감소, 이번 피해로 처음 사망하면 사망 처리 (사망 상태면 무시)</summary>

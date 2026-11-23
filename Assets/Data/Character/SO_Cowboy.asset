@@ -21,3 +21,12 @@ MonoBehaviour:
   _startWeapon: {fileID: 11400000, guid: c8428468fe4d08940ba664176b113bc1, type: 2}
   _startWeaponItem: {fileID: 11400000, guid: e87e70bd09ec6604e81341bea0916029, type: 2}
   _uniqueItem: {fileID: 11400000, guid: 5d9ea153704f9364dbf8409fb71be39f, type: 2}
+  _uniqueWeaponType: 0
+  _equippedDamageBonus: 0.1
+  _unequippedAttackSpeedBonus: 0.6
+  _unequippedSpreadAngle: 70
+  _unequippedMoveSpeedBonus: 0
+  _unequippedMaxHealthBonus: 0
+  _unequippedAccuracyBonus: 0
+  _baseMoveSpeedBonus: 0
+  _baseAccuracyBonus: 0

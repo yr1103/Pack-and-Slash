@@ -5,7 +5,7 @@ using UnityEngine;
 /// </summary>
 public class Health
 {
-    private readonly float _maxHealth;
+    private float _maxHealth;
     private float _currentHealth;
 
     /// <summary>현재 체력을 최대 체력으로 채워 생성</summary>
@@ -16,7 +16,15 @@ public class Health
         _currentHealth = maxHealth;
     }
 
+    public float MaxHealth => _maxHealth;
     public float CurrentHealth => _currentHealth;
+
+    /// <summary>최대 체력 변경, 줄어들면 현재 체력을 새 최대치로 clamp만 하고 늘어나도 회복하지 않음</summary>
+    public void SetMaxHealth(float maxHealth)
+    {
+        _maxHealth = maxHealth;
+        _currentHealth = Mathf.Min(_currentHealth, maxHealth);
+    }
 
     /// <summary>현재 체력이 0 이하인 사망 상태 여부</summary>
     public bool IsDead => _currentHealth <= 0f;

@@ -29,11 +29,13 @@ public class InventoryWeaponSync : MonoBehaviour
     }
 
     // Inventory.Awake의 그리드 초기화 이후 배치, 장착은 배치 시 Changed → SyncWeapons 경로로만 처리
+    // 캐릭터는 두 아이템 배치 후 설정, 먼저 설정하면 무기만 배치된 순간 '고유 아이템 해제'로 계산돼 최대 체력 감소 clamp가 현재 체력을 깎음
     private void Start()
     {
         CharacterDefinition character = _loadout.Character;
         GrantStartItem(character.StartWeaponItem);
         GrantStartItem(character.UniqueItem);
+        _inventory.Character = character; // Changed 발생 → 무기·플레이어 스탯 재계산
     }
 
     /// <summary>배치된 무기와 장착 무기를 맞춤 (새 배치는 장착, 배치에서 빠지면 해제, 유지된 무기는 같은 인스턴스에 레벨·스탯만 갱신)</summary>
@@ -56,7 +58,7 @@ public class InventoryWeaponSync : MonoBehaviour
             }
 
             Inventory.WeaponStats stats = _inventory.GetWeaponStats(item);
-            weapon.ApplyStats(item.Level, stats.Damage, stats.FireInterval, stats.SpreadAngle);
+            weapon.ApplyStats(item.Level, stats.Damage, stats.FireInterval, stats.SpreadAngle, stats.RandomSpread);
         }
 
         // 순회 중 Dictionary를 수정할 수 없어 모은 뒤 해제
