@@ -12,6 +12,7 @@ public class LevelUpPanel : MonoBehaviour
     private const string STORAGE_COUNT_FORMAT = "Storage {0}/{1}"; // {0} 보관 수, {1} 보관함 용량
     private const string CURRENCY_FORMAT = "보유 {0}"; // {0} 특수 재화 잔액
     private const string SELECTION_COUNT_FORMAT = "{0}/{1}"; // {0} 선택 수, {1} 필요 선택 수
+    private const string EXPANSION_GUIDE_FORMAT = "확장할 {0}칸을 선택하세요!!"; // {0} 남은 확장 수
     private const float SLOT_CENTER_RATIO = 0.5f; // Temporary 가로 분할 칸의 중심 비율
 
     [SerializeField] private GameSession _gameSession;
@@ -40,10 +41,11 @@ public class LevelUpPanel : MonoBehaviour
     [SerializeField] private RectTransform _temporaryArea; // InventoryUI의 Temporary 영역과 같은 오브젝트 (배치 좌표 기준)
     [SerializeField] private InventoryItemUI _itemPrefab;
     [SerializeField] private RectTransform _itemLayer;
-    [SerializeField] private CanvasGroup _itemLayerGroup; // Selecting 중 아이템 드래그 차단
     [SerializeField] private InventoryUI _inventoryUI;
     [SerializeField] private SellConfirmPopup _sellPopup;
     [SerializeField] private ItemTooltipUI _tooltip; // 생성한 Temporary 아이템 UI에 주입
+    [SerializeField, Min(0)] private int _chestExpansionCount = 4; // 보물 상자 회차당 확장 칸 수
+    [SerializeField] private Text _expansionGuideText; // null 허용 (미연결 씬은 안내 생략)
 
     private readonly System.Random _random = new System.Random();
     private readonly List<int> _selectedIndices = new List<int>(); // 선택한 카드 인덱스 (선택 순서대로 Temporary 배치)
@@ -52,6 +54,7 @@ public class LevelUpPanel : MonoBehaviour
     private int _pendingChestCount; // 아직 처리하지 않은 보물 상자 보상 횟수
     private bool _isShowingChest; // 현재 표시 중인 회차가 보물 상자인지 (완료 시 차감 대상)
     private RewardPhase _phase;
+    private int _remainingExpansionCount; // 현재 상자 회차에서 남은 확장 수 (0이어야 완료 가능)
 
     /// <summary>레벨업 화면 표시 여부 (열려 있는 동안 ESC 일시정지 무시용)</summary>
     public bool IsOpen => _panelRoot.activeSelf;
@@ -76,6 +79,7 @@ public class LevelUpPanel : MonoBehaviour
         _inventory.TemporaryCountChanged += RefreshCompleteButton;
         _inventory.StorageCountChanged += RefreshStorageCount;
         _currency.Changed += RefreshCurrency;
+        _inventoryUI.ExpansionCellClicked += HandleExpansionCellClicked;
 
         foreach (RewardCardUI card in _rewardCards)
         {
@@ -92,6 +96,7 @@ public class LevelUpPanel : MonoBehaviour
         _inventory.TemporaryCountChanged -= RefreshCompleteButton;
         _inventory.StorageCountChanged -= RefreshStorageCount;
         _currency.Changed -= RefreshCurrency;
+        _inventoryUI.ExpansionCellClicked -= HandleExpansionCellClicked;
 
         foreach (RewardCardUI card in _rewardCards)
         {
@@ -127,11 +132,40 @@ public class LevelUpPanel : MonoBehaviour
         _panelRoot.SetActive(true);
     }
 
+    /// <summary>
+    /// 확장 가능한 칸 수 이내로 남은 확장 수를 설정하고, Organizing 단계면 즉시 확장 모드 시작
+    /// 보물 상자 외 1칸 확장권 등 다른 확장 출처도 같은 경로로 호출
+    /// </summary>
+    public void BeginExpansion(int count)
+    {
+        _remainingExpansionCount = Mathf.Min(count, _inventory.CountExpansionCandidates());
+
+        if (_phase == RewardPhase.Organizing)
+            _inventoryUI.SetExpansionMode(_remainingExpansionCount > 0);
+
+        RefreshExpansionGuide();
+        RefreshCompleteButton();
+    }
+
+    // 확장 모드(Organizing 중 남은 확장 수 있음)일 때만 남은 수 안내 표시
+    private void RefreshExpansionGuide()
+    {
+        if (_expansionGuideText == null)
+            return;
+
+        bool isExpanding = _phase == RewardPhase.Organizing && _remainingExpansionCount > 0;
+        _expansionGuideText.gameObject.SetActive(isExpanding);
+
+        if (isExpanding)
+            _expansionGuideText.text = string.Format(EXPANSION_GUIDE_FORMAT, _remainingExpansionCount);
+    }
+
     // 다음 회차 종류(레벨업 우선)를 정하고 이전 회차 후보·선택을 이어받지 않고 새 후보로 Selecting 시작
     private void StartRound()
     {
         _isShowingChest = _pendingCount == 0;
         _phase = RewardPhase.Selecting;
+        BeginExpansion(_isShowingChest ? _chestExpansionCount : 0); // Selecting이므로 확장 모드는 Organizing 진입 시 켜짐
         _selectedIndices.Clear();
         _candidates = GenerateCandidates(null);
         RefreshRewardCards();
@@ -243,7 +277,7 @@ public class LevelUpPanel : MonoBehaviour
     private void HandleCompleteClicked()
     {
         // 버튼 비활성화와 별개로 외부 호출 방어
-        if (_phase != RewardPhase.Organizing || _inventory.TemporaryCount > 0)
+        if (_phase != RewardPhase.Organizing || _inventory.TemporaryCount > 0 || _remainingExpansionCount > 0)
             return;
 
         if (_isShowingChest)
@@ -257,12 +291,33 @@ public class LevelUpPanel : MonoBehaviour
 
         if (_pendingCount == 0 && _pendingChestCount == 0)
         {
+            _inventoryUI.SetExpansionMode(false);
+            InventoryItemUI.IsDragEnabled = true;
+            RefreshExpansionGuide();
             _panelRoot.SetActive(false);
             _gameSession.Resume();
             return;
         }
 
         StartRound();
+    }
+
+    // 해제마다 남은 수 차감, 남은 수가 있어도 후보가 없으면 완료가 막히지 않도록 0으로 정리
+    private void HandleExpansionCellClicked(Vector2Int cell)
+    {
+        if (_phase != RewardPhase.Organizing || _remainingExpansionCount == 0 || !_inventory.TryUnlockCell(cell))
+            return;
+
+        _remainingExpansionCount--;
+
+        if (_inventory.CountExpansionCandidates() == 0)
+            _remainingExpansionCount = 0;
+
+        if (_remainingExpansionCount == 0)
+            _inventoryUI.SetExpansionMode(false);
+
+        RefreshExpansionGuide();
+        RefreshCompleteButton();
     }
 
     // Selecting은 카드 선택만, Organizing은 Temporary 정리·회전·드래그만 가능하도록 UI 전환
@@ -273,8 +328,10 @@ public class LevelUpPanel : MonoBehaviour
         _selectingGroup.SetActive(isSelecting);
         _temporaryArea.gameObject.SetActive(!isSelecting);
         _completeButton.gameObject.SetActive(!isSelecting);
-        _itemLayerGroup.blocksRaycasts = !isSelecting;
+        InventoryItemUI.IsDragEnabled = !isSelecting; // hover 툴팁은 유지하고 드래그만 차단
         _inventoryUI.SetRotateEnabled(!isSelecting);
+        _inventoryUI.SetExpansionMode(!isSelecting && _remainingExpansionCount > 0);
+        RefreshExpansionGuide();
 
         RefreshCompleteButton();
         RefreshSelection();
@@ -286,7 +343,7 @@ public class LevelUpPanel : MonoBehaviour
     {
         bool isOrganizing = _phase == RewardPhase.Organizing;
 
-        _completeButton.interactable = isOrganizing && _inventory.TemporaryCount == 0;
+        _completeButton.interactable = isOrganizing && _inventory.TemporaryCount == 0 && _remainingExpansionCount == 0;
         _temporaryWarning.SetActive(isOrganizing && _inventory.TemporaryCount > 0);
     }
 

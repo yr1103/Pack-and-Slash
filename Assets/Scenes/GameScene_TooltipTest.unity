@@ -16753,6 +16753,7 @@ MonoBehaviour:
   _inventoryUI: {fileID: 2844778135830479358}
   _sellPopup: {fileID: 1667666515}
   _tooltip: {fileID: 1087517654}
+  _chestExpansionCount: 4
 --- !u!1 &1673433031
 GameObject:
   m_ObjectHideFlags: 0
@@ -24772,6 +24773,10 @@ MonoBehaviour:
   - {fileID: 1989425829}
   _sellArea: {fileID: 405184531}
   _rotateAction: {fileID: 835590030820426825, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  _inventory: {fileID: 1367929132}
+  _availableCellColor: {r: 1, g: 1, b: 1, a: 1}
+  _lockedCellColor: {r: 0.45, g: 0.5, b: 0.58, a: 1}
+  _candidateCellColor: {r: 1, g: 0.85, b: 0.2, a: 1}
 --- !u!1001 &3204916819369846296
 PrefabInstance:
   m_ObjectHideFlags: 0

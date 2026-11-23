@@ -1189,6 +1189,32 @@ public class InventoryTests
             AssertOccupied(target.Position);
     }
 
+    [Test]
+    public void CountExpansionCandidates_InitialGrid_Is16()
+    {
+        Assert.AreEqual(16, _inventory.CountExpansionCandidates());
+    }
+
+    [Test]
+    public void TryUnlockCell_Candidate_UnlocksAndRecalculates()
+    {
+        Vector2Int cell = new Vector2Int(2, 1);
+
+        Assert.IsTrue(_inventory.TryUnlockCell(cell));
+        Assert.IsTrue(_inventory.IsCellAvailable(cell));
+        Assert.IsTrue(_inventory.IsExpansionCandidate(new Vector2Int(1, 1))); // 새 외곽 칸
+        Assert.AreEqual(17, _inventory.CountExpansionCandidates()); // -1(해제) +2((1,1),(2,0))
+        Assert.IsTrue(_inventory.CanPlace(_probe, cell, 0));
+    }
+
+    [Test]
+    public void TryUnlockCell_NotCandidate_Fails()
+    {
+        Assert.IsFalse(_inventory.TryUnlockCell(new Vector2Int(0, 0))); // 사용 영역과 떨어진 칸
+        Assert.IsFalse(_inventory.TryUnlockCell(new Vector2Int(3, 1))); // 이미 사용 가능
+        Assert.IsFalse(_inventory.IsCellAvailable(new Vector2Int(0, 0)));
+    }
+
     // SetData 시그니처를 바꾸지 않도록 직렬화 필드로 설정
     private static void SetSellable(InventoryData data, bool isSellable)
     {

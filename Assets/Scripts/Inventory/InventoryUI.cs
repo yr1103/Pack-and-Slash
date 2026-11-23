@@ -1,12 +1,14 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 /// <summary>
 /// 화면 좌표↔인벤토리 셀 좌표 변환, Temporary 영역 좌표 보정, Storage·판매 영역 판정
 /// 회전 InputAction 활성화의 단일 소유자
 /// </summary>
-public class InventoryUI : MonoBehaviour
+public class InventoryUI : MonoBehaviour, IPointerClickHandler
 {
     [SerializeField] private RectTransform gridRect;
     [SerializeField] private RectTransform itemLayer;
@@ -23,18 +25,84 @@ public class InventoryUI : MonoBehaviour
     private const int Width = 10;
     private const int Height = 6;
 
+    [SerializeField] private Inventory _inventory;
+    [SerializeField] private Color _availableCellColor = Color.white;
+    [SerializeField] private Color _lockedCellColor = new Color(0.45f, 0.5f, 0.58f, 1f);
+    [SerializeField] private Color _candidateCellColor = new Color(1f, 0.85f, 0.2f, 1f); // 확장 모드에서만 사용
+
+    private readonly Image[,] _cellImages = new Image[Width, Height];
+
     private bool _isRotateEnabled = true; // 보상 선택 단계에서 꺼둔 상태가 패널 재활성화 시에도 유지되도록 보관
+    private bool _isExpansionMode;
+
+    /// <summary>확장 모드에서 확장 후보 칸을 클릭했을 때 발생 (인자 = 셀 좌표)</summary>
+    public event Action<Vector2Int> ExpansionCellClicked;
+
+    private void Awake()
+    {
+        // gridRect 자식 = 기존 Slot 셀 (행 우선, 좌상단부터)
+        if (gridRect.childCount != Width * Height)
+        {
+            Debug.LogError($"[InventoryUI] gridRect 자식 수({gridRect.childCount})가 {Width * Height}가 아님");
+            return;
+        }
+
+        for (int i = 0; i < gridRect.childCount; i++)
+        {
+            _cellImages[i % Width, i / Width] = gridRect.GetChild(i).GetComponent<Image>();
+        }
+    }
 
     // 아이템 UI 하나가 비활성화(판매)돼도 공유 액션이 꺼지지 않도록 패널 수명 기준으로 활성화 소유
     private void OnEnable()
     {
         if (_isRotateEnabled)
             _rotateAction.action.Enable();
+
+        _inventory.Changed += RefreshCellColors;
+        RefreshCellColors();
     }
 
     private void OnDisable()
     {
         _rotateAction.action.Disable();
+        _inventory.Changed -= RefreshCellColors;
+    }
+
+    // 확장 모드의 후보 칸 클릭만 통지 (Slot 셀이 레이캐스트를 받아 부모인 이 컴포넌트로 클릭이 버블링됨)
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (_isExpansionMode && TryGetCellPosition(eventData, out Vector2Int cell) &&
+            _inventory.IsExpansionCandidate(cell))
+            ExpansionCellClicked?.Invoke(cell);
+    }
+
+    /// <summary>확장 후보 강조 표시·클릭 통지 여부 설정</summary>
+    public void SetExpansionMode(bool isEnabled)
+    {
+        _isExpansionMode = isEnabled;
+
+        // 비활성 중에는 Changed 구독이 끊겨 있으므로 다음 OnEnable의 갱신으로 반영
+        if (isActiveAndEnabled)
+            RefreshCellColors();
+    }
+
+    private void RefreshCellColors()
+    {
+        for (int x = 0; x < Width; x++)
+        {
+            for (int y = 0; y < Height; y++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+
+                if (_inventory.IsCellAvailable(cell))
+                    _cellImages[x, y].color = _availableCellColor;
+                else if (_isExpansionMode && _inventory.IsExpansionCandidate(cell))
+                    _cellImages[x, y].color = _candidateCellColor;
+                else
+                    _cellImages[x, y].color = _lockedCellColor;
+            }
+        }
     }
 
     // 화면의 마우스 위치를 인벤토리 좌표로 변환
