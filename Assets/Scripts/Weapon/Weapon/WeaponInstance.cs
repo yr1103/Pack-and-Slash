@@ -6,6 +6,9 @@ using UnityEngine;
 /// </summary>
 public class WeaponInstance
 {
+    private const int MIN_GUN_COUNT = 1;
+    private const string INVALID_GUN_COUNT_WARNING_FORMAT = "[WeaponInstance] GunCount {0}는 1 미만이라 1로 보정";
+
     /// <summary>장착 목록 안에서 고유한 인스턴스 ID</summary>
     public int InstanceId { get; }
 
@@ -29,6 +32,9 @@ public class WeaponInstance
 
     /// <summary>true면 확산각 안 무작위 방향, false면 균등 분배 (생성 시 Definition 값, ApplyStats로만 변경)</summary>
     public bool RandomSpread { get; private set; }
+
+    /// <summary>총기 자루 수, 발사 1회에 자루마다 동시 발사 (생성 시 1, ApplyStats로만 변경)</summary>
+    public int GunCount { get; private set; } = 1;
 
     /// <summary>다음 발사까지 남은 시간(초), 0 이하면 발사 가능 (음수 = 발사 예정 시각을 넘긴 시간)</summary>
     public float ShotCooldown { get; private set; }
@@ -69,13 +75,22 @@ public class WeaponInstance
     }
 
     /// <summary>레벨·런타임 스탯 갱신 (남은 쿨다운·잔탄·재장전은 유지, 새 발사 간격은 다음 ScheduleNextShot부터 적용)</summary>
-    public void ApplyStats(int level, float damage, float fireInterval, float spreadAngle, bool randomSpread)
+    public void ApplyStats(int level, float damage, float fireInterval, float spreadAngle, bool randomSpread,
+        int gunCount)
     {
+        // 자루 0개면 뷰·총구 인덱스가 성립하지 않아 1로 보정
+        if (gunCount < MIN_GUN_COUNT)
+        {
+            Debug.LogWarningFormat(INVALID_GUN_COUNT_WARNING_FORMAT, gunCount);
+            gunCount = MIN_GUN_COUNT;
+        }
+
         Level = level;
         Damage = damage;
         FireInterval = fireInterval;
         SpreadAngle = spreadAngle;
         RandomSpread = randomSpread;
+        GunCount = gunCount;
     }
 
     /// <summary>발사 쿨다운·재장전 시간을 경과 시간만큼 감소 (쿨다운은 음수까지 내려감)</summary>

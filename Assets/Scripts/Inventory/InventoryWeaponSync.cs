@@ -42,6 +42,7 @@ public class InventoryWeaponSync : MonoBehaviour
     public void SyncWeapons()
     {
         HashSet<Inventory.ItemInstance> placedItems = _inventory.GetPlacedItems();
+        bool isGunCountChanged = false;
 
         // 해제보다 먼저 갱신해야 주무기 해제 시 재선정이 갱신된 레벨 기준으로 이뤄짐
         foreach (Inventory.ItemInstance item in placedItems)
@@ -58,8 +59,15 @@ public class InventoryWeaponSync : MonoBehaviour
             }
 
             Inventory.WeaponStats stats = _inventory.GetWeaponStats(item);
-            weapon.ApplyStats(item.Level, stats.Damage, stats.FireInterval, stats.SpreadAngle, stats.RandomSpread);
+            int previousGunCount = weapon.GunCount;
+            weapon.ApplyStats(item.Level, stats.Damage, stats.FireInterval, stats.SpreadAngle, stats.RandomSpread,
+                stats.GunCount);
+            isGunCountChanged |= weapon.GunCount != previousGunCount;
         }
+
+        // Changed 처리 안에서 동기 호출돼 다음 Update의 GetMuzzle보다 먼저 뷰가 맞춰짐
+        if (isGunCountChanged)
+            _loadout.NotifyGunCountChanged();
 
         // 순회 중 Dictionary를 수정할 수 없어 모은 뒤 해제
         List<Inventory.ItemInstance> removedItems = new List<Inventory.ItemInstance>();

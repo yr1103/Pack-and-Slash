@@ -30,7 +30,7 @@ public class WeaponLoadout : MonoBehaviour
     /// <summary>Primary 값이 실제로 바뀐 직후 발생 (null로 바뀐 경우 포함, 같은 호출의 WeaponsChanged보다 먼저)</summary>
     public event Action PrimaryChanged;
 
-    /// <summary>장착·해제가 성공할 때마다 Primary 갱신 후 발생</summary>
+    /// <summary>장착·해제가 성공할 때마다 Primary 갱신 후 발생, 장착 무기의 자루 수(GunCount)가 바뀔 때도 NotifyGunCountChanged로 발생</summary>
     public event Action WeaponsChanged;
 
     /// <summary>새 인스턴스 ID를 발급해 지정 레벨 무기를 장착 (주무기가 없으면 주무기로 지정)</summary>
@@ -73,6 +73,12 @@ public class WeaponLoadout : MonoBehaviour
         }
 
         return false;
+    }
+
+    /// <summary>장착 무기의 자루 수(GunCount) 변경을 WeaponsChanged로 알림 (ApplyStats는 이벤트를 발생시키지 않음)</summary>
+    public void NotifyGunCountChanged()
+    {
+        WeaponsChanged?.Invoke();
     }
 
     /// <summary>주무기 선정 (진화 → 고유 무기 → 높은 레벨 → 낮은 InstanceId 순으로 우선)</summary>

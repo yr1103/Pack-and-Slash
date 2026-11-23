@@ -107,13 +107,15 @@ public class Inventory : MonoBehaviour
         public float FireInterval { get; }
         public float SpreadAngle { get; } // 부채꼴 전체 각도(도)
         public bool RandomSpread { get; } // true면 확산각 안 무작위 방향, false면 균등 분배
+        public int GunCount { get; } // 이 인스턴스의 총기 자루 수 (발사 1회에 자루마다 동시 발사)
 
-        public WeaponStats(float damage, float fireInterval, float spreadAngle, bool randomSpread)
+        public WeaponStats(float damage, float fireInterval, float spreadAngle, bool randomSpread, int gunCount)
         {
             Damage = damage;
             FireInterval = fireInterval;
             SpreadAngle = spreadAngle;
             RandomSpread = randomSpread;
+            GunCount = gunCount;
         }
     }
 
@@ -578,7 +580,9 @@ public class Inventory : MonoBehaviour
         float spreadAngle = (useUniqueSpread ? uniqueSpreadAngle : definition.SpreadAngle) * (1f - spreadReduction);
         bool randomSpread = useUniqueSpread || definition.RandomSpread;
 
-        return new WeaponStats(damage, fireInterval, spreadAngle, randomSpread);
+        int gunCount = IsLevel3EffectActive(weapon) ? definition.Level3GunCount : 1;
+
+        return new WeaponStats(damage, fireInterval, spreadAngle, randomSpread, gunCount);
     }
 
     /// <summary>현재 캐릭터의 고유 아이템과 같은 데이터의 아이템이 Inventory에 배치되어 있는지 (Storage·Temporary는 해제)</summary>

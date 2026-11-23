@@ -27,6 +27,8 @@ public class InventoryWeaponSyncTests
     private const float BASE_SPREAD_ANGLE = 20f;
     private const float LEVEL3_SPREAD_REDUCTION = 0.2f;
     private const string LEVEL3_SPREAD_REDUCTION_FIELD = "_level3SpreadReduction";
+    private const string LEVEL3_GUN_COUNT_FIELD = "_level3GunCount";
+
     private static readonly Vector2Int[] _singleCellShape = { new Vector2Int(0, 0) };
 
     // 무기를 활성 영역 안쪽 (4,2)에 두어 상하좌우가 모두 활성 셀
@@ -320,6 +322,29 @@ public class InventoryWeaponSyncTests
 
         // 인접 0.5 + 0.2 + Lv.3 0.2 = 0.9 → 상한 0.7, 20 × 0.3
         Assert.AreEqual(6f, _inventory.GetWeaponStats(weapon).SpreadAngle, FLOAT_TOLERANCE);
+    }
+
+    [Test]
+    public void GetWeaponStats_Level3GunCount_AppliedFromLevel3()
+    {
+        SerializedObject serializedDefinition = new SerializedObject(_weaponDefinition);
+        serializedDefinition.FindProperty(LEVEL3_GUN_COUNT_FIELD).intValue = 2;
+        serializedDefinition.ApplyModifiedPropertiesWithoutUndo();
+        Inventory.ItemInstance weapon = CreateWeapon();
+        weapon.Level = 2;
+        Assert.AreEqual(1, _inventory.GetWeaponStats(weapon).GunCount);
+
+        weapon.Level = 3;
+        Assert.AreEqual(2, _inventory.GetWeaponStats(weapon).GunCount);
+    }
+
+    [Test]
+    public void GetWeaponStats_DefaultLevel3GunCount_StaysOneAtLevel3()
+    {
+        Inventory.ItemInstance weapon = CreateWeapon();
+        weapon.Level = 3;
+
+        Assert.AreEqual(1, _inventory.GetWeaponStats(weapon).GunCount);
     }
 
     [Test]
