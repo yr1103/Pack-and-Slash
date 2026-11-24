@@ -114,3 +114,6 @@ InitTestScene*.unity*
 .idea/
 /[Aa]ssets/[Tt]extMesh [Pp]ro/
 Assets/TextMesh Pro.meta
+
+# 개인 MCP 설정 (엔드포인트 주소 포함)
+.mcp.json
