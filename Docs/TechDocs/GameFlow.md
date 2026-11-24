@@ -13,6 +13,7 @@
 - 전투 중 ESC로 일시정지(`Time.timeScale` 0)하며 설정 판넬을 열고, 닫으면 재개한다. 설정 판넬에서 확인창을 거쳐 타이틀로 돌아갈 수 있다.
 - 레벨업마다 일시정지하고 레벨업 화면(인벤토리·보상 카드 표시)을 열며, 쌓인 레벨업 횟수만큼 회차를 진행한 뒤 닫고 재개한다. 보물 상자 보상 요청도 같은 화면을 쓴다(카드 5장, 대기 중인 레벨업 다음 순서).
 - 회차마다 보상 후보 선택(`Selecting`, 레벨업 3중 2택·보물 상자 5중 3택, 특수 재화로 리롤) → 선택 아이템을 Temporary 영역에서 인벤토리·저장고로 정리(`Organizing`) 순서로 진행하고, Temporary가 비어야 완료할 수 있다.
+- 보물 상자 회차는 `Organizing`에서 인벤토리 잠긴 칸 중 확장 후보 4칸을 클릭해 해제해야 완료할 수 있다.
 - 설정(볼륨·피격 효과·데미지 숫자)을 `PlayerPrefs`에 저장하고 게임 시작 시 불러온다.
 - 플레이어 체력·무적 시간·Enemy 접촉 피해, 경험치·레벨을 관리한다.
 - 생존 시간·처치 수·경험치 바·레벨·특수 재화 잔액(`Currency`)을 HUD로, 플레이어 체력을 머리 위 체력바로, 재장전 진행률을 체력바 옆 세로 게이지로 표시한다.
@@ -27,7 +28,8 @@
 | 포함 | 이슈 미등록 (브랜치 `art/fix-inven-ui`) : `LevelUpPanel`의 보상 단계(`RewardPhase.Selecting`/`Organizing`), 레벨업 3중 2택·보물 상자 5중 3택, 리롤(특수 재화 차감), 선택 아이템의 Temporary 배치, 완료 조건(Temporary 0개), `RewardCardUI`, `RewardCandidateGenerator`, `PFB_InventoryItem` |
 | 포함 | 이슈 미등록 (브랜치 `art/fix-inven-ui`) : 공통 아이템 툴팁 `ItemTooltipUI`(인벤토리·저장고·Temporary 아이템과 보상 후보 카드 Hover), 아이템 설명 데이터(`InventoryData`의 설명·장착 효과·해제 버프·해제 디버프 텍스트), `Inventory.GetSellPrice(InventoryData, int)` |
 | 포함 | 이슈 미등록 (브랜치 `art/fix-inven-ui`) : 아이템 합성(`Inventory.CanMerge`/`TryMerge`), 무기 레벨 성장·패시브 인접 효과(`GetAdjacencyBonus`/`GetEffectiveAdjacencyBonus`), 패시브 Lv.3 효과(`GetLevel3Bonus`), 캐릭터 고유 아이템 장착/해제 효과(`CharacterDefinition` 고유 효과 필드, `Inventory.Character`), 시작 아이템 지급(`InventoryWeaponSync`), 플레이어 스탯 반영(`PlayerStatSync`, `PlayerMovement`/`PlayerHealth`/`PlayerExperience` 배율), 툴팁 스탯 표시(레벨 보너스·인접·고유 효과·최종 공격력 범위·Lv.3 활성), 재장전 게이지(`WeaponReloadGauge`), 플레이어 피격 반경·젬 획득 반경 조정 |
-| 제외 (후속) | 소비 아이템 효과(1칸 확장·체력 회복), 인벤토리 전체 기술 문서(별도 작업), 판매 외 재화 획득, 다시하기, 전투 조끼 +2칸 확장·회수, 무기별 재장전 게이지 |
+| 포함 | Issue #23 : 보물 상자 회차의 인벤토리 4칸 확장 선택(`LevelUpPanel.BeginExpansion`, `Inventory.IsCellAvailable`/`IsExpansionCandidate`/`CountExpansionCandidates`/`TryUnlockCell`, `InventoryUI` 칸 색 표시·`SetExpansionMode`·`ExpansionCellClicked`, 안내 문구 `ExpansionGuideText`), 보상 선택(`Selecting`) 중 아이템 hover 툴팁 표시(`InventoryItemUI.IsDragEnabled`로 드래그만 차단), 레벨업 인벤토리 UI에 `InventoryUI_casual` 스프라이트 적용 |
+| 제외 (후속) | 소비 아이템 효과(1칸 확장·체력 회복), 1칸 확장권 효과(`BeginExpansion` 진입점만 마련), 인벤토리 전체 기술 문서(별도 작업), 판매 외 재화 획득, 다시하기, 전투 조끼 +2칸 확장·회수, 무기별 재장전 게이지 |
 
 ## 주요 클래스와 역할
 
@@ -69,7 +71,7 @@
 | `Inventory.StorageCountChanged` | `Inventory` | 없음 | 아이템이 보관함에 들어오거나 나갈 때 | `LevelUpPanel.RefreshStorageCount` |
 | `Inventory.Changed` | `Inventory` | 없음 | 공개 조작(배치·이동·회전·제거·보관·Temporary 이동·판매·합성·`Character` 설정)이 성공해 상태가 확정된 뒤 1회. 실패·조회 시 없음 | `PlayerStatSync.ApplyStats`, `InventoryWeaponSync.SyncWeapons`(`Docs/TechDocs/Weapon.md`) |
 
-- 구독 위치 : `GameSession`(`Enemy.Died`, `PlayerHealth.Died`), `GameHUD`(`ExperienceGained`, `Currency.Changed`), `PlayerHealthBar`, `ResultPanel`, `LevelUpPanel`(`LevelChanged`, `Currency.Changed`, `Inventory` 이벤트 2개, 카드마다 `RewardCardUI.Clicked`), `PlayerStatSync`(`Inventory.Changed`) 모두 `OnEnable` 구독, `OnDisable` 해제.
+- 구독 위치 : `GameSession`(`Enemy.Died`, `PlayerHealth.Died`), `GameHUD`(`ExperienceGained`, `Currency.Changed`), `PlayerHealthBar`, `ResultPanel`, `LevelUpPanel`(`LevelChanged`, `Currency.Changed`, `Inventory` 이벤트 2개, `InventoryUI.ExpansionCellClicked`, 카드마다 `RewardCardUI.Clicked`), `InventoryUI`(`Inventory.Changed`), `PlayerStatSync`(`Inventory.Changed`) 모두 `OnEnable` 구독, `OnDisable` 해제.
 - `Currency`·`Inventory`는 이 문서의 클래스가 아니다. 위 표에는 이 문서 클래스가 구독하는 경우만 적는다.
 
 ### `GameSession`
@@ -198,17 +200,23 @@
 | `_selectedIndices` (private) | 선택한 카드 인덱스. 선택 순서대로 저장되고 확정 시 이 순서로 Temporary에 배치한다 |
 | `CardCount` (private) | `Min(회차 종류별 카드 수, _rewardCards.Length)` |
 | `RequiredSelectCount` (private) | `Min(회차 종류별 최대 선택 수, _candidates.Count)`. 후보가 최대 선택 수보다 적으면 후보 수만큼만 선택한다 |
+| `BeginExpansion(int count)` | 남은 확장 수 `_remainingExpansionCount = Min(count, Inventory.CountExpansionCandidates())`. `Organizing`이면 즉시 `InventoryUI.SetExpansionMode(남은 수 > 0)`. 이어서 `RefreshExpansionGuide`·`RefreshCompleteButton`. 보물 상자 외 확장 출처(1칸 확장권 등)도 같은 경로로 호출하도록 둔 진입점이며 (요약 주석), 현재 호출부는 `StartRound` 하나다 |
+| `_chestExpansionCount` (Inspector, `Min(0)`) | 보물 상자 회차당 확장 칸 수. 기본값 4 |
+| `_remainingExpansionCount` (private) | 현재 회차에서 남은 확장 수. 0이어야 완료할 수 있다 |
+| `_expansionGuideText` (Inspector, `Text`) | 확장 안내 문구 `"확장할 {남은 수}칸을 선택하세요!!"`. `null` 허용 (미연결 Scene은 안내 생략) |
+
+- `RefreshExpansionGuide` : `_expansionGuideText`가 `null`이면 무시. `Organizing`이고 남은 확장 수 > 0일 때만 문구를 켜고 남은 수로 갱신한다. 남은 수가 0이 되면 숨긴다.
 
 - Issue #17의 `_previewCardCount` 필드와 그 `shortcut` 주석(3/5 레이아웃 확인용 임시 값)은 Issue #19에서 제거되고 위 카드 수 필드로 바뀌었다.
 - `Awake`에서 `_panelRoot.SetActive(false)`.
-- 구독 (`OnEnable`) : `LevelChanged` → `HandleLevelChanged`, 완료 버튼 → `HandleCompleteClicked`, 선택 완료 버튼 → `HandleConfirmClicked`, 리롤 버튼 → `HandleRerollClicked`, `Inventory.TemporaryCountChanged` → `RefreshCompleteButton`, `Inventory.StorageCountChanged` → `RefreshStorageCount`, `Currency.Changed` → `RefreshCurrency`, 각 카드의 `RewardCardUI.Clicked` → `HandleCardClicked`. `OnDisable`에서 모두 해제.
+- 구독 (`OnEnable`) : `LevelChanged` → `HandleLevelChanged`, 완료 버튼 → `HandleCompleteClicked`, 선택 완료 버튼 → `HandleConfirmClicked`, 리롤 버튼 → `HandleRerollClicked`, `Inventory.TemporaryCountChanged` → `RefreshCompleteButton`, `Inventory.StorageCountChanged` → `RefreshStorageCount`, `Currency.Changed` → `RefreshCurrency`, `InventoryUI.ExpansionCellClicked` → `HandleExpansionCellClicked`, 각 카드의 `RewardCardUI.Clicked` → `HandleCardClicked`. `OnDisable`에서 모두 해제.
 - `HandleLevelChanged(level)` : `_pendingCount++`. 화면이 닫혀 있을 때만 `Open`. 한 번에 여러 레벨이 올라 이벤트가 연속 발생해도 횟수만 쌓고 화면은 한 번만 연다 (코드 주석). 인자 `level`은 쓰지 않는다.
 - `Open` : `_gameSession.Pause()` → `StartRound()` → `RefreshStorageCount()`(`"Storage {보관 수}/{Inventory.STORAGE_CAPACITY}"`) → `_panelRoot.SetActive(true)`.
 
 #### 회차 시작 (`StartRound`)
 
 - `_isShowingChest = (_pendingCount == 0)`이므로 레벨업 대기가 남아 있으면 항상 레벨업 회차가 먼저다.
-- `_phase = Selecting`, 선택 초기화, `_candidates = GenerateCandidates(null)`(직전 후보 없음) → `RefreshRewardCards()` → `ApplyPhase()`. 이전 회차의 후보·선택은 이어받지 않는다 (코드 주석).
+- `_phase = Selecting` → `BeginExpansion(보물 상자 회차면 _chestExpansionCount, 아니면 0)` → 선택 초기화 → `_candidates = GenerateCandidates(null)`(직전 후보 없음) → `RefreshRewardCards()` → `ApplyPhase()`. 이전 회차의 후보·선택은 이어받지 않는다 (코드 주석). `Selecting`이므로 확장 모드는 켜지지 않고, `Organizing` 진입 시 `ApplyPhase`가 켠다 (코드 주석).
 - `RefreshRewardCards` : `_rewardCards[i]`를 `i < 후보 수`이면 켜고 `Bind(후보)`·`SetSelected(선택 여부)`, 나머지는 끈다. 이어서 `RefreshSelection`.
 
 #### 카드 선택·취소 (`HandleCardClicked`)
@@ -245,18 +253,29 @@
 | `_selectingGroup` (리롤·재화·선택 수·선택 완료) | 켬 | 끔 |
 | `_temporaryArea` | 끔 | 켬 |
 | `_completeButton` (GameObject) | 끔 | 켬 |
-| `_itemLayerGroup.blocksRaycasts` (아이템 드래그) | false | true |
+| `InventoryItemUI.IsDragEnabled` (아이템 드래그, hover 툴팁은 유지) | false | true |
 | `InventoryUI.SetRotateEnabled` (회전 입력) | false | true |
+| `InventoryUI.SetExpansionMode` (확장 모드) | false | 남은 확장 수 > 0 |
 
-- 이어서 `RefreshCompleteButton`, `RefreshSelection`, `RefreshCurrency(현재 잔액)`을 호출한다.
-- `RefreshCompleteButton` : 완료 버튼 `interactable = Organizing && TemporaryCount == 0`, Temporary 경고(`_temporaryWarning`)는 `Organizing && TemporaryCount > 0`일 때만 켠다. `TemporaryCountChanged`마다 다시 계산한다.
+- 이어서 `RefreshExpansionGuide`, `RefreshCompleteButton`, `RefreshSelection`, `RefreshCurrency(현재 잔액)`을 호출한다.
+- 이전의 `_itemLayerGroup`(ItemLayer CanvasGroup `blocksRaycasts` 전환) 필드는 Issue #23에서 제거되었다. 보상 선택 중에도 아이템이 포인터 이벤트를 받아 툴팁을 띄우고, 드래그만 `IsDragEnabled`로 막는다.
+- `RefreshCompleteButton` : 완료 버튼 `interactable = Organizing && TemporaryCount == 0 && 남은 확장 수 == 0`, Temporary 경고(`_temporaryWarning`)는 `Organizing && TemporaryCount > 0`일 때만 켠다. `TemporaryCountChanged`마다 다시 계산한다.
 
 #### 완료 (`HandleCompleteClicked`)
 
-- 버튼 비활성화와 별개로 함수 안에서도 `Organizing`이 아니거나 `TemporaryCount > 0`이면 무시한다 (코드 주석 : 외부 호출 방어). 완료 조건이 버튼(`RefreshCompleteButton`)과 처리 함수 두 곳에 있다.
+- 버튼 비활성화와 별개로 함수 안에서도 `Organizing`이 아니거나 `TemporaryCount > 0`이거나 남은 확장 수 > 0이면 무시한다 (코드 주석 : 외부 호출 방어). 완료 조건이 버튼(`RefreshCompleteButton`)과 처리 함수 두 곳에 있다.
 - `_isShowingChest`이면 `_pendingChestCount--`, 아니면 `_pendingCount--`. 표시 중인 종류만 줄이므로 표시 중에 도착한 다른 종류의 요청이 잘못 차감되지 않는다 (코드 주석).
-- 두 횟수가 모두 0이면 `_panelRoot.SetActive(false)` 후 `_gameSession.Resume()`. 아니면 `StartRound()`로 다음 회차를 새 후보로 시작한다. 따라서 마지막 회차를 완료하기 전에는 재개하지 않는다.
+- 두 횟수가 모두 0이면 `InventoryUI.SetExpansionMode(false)`, `InventoryItemUI.IsDragEnabled = true`, `RefreshExpansionGuide()` → `_panelRoot.SetActive(false)` 후 `_gameSession.Resume()`. 아니면 `StartRound()`로 다음 회차를 새 후보로 시작한다. 따라서 마지막 회차를 완료하기 전에는 재개하지 않는다.
 - 화면이 열린 동안 들어온 요청은 횟수만 늘고 표시를 바꾸지 않는다. 예 : 보물 상자 회차(5장) 표시 중 레벨업하면 그 회차는 보물 상자로 유지되고, 완료하면 `_pendingChestCount`가 줄어든 뒤 다음 회차는 레벨업(3장)이다.
+
+#### 확장 칸 클릭 (`HandleExpansionCellClicked`)
+
+1. `Organizing`이 아니거나 남은 확장 수가 0이거나 `Inventory.TryUnlockCell(cell)`이 실패하면 무시.
+2. 남은 확장 수 1 감소. 해제 후 `CountExpansionCandidates()`가 0이면 남은 수를 0으로 정리한다 (남은 수가 있어도 후보가 없어 완료가 막히지 않도록, 코드 주석).
+3. 남은 수가 0이면 `InventoryUI.SetExpansionMode(false)`.
+4. `RefreshExpansionGuide`, `RefreshCompleteButton`.
+
+- 칸 색 갱신은 `TryUnlockCell`이 발생시키는 `Inventory.Changed`를 `InventoryUI`가 받아 처리한다.
 
 #### 후보 추첨 (`RewardCandidateGenerator.Generate`)
 
@@ -329,7 +348,7 @@
 | `InventoryItemUI` | `OnPointerEnter` (`_tooltip`·`item`이 있고 드래그 중이 아닐 때 : `eventData.dragging`이 false이고 `_draggingItem`이 null) | `OnPointerExit`, `OnBeginDrag`(드래그 시작 시 숨김), `OnDisable`(판매 등으로 꺼지면 `Exit`가 오지 않으므로, 코드 주석) |
 
 - 드래그 중에는 다른 아이템 위를 지나도 툴팁을 띄우지 않는다 (코드 주석).
-- 보상 카드는 `Selecting`에서만 켜져 있고, 아이템 UI는 `Organizing`에서만 포인터 이벤트를 받는다 (주의사항 ac).
+- 보상 카드는 `Selecting`에서만 켜져 있다. 아이템 UI는 Issue #23부터 `Selecting`에서도 포인터 이벤트를 받아 hover 툴팁을 띄운다. 드래그는 `InventoryItemUI.IsDragEnabled`가 false이면 `OnBeginDrag`에서 `eventData.pointerDrag = null`로 취소되어 `OnDrag`·`OnEndDrag`가 호출되지 않는다 (코드 주석).
 
 #### 아이템 설명 데이터 (`InventoryData`)
 
@@ -343,7 +362,7 @@
 - 텍스트 필드 3개는 툴팁 표시 전용이며 전투 수치와 연결하지 않는다 (필드 주석, 주의사항 af).
 - 값 : `Assets/Data/Weapon/Inventory/SO_Inventory_*.asset` 12개 모두 `_description`이 입력되어 있고, 텍스트 필드 3개는 `CowboyHat`·`CombatVest`·`ProteinShake` 3개에만 입력되어 있다. 출처는 `Docs/Spec/Inventory/ItemDescriptions.md`(고유 아이템은 하단 요약 표 기준)다 (브리핑 기준, 문구 대조는 하지 않았다).
 
-### 인벤토리 API (브랜치 `art/fix-inven-ui` 변경분만)
+### 인벤토리 API (변경분 누적 : `art/fix-inven-ui`, Issue #23)
 
 인벤토리 전체 기술 문서는 없다 (별도 작업). 보상 화면·툴팁·성장·효과가 쓰는 변경 API만 적는다. 무기 최종 스탯(`GetWeaponStats`)과 무기 장착 동기화(`InventoryWeaponSync`)는 `Docs/TechDocs/Weapon.md`.
 
@@ -353,6 +372,14 @@
 | `InventoryUI.SetRotateEnabled(bool)` | 공유 회전 액션의 허용 여부. 값을 `_isRotateEnabled`에 보관하고, 컴포넌트가 활성일 때만 즉시 `Enable`/`Disable`한다. 비활성 중이면 다음 `OnEnable`에서 `_isRotateEnabled`가 true일 때만 `Enable`한다 (패널 밖에서 회전 입력이 살아남지 않게, 코드 주석) |
 | `InventoryUI.GetItemSize(Vector2Int[] shape)` | 회전 0 정규화 Shape의 바운딩 칸 수로 이미지 크기 계산 : `칸 수 × cellSize + (칸 수 − 1) × spacing` (`GameScene` 값 cellSize 72, spacing 4) |
 | `InventoryItemUI.OnPointerEnter` / `OnPointerExit` | `IPointerEnterHandler`·`IPointerExitHandler` 구현. 툴팁 표시·숨김 (위 `ItemTooltipUI`의 `호출 측 규칙`) |
+| `Inventory.IsCellAvailable(Vector2Int)` | 사용 가능(잠금 해제) 칸인지. 범위 밖이면 false (Issue #23) |
+| `Inventory.IsExpansionCandidate(Vector2Int)` | 확장 후보인지. 범위 안이고 잠긴 칸이며 상하좌우에 사용 가능한 칸이 있으면 true (Issue #23) |
+| `Inventory.CountExpansionCandidates()` | 현재 확장 후보 칸 수 (10×6 전체 순회, Issue #23) |
+| `Inventory.TryUnlockCell(Vector2Int)` | 후보일 때만 칸을 사용 가능으로 바꾸고 `Changed` 1회 발생 후 true. 후보가 아니면 상태 변화 없이 false (Issue #23) |
+| `InventoryUI.SetExpansionMode(bool)` | 확장 후보 강조·클릭 통지 여부. 활성 중이면 즉시 칸 색 갱신, 비활성 중이면 다음 `OnEnable`의 갱신으로 반영 (코드 주석, Issue #23) |
+| `InventoryUI.ExpansionCellClicked` (`Action<Vector2Int>`) | 확장 모드에서 확장 후보 칸을 클릭하면 셀 좌표로 발생. `InventoryUI`가 `IPointerClickHandler`를 구현하며, Grid의 Slot 셀이 레이캐스트를 받아 부모 `InventoryUI`로 클릭이 버블링된다 (코드 주석). 확장 모드가 아니거나 후보 칸이 아니면 발생하지 않는다 (Issue #23) |
+| `InventoryUI` 칸 색 표시 | `Awake`에서 `gridRect`의 자식 60개(기존 Slot, 인덱스 `y × 10 + x`, 좌상단부터 행 우선)의 `Image`를 모아 두고, `OnEnable`·`Inventory.Changed`·`SetExpansionMode`마다 색을 갱신한다. 사용 가능 `_availableCellColor`(흰색) / 확장 모드의 후보 `_candidateCellColor`(노란색 (1, 0.85, 0.2)) / 그 외 잠김 `_lockedCellColor`(회청색 (0.45, 0.5, 0.58)). 자식 수가 60이 아니면 `LogError` 후 수집을 중단한다. `_inventory`(Inspector) 필드 필요 (Issue #23) |
+| `InventoryItemUI.IsDragEnabled` (`static bool`, 기본 true) | 아이템 드래그 허용 여부. 전체 아이템 UI가 공유하며 `LevelUpPanel.ApplyPhase`·`HandleCompleteClicked`가 바꾼다 (Issue #23) |
 | `Inventory.GetSellPrice(InventoryData data, int level)` | 보유하지 않은 아이템(보상 후보 등)의 판매가 `level × SELL_PRICE_PER_LEVEL`(1). `data`가 null이면 0. 기존 `GetSellPrice(ItemInstance)`는 null이면 0, 아니면 `GetSellPrice(item.Data, item.Level)`에 위임한다 |
 
 #### 영역·임시 배치·판매
@@ -459,9 +486,10 @@ WeaponReloadGauge        첫 재장전 중 무기 → 게이지 켬·fillAmount 
 [상자 획득] TreasureChest.Update (Enemy.md) → LevelUpPanel.RequestChestReward : _pendingChestCount++
             └─ (화면 닫힘) Open
 Open → GameSession.Pause → timeScale = 0 → StartRound → RefreshStorageCount → _panelRoot 켬
-StartRound : _isShowingChest = (_pendingCount == 0) → Phase = Selecting, 선택 초기화
+StartRound : _isShowingChest = (_pendingCount == 0) → Phase = Selecting
+  → BeginExpansion(상자 회차면 4, 아니면 0) : 남은 확장 수 = Min(요청 수, 후보 수) (Selecting이라 확장 모드는 아직 끔) → 선택 초기화
   → RewardCandidateGenerator.Generate(풀, CardCount, 가중치, previous null) → RefreshRewardCards(후보 수만큼 카드 켬·Bind)
-  → ApplyPhase (SelectingGroup 켬, TemporaryArea·완료 버튼 끔, 아이템 드래그·회전 차단)
+  → ApplyPhase (SelectingGroup 켬, TemporaryArea·완료 버튼 끔, IsDragEnabled false·회전 차단, 확장 모드·안내 문구 끔)
 [카드 클릭] RewardCardUI.Clicked → HandleCardClicked : 선택이면 취소, 아니면 필요 수 미만일 때만 선택 → RefreshSelection
 [리롤 버튼] HandleRerollClicked : Selecting·잔액 ≥ 비용 확인 → Generate(previous = 현재 후보)
   ├─ 새 후보 0개 → 중단 (차감 없음)
@@ -469,20 +497,24 @@ StartRound : _isShowingChest = (_pendingCount == 0) → Phase = Selecting, 선�
 [선택 완료 버튼] HandleConfirmClicked : Selecting·선택 수 == 필요 수 확인 → Phase = Organizing (먼저)
   → 선택 순서대로 (Expendables는 TODO, 등록 안 함) AddToTemporary : ItemInstance → 가로 균등 칸 중심 → ClampToTemporary
        → Inventory.MoveToTemporary → Instantiate(PFB_InventoryItem, ItemLayer) → InventoryItemUI.Initialize(5인자, _tooltip 포함)
-  → 후보·선택 비움 → RefreshRewardCards (카드 모두 끔) → ApplyPhase (SelectingGroup 끔, TemporaryArea·완료 버튼 켬, 드래그·회전 허용)
+  → 후보·선택 비움 → RefreshRewardCards (카드 모두 끔) → ApplyPhase (SelectingGroup 끔, TemporaryArea·완료 버튼 켬, 드래그·회전 허용,
+       남은 확장 수 > 0이면 SetExpansionMode(true)로 후보 칸 노란색·안내 문구 "확장할 {n}칸을 선택하세요!!" 켬)
+[확장 칸 클릭] Slot 클릭 → 부모 InventoryUI.OnPointerClick (확장 모드·후보 칸만) → ExpansionCellClicked(cell) → LevelUpPanel.HandleExpansionCellClicked
+  → Inventory.TryUnlockCell 성공 (Changed → InventoryUI 칸 색 갱신) → 남은 수 −1 (후보 0이면 남은 수 0)
+  → 남은 수 0이면 SetExpansionMode(false) → RefreshExpansionGuide (0이면 문구 숨김) → RefreshCompleteButton
 [아이템 정리] 드래그로 인벤토리·저장고·판매 → Inventory.TemporaryCountChanged → RefreshCompleteButton (0개면 완료 버튼 켬, 경고 끔)
   드롭 시 포인터 아래 다른 아이템 → TryMerge (성공 : 재료 None·대상 Level+1·재료 UI 끔) / 실패 → 영역별 처리
   판매 영역 드롭 → CanSell이면 SellConfirmPopup.Open → 확인 : 가격 확정 → TrySell → Currency.Add → 아이템 UI 끔
   조작 성공마다 Inventory.Changed → InventoryWeaponSync.SyncWeapons (무기 장착·해제·스탯, Weapon.md) · PlayerStatSync.ApplyStats
 [툴팁 Hover]
   카드 Enter (Selecting) → RewardCardUI.OnPointerEnter → ItemTooltipUI.Show(data, 카드) → Display(Lv.1, GetSellPrice(data, 1)) → 루트 켬 → 레이아웃 재계산 → UpdatePosition
-  아이템 Enter (Organizing, 드래그 중 아님) → InventoryItemUI.OnPointerEnter → ItemTooltipUI.Show(item, 아이템) → Display(item.Level, GetSellPrice(item)) → (위와 같음)
+  아이템 Enter (Selecting·Organizing, 드래그 중 아님) → InventoryItemUI.OnPointerEnter → ItemTooltipUI.Show(item, 아이템) → Display(item.Level, GetSellPrice(item)) → (위와 같음)
   매 프레임 LateUpdate (_source 있음) → UpdatePosition
   Exit / 드래그 시작 / 비활성화 → Hide(자신) → 요청자가 현재 _source일 때만 루트 끔
   패널 닫힘 → TooltipLayer 비활성 → ItemTooltipUI.OnDisable → _source 비움·루트 끔
-[완료 버튼] LevelUpPanel.HandleCompleteClicked : Organizing·TemporaryCount == 0 확인 → _isShowingChest면 _pendingChestCount--, 아니면 _pendingCount--
+[완료 버튼] LevelUpPanel.HandleCompleteClicked : Organizing·TemporaryCount == 0·남은 확장 수 == 0 확인 → _isShowingChest면 _pendingChestCount--, 아니면 _pendingCount--
   ├─ 둘 중 하나라도 남음 → StartRound (다음 회차, 레벨업 우선, 새 후보)
-  └─ 둘 다 0 → _panelRoot 끔 → GameSession.Resume → timeScale = 1
+  └─ 둘 다 0 → SetExpansionMode(false) · IsDragEnabled = true · 안내 문구 숨김 → _panelRoot 끔 → GameSession.Resume → timeScale = 1
 
 [종료] GameSession.End(state)   (Playing일 때 첫 호출만)
   ├─ State = Cleared/GameOver → ElapsedTime 누적·EnemySpawner 생성 즉시 정지
@@ -561,6 +593,8 @@ UI
 │  │  └─ CurrencyIcon         (SPR_SphereGem)
 │  ├─ PFB_LevelUpPanel        (PFB_LevelUpPanel 인스턴스, Scene 저장 시 비활성, LevelUpPanel._panelRoot, InventoryUI 추가, 구성은 아래 `PFB_LevelUpPanel` + 아래 추가 오브젝트)
 │  │  ├─ (Prefab 자식. RewardCards는 위치 오버라이드 (128, -215))
+│  │  ├─ ExpansionGuideText   (인스턴스에 추가 · Prefab 자식 InventoryFrame 다음 형제, Layer 0 Default, Scene 저장 시 비활성, 중앙 기준 (129, 440) · 700×56 = 프레임 상단 중앙,
+│  │  │                        Text 노란색 (1, 0.85, 0.2) · 굵게 · 크기 40 · 가운데 정렬 · Raycast Target 꺼짐, Outline 검정 (1, -1), LevelUpPanel._expansionGuideText)
 │  │  ├─ SelectingGroup       (인스턴스에 추가, 중앙 기준 (120, -315) · 1150×400, LevelUpPanel._selectingGroup)
 │  │  │  ├─ RerollButton      ((-300, -110) · 170×56, Button, Image RewardCard, LevelUpPanel._rerollButton)
 │  │  │  │  ├─ RerollIcon     (Image F_UI_MenuIcons_Tile Map 16x16_11)
@@ -571,7 +605,7 @@ UI
 │  │  │  └─ ConfirmButton     ((400, -110) · 220×64, Button, Image RewardCard, LevelUpPanel._confirmButton)
 │  │  │     └─ Label          (Text "선택 완료")
 │  │  ├─ TemporaryArea        (인스턴스에 추가, Layer 0 Default, 중앙 기준 (120, -315) · 1150×400, Image 검정 α 약 0.25 · 스프라이트 없음 · Raycast Target 꺼짐, LevelUpPanel._temporaryArea · InventoryUI._temporaryArea)
-│  │  ├─ ItemLayer            (인스턴스에 추가, CanvasGroup, LevelUpPanel._itemLayer · _itemLayerGroup, InventoryUI.itemLayer)
+│  │  ├─ ItemLayer            (인스턴스에 추가, CanvasGroup blocksRaycasts true · 코드에서 사용 안 함, LevelUpPanel._itemLayer, InventoryUI.itemLayer)
 │  │  │  └─ 테스트 아이템 13개 (PistolItem_01 등, InventoryItemUI, 모두 Scene 저장 시 비활성, _tooltip 미연결)
 │  │  └─ TooltipLayer         (인스턴스에 추가 · 마지막 자식, 전체 stretch, Scene 저장 시 활성, ItemTooltipUI. Image 없음)
 │  │     └─ ItemTooltip       (ItemTooltipUI._tooltipRect, 폭 320 · pivot (0, 1), Image 짙은 남색 (0.106, 0.133, 0.208, α 0.95) · Raycast Target 꺼짐,
@@ -653,7 +687,9 @@ UI
 | | `_storageCountText` | 인스턴스의 `StorageTitleText` Text |
 | | `_temporaryArea` | 인스턴스의 `TemporaryArea` (`InventoryUI._temporaryArea`와 같은 오브젝트) |
 | | `_itemPrefab` | `PFB_InventoryItem`의 `InventoryItemUI` (Prefab 에셋) |
-| | `_itemLayer` / `_itemLayerGroup` | 인스턴스의 `ItemLayer` RectTransform / CanvasGroup |
+| | `_itemLayer` | 인스턴스의 `ItemLayer` RectTransform (`_itemLayerGroup` 필드는 Issue #23에서 제거) |
+| | `_chestExpansionCount` | 4 (기본값, Scene 값은 확인하지 않음) |
+| | `_expansionGuideText` | 인스턴스의 `ExpansionGuideText` Text |
 | | `_inventoryUI` | 인스턴스 루트의 `InventoryUI` |
 | | `_sellPopup` | Scene의 `SellConfirmPopup` |
 | | `_tooltip` | 인스턴스의 `TooltipLayer`의 `ItemTooltipUI` (생성한 Temporary 아이템 UI에 주입) |
@@ -666,6 +702,8 @@ UI
 - `ItemTooltipUI`는 툴팁 루트(`ItemTooltip`)가 아닌 항상 활성인 별도 오브젝트(`TooltipLayer`)에 둔다. 같은 오브젝트에 두면 첫 표시 때 루트가 처음 켜지며 `Awake`가 실행되어 루트를 다시 끈다 (주의사항 ah).
 - `TooltipLayer`는 `PFB_LevelUpPanel` 인스턴스 루트에 Scene에서 추가한 오브젝트 중 마지막(`m_AddedGameObjects` 순서)이라 패널의 다른 요소·아이템 위에 그려진다. `TooltipLayer`에는 Graphic이 없고 `ItemTooltip`은 Image의 Raycast Target 꺼짐·CanvasGroup `blocksRaycasts` false라 툴팁이 아래 카드·아이템의 포인터 이벤트를 가리지 않는다.
 - `ItemTooltip`은 Scene 저장 시 활성이며, 패널이 처음 열릴 때 `ItemTooltipUI.Awake`가 끈다. 폭은 320 고정이고 높이는 `ContentSizeFitter`가 정한다.
+- `InventoryUI`는 `PFB_LevelUpPanel` 원본이 아니라 Scene에서 인스턴스 루트에 추가한 컴포넌트다. Issue #23에서 `GameScene`을 포함한 Scene 4개의 `InventoryUI`에 칸 색(`_availableCellColor`·`_lockedCellColor`·`_candidateCellColor`)과 `_inventory`(Scene의 `Inventory`)를 연결했다 (작업 시 Unity에서 직접 설정·확인). 나머지 테스트 Scene 3개에는 `ExpansionGuideText`가 없다 (`_expansionGuideText` `null` 허용, 주의사항 ar).
+- `ItemLayer`의 CanvasGroup은 남아 있으나 `blocksRaycasts` true이며 코드에서 쓰지 않는다. 보상 선택 중 드래그 차단은 `InventoryItemUI.IsDragEnabled`가 맡는다.
 - `ItemLayer`의 테스트 아이템 13개는 `_tooltip`이 비어 있어 툴팁이 뜨지 않는다 (`null`이면 툴팁 없음, 필드 주석).
 
 - `LevelUpPanel`의 참조는 `_itemPrefab`·`_rewardPool`을 빼면 모두 Scene 오브젝트를 가리킨다 (Scene 파일의 stripped 오브젝트·fileID로 확인). `_rewardCards` 배열 순서가 `PFB_RewardCard_01`~`05` 순서와 일치함은 Issue #17 때 Unity MCP 조회로 확인했다.
@@ -726,7 +764,8 @@ PFB_LevelUpPanel              (Prefab에서는 활성, 전체 화면 stretch, Im
    └─ Label                   (Text "완료")
 ```
 
-- 슬롯은 표시 전용이다. 스크립트·이벤트가 없다. 흰색 16개·틴트 44개 개수와 `Slot_47`(흰색)은 확인했고, 나머지 슬롯 위치별 색은 개별 대조하지 않았다.
+- 슬롯에는 스크립트가 없다. Issue #23부터 실행 중 색은 `InventoryUI`가 칸 상태(활성 흰색 / 잠김 회청색 / 확장 모드의 후보 노란색)로 덮어쓰며, 슬롯 Image가 레이캐스트를 받아 클릭이 부모 `InventoryUI`로 버블링된다 (위 `인벤토리 API`). 아래 저장 색 설명은 Prefab 저장 값이다.
+- 저장 값 : 흰색 16개·틴트 44개 개수와 `Slot_47`(흰색)은 확인했고, 나머지 슬롯 위치별 색은 개별 대조하지 않았다.
 - `CompleteButton`의 위치는 레이아웃 이미지에 완료 버튼이 없어 정한 임시 위치다 (브리핑 기준).
 - 카드 아이콘·이름·설명의 저장 값은 임시 값이다. 실행 중에는 `RewardCardUI.Bind`가 후보 데이터로 덮어쓴다.
 - 인스턴스는 `GameScene`에서 비활성으로 저장한다 (`m_IsActive` 0 오버라이드). Prefab 원본은 활성이다. `LevelUpPanel.Awake`도 `_panelRoot`를 끄므로 비활성 상태가 두 곳에서 정해진다 (주의사항 o).
@@ -781,7 +820,8 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 
 | 파일 | 사용처 | 비고 |
 |---|---|---|
-| `Assets/Sprites/Inventory/InventoryUI/*.png`, `InventoryItems/*.png` | `PFB_LevelUpPanel`, `PFB_RewardCard` (`StoragePanel`, `InventoryFrame`, `InventorySlot`, `RewardCard`, 카드 임시 아이콘 5종) | 모두 Texture Type Sprite (`textureType: 8`). 이 중 `RewardCard.png`만 9-Slice 테두리(`spriteBorder` 70 사방)가 있다. `InventoryLayout-1920x1080.png`은 배치 기준 이미지이며 Prefab·Scene에서 참조하지 않는다 |
+| `Assets/Sprites/Inventory/InventoryUI_casual/*.png` | `PFB_LevelUpPanel`, `PFB_RewardCard`, `GameScene`의 `RerollButton`·`ConfirmButton` (`StoragePanel`, `InventoryFrame`, `InventorySlot`, `RewardCard`) | Issue #23(커밋 `cb47404`)에서 기존 `Assets/Sprites/Inventory/InventoryUI/`의 같은 이름 스프라이트를 교체했다. 4개 모두 Texture Type Sprite (`textureType: 8`)이며 `RewardCard.png`만 9-Slice 테두리(`spriteBorder` 70 사방)가 있다. 같은 폴더의 `InventoryLayout-1920x1080.png`은 Texture Type Default(`textureType: 0`)인 배치 기준 이미지이며 참조하지 않는다. 교체 대상 참조 위치는 구현 보고 기준이며 개별 GUID 대조는 하지 않았다(미검증) |
+| `Assets/Sprites/Inventory/InventoryItems/*.png` | `PFB_RewardCard` (카드 임시 아이콘 5종) | Texture Type Sprite (`textureType: 8`) |
 | `Assets/Imports/UI/2D Pixel Quest Vol.3 - The UI-GUI/Sprites PNG/Slide Bar/F_UI_BlueBar.png` | `ExperienceFill` (색 흰색) | 외부 에셋 |
 | `.../Sprites PNG/Menu Icons/F_UI_MenuIcons_Tile Map 16x16.png`의 `F_UI_MenuIcons_Tile Map 16x16_11` | `GameScene`의 `SelectingGroup/RerollButton/RerollIcon` | 외부 에셋 시트의 하위 스프라이트 |
 
@@ -824,7 +864,7 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 | z | 판매한 아이템의 UI는 `SellConfirmPopup`이 `SetActive(false)`로 끄기만 하고 파괴하지 않는다. 판매가 반복되면 비활성 오브젝트가 `ItemLayer`에 쌓인다 | 아이템 UI 수명 관리 정리 시 |
 | aa | 확정(`HandleConfirmClicked`) 시점에는 `ApplyPhase` 전이라 Temporary 영역이 비활성인 상태에서 `rect`·`TransformPoint`를 읽는다. Temporary 영역이 중앙 앵커·고정 크기라 레이아웃 재계산의 영향이 없다고 판단했다 (reviewer 권고, 미반영, 미검증) | 영역 앵커를 stretch로 바꿀 때 |
 | ab | `RewardCards`는 `PFB_LevelUpPanel`의 Prefab 자식이라 `SelectingGroup` 밖에 있다. 그룹 비활성화로 숨겨지지 않으므로 확정 시 후보를 비우고 `RefreshRewardCards`로 카드를 모두 끈다. 카드 표시를 그룹 기준으로 바꾸려면 Prefab 구조 변경이 필요하다 | 레이아웃 정리 시 |
-| ac | `Selecting` 단계에서는 `_itemLayerGroup.blocksRaycasts`가 false라 인벤토리·저장고 아이템에 마우스를 올려도 툴팁이 뜨지 않는다. 아이템 툴팁은 `Organizing`에서만, 보상 카드 툴팁은 카드가 켜진 `Selecting`에서만 뜬다 | 선택 중 아이템 정보 확인이 필요해지면 |
+| ac | (해결) `Selecting` 단계에서 아이템 툴팁이 뜨지 않던 문제. Issue #23에서 `_itemLayerGroup`을 제거하고 드래그만 `InventoryItemUI.IsDragEnabled`로 막아 선택 중에도 아이템 hover 툴팁이 뜬다 | 해결 (#23) |
 | ad | (해결) 툴팁의 무기 공격력이 레벨 계산 없는 기본값이던 문제. 레벨 보너스 줄과 `GetWeaponStats` 기준 최종 공격력 범위를 표시한다. 기본 공격력 줄은 여전히 `ProjectileDamage` 원본이다 | 해결 (`art/fix-inven-ui`) |
 | ae | 해제 버프와 해제 디버프가 같은 접두어 `"해제 시:"`(`UNEQUIPPED_FORMAT`)를 쓰고 텍스트 색(`GameScene` 값 초록/빨강)으로만 구분한다. 종류 표시는 `ItemType`이 무기·패시브·소비가 아니면 모두 `"고유"`(`default`)다. 보상 Lv.1 규칙이 `ItemTooltipUI.REWARD_LEVEL`과 `RewardCardUI.NAME_FORMAT` 두 곳에 있다 (reviewer 권고, 미반영) | 툴팁 문구·보상 레벨 규칙 정리 시 |
 | af | 장착 효과·해제 버프·해제 디버프 텍스트는 표시 전용이다. 실제 효과는 `CharacterDefinition` 고유 효과 필드로 구현되었으나 텍스트와 수치는 서로 연결되지 않아 따로 맞춰야 한다. 전투 조끼 +2칸 확장·회수는 구현되지 않았다 | 아이템 효과 문구 정리 시 |
@@ -834,6 +874,10 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 | al | `WeaponReloadGauge`는 재장전 중인 첫 무기만 표시한다 (코드의 `shortcut` 주석). 미니건 2개를 장착해 동시에 재장전하면 목록 앞 무기의 진행률만 보인다 | 무기별 게이지가 필요해지면 |
 | am | 이동속도 보너스 상한 0.5는 코드 주석상 테스트 상한이며 하한은 없다(`Max(0, …)`로 배율 0 미만만 막음). 패시브 Lv.3 수치·캐릭터 효과 수치·인접·레벨 상수는 모두 임시값이다 | 밸런스 확정 시 |
 | an | 툴팁의 인접 탄퍼짐 줄은 인접 효과만(상한 0.7 적용) 표시하고, 무기 Lv.3 탄퍼짐 감소는 별도 줄이 없다. 실제 적용 감소율(합산 후 상한)과 표시가 다를 수 있다 | 툴팁 문구 정리 시 |
+| ao | 확장 안내 문구(`ExpansionGuideText`, 프레임 상단 중앙)가 HUD 타이머와 겹친다 (주의사항 q와 같은 위치) | 레이아웃 조정 시 |
+| ap | `InventoryItemUI.IsDragEnabled`는 `static`이다. Domain Reload를 끈 Play 모드에서 보상 선택 중 Play를 멈추면 false가 다음 Play에 남을 수 있다 (코드 기준 추정, 미검증) | Domain Reload 설정 변경 시 |
+| aq | `InventoryUI`는 `gridRect` 자식이 정확히 60개(10×6 Slot)라는 전제로 칸 Image를 모은다. 60개가 아니면 `Awake`에서 `LogError` 후 수집을 건너뛰고, 곧이은 첫 `OnEnable`의 칸 색 갱신부터 예외가 난다 (코드 기준) | Grid 구조 변경 시 |
+| ar | `GameScene` 외 테스트 Scene 3개에는 `ExpansionGuideText`가 배치되지 않았다. `_expansionGuideText`가 `null`이면 안내 없이 확장만 동작한다 | 테스트 Scene 정리 시 |
 | ag | `ItemTooltipUI`에는 Inspector 참조 `null` 방어가 없다. `_inventory`·`_tooltipRect`·텍스트·이미지 참조가 비면 `Awake`·`Show`에서 `NullReferenceException`이 난다. 호출 측(`RewardCardUI`·`InventoryItemUI`)은 `_tooltip`이 비면 툴팁만 생략한다 | Scene 구성 시 연결 필수 |
 | ah | `ItemTooltipUI`를 툴팁 루트(`_tooltipRect`)와 같은 오브젝트에 두면, 루트가 비활성인 채 첫 `Show`가 루트를 켤 때 `Awake`가 처음 실행되어 루트를 다시 끈다. 항상 활성인 별도 오브젝트(`TooltipLayer`)에 두어야 한다. `_tooltipRect`의 필드 주석("자신과 같아도 됨")과 `OnDisable`의 같은 오브젝트 분기는 이 배치를 허용하는 것처럼 쓰여 있다 (코드 기준 추정, 같은 오브젝트 배치는 실행 확인하지 않음) | 필드 주석 정리 시 |
 
@@ -866,6 +910,11 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 - 합성·레벨 성장·인접 효과·고유 효과·플레이어 스탯·재장전 게이지 (이슈 미등록, `art/fix-inven-ui`)
     - EditMode 테스트 (메서드 존재만 확인) : `InventoryTests`(`TryMerge` 성공·영역 간 합성·최대 레벨·다른 Id·다른 레벨·자기 자신·MaxLevel 1·Location None·null 실패, `GetPassiveAdjacencyBonus`, `IsLevel3EffectActive` 무기·배치 패시브·보관 패시브, `GetAdjacencyBonus` 상하좌우·대각선 제외·여러 셀 1회·두 패시브 합산·회전·영역 이탈·판매·고유 아이템 제외, Lv.3 도달 합성, `GetEffectiveAdjacencyBonus` 상한), `InventoryWeaponSyncTests`(`Changed` 1회·실패 시 미발생, `GetWeaponStats`, 동기화), `UniqueItemEffectTests`(다른 캐릭터·null 캐릭터 미적용, 헤비거너 정확도 + 인접 상한, Lv.3 보너스 Lv.2 비활성·Lv.3~5 동일·합산·보관 시 제거, `StatSync` 이동속도 상한 0.5·헤비거너 이동속도·생존자 최대 체력 clamp·경험치 소수 누적·수집 반경 배율), `WeaponInstanceTests.ReloadProgress_StartHalfFinished_ReturnsZeroHalfZero`.
     - 테스트 실행 결과·Play 모드 확인 결과는 이 문서 작성 입력에 포함되지 않았다 (미검증). 주의사항 ai·aj는 Play로 확인하지 않았다.
+- Issue #23 (보물 상자 확장 선택·선택 중 툴팁·casual 스프라이트)
+    - Play 확인 절차 : `LevelUpPanel.RequestChestReward` 호출 → 카드 3장 선택·선택 완료 → `Organizing`에서 후보 칸 16칸(초기 중앙 4×4 활성 기준) 노란색·안내 문구 "확장할 4칸을 선택하세요!!" 표시 → 후보 칸 클릭마다 문구 수 4 → 0 감소, 0이면 문구 숨김·확장 모드 해제 → 해제한 칸에 아이템 배치 가능 → Temporary 0개에서 완료.
+    - EditMode 테스트 (`InventoryTests`, 3개 추가) : `CountExpansionCandidates_InitialGrid_Is16`, `TryUnlockCell_Candidate_UnlocksAndRecalculates`(해제 후 새 외곽 후보·해제 칸 배치), `TryUnlockCell_NotCandidate_Fails`. 칸 클릭·안내 문구·완료 버튼 흐름은 자동 테스트가 없고 Play로만 확인한다.
+    - 테스트 실행 결과 : 컴파일 에러 없음, EditMode 349/349 통과.
+    - Play 모드 : AI agent가 `GameScene`에서 위 절차대로 검증 완료 (포인터 이벤트를 코드로 전송, 아이템 배치·보관은 `TryPlace`·`TryStore` 직접 호출). 보상 선택 중 툴팁 표시·드래그 취소, 후보가 아닌 칸·4칸 이후 클릭 무시도 확인. 테스트 Scene 3개의 `InventoryUI` 연결은 작업 시 Unity에서 직접 설정·확인했다.
 
 ## 관련 Issue/PR
 
@@ -876,3 +925,4 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 - Issue #17 (레벨업 일시정지·레벨업 화면 레이아웃). PR : 미정
 - Issue #19 (몬스터 최종 M06~M12. 보물 상자 보상 요청, 회차 종류별 카드 수, 최종 보스 처치 클리어. `Docs/TechDocs/Enemy.md`). PR : 미정
 - 이슈 미등록 (브랜치 `art/fix-inven-ui`. 레벨업·보물 상자 보상 선택·리롤·Temporary 정리, 툴팁, 합성·레벨 성장·인접 효과·패시브 Lv.3·고유 아이템 효과, `PlayerStatSync`, 재장전 게이지, 피격·젬 획득 반경 조정). PR : 미정
+- Issue #23 (브랜치 `feat/boss-inventory-expansion`. 보물 상자 보상 인벤토리 4칸 확장, 보상 선택 중 툴팁, `InventoryUI_casual` 스프라이트). PR : 미정

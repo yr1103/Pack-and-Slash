@@ -2683,6 +2683,7 @@ MonoBehaviour:
   inventory: {fileID: 1367929132}
   inventoryUI: {fileID: 2844778135830479358}
   _sellPopup: {fileID: 1667666515}
+  _tooltip: {fileID: 0}
 --- !u!224 &251398172
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3507,6 +3508,7 @@ MonoBehaviour:
   inventory: {fileID: 1367929132}
   inventoryUI: {fileID: 2844778135830479358}
   _sellPopup: {fileID: 1667666515}
+  _tooltip: {fileID: 0}
 --- !u!1 &343041379
 GameObject:
   m_ObjectHideFlags: 0
@@ -3599,6 +3601,7 @@ MonoBehaviour:
   inventory: {fileID: 1367929132}
   inventoryUI: {fileID: 2844778135830479358}
   _sellPopup: {fileID: 1667666515}
+  _tooltip: {fileID: 0}
 --- !u!1001 &360439958
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5781,6 +5784,7 @@ MonoBehaviour:
   inventory: {fileID: 1367929132}
   inventoryUI: {fileID: 2844778135830479358}
   _sellPopup: {fileID: 1667666515}
+  _tooltip: {fileID: 0}
 --- !u!1001 &557259002
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6230,6 +6234,7 @@ MonoBehaviour:
   inventory: {fileID: 1367929132}
   inventoryUI: {fileID: 2844778135830479358}
   _sellPopup: {fileID: 1667666515}
+  _tooltip: {fileID: 0}
 --- !u!1001 &599473485
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8191,6 +8196,7 @@ MonoBehaviour:
   inventory: {fileID: 1367929132}
   inventoryUI: {fileID: 2844778135830479358}
   _sellPopup: {fileID: 1667666515}
+  _tooltip: {fileID: 0}
 --- !u!1 &828752754
 GameObject:
   m_ObjectHideFlags: 0
@@ -10354,6 +10360,7 @@ MonoBehaviour:
   inventory: {fileID: 1367929132}
   inventoryUI: {fileID: 2844778135830479358}
   _sellPopup: {fileID: 1667666515}
+  _tooltip: {fileID: 0}
 --- !u!1001 &1084843075
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10632,6 +10639,7 @@ MonoBehaviour:
   inventory: {fileID: 1367929132}
   inventoryUI: {fileID: 2844778135830479358}
   _sellPopup: {fileID: 1667666515}
+  _tooltip: {fileID: 0}
 --- !u!1001 &1129067927
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12241,6 +12249,7 @@ MonoBehaviour:
   inventory: {fileID: 1367929132}
   inventoryUI: {fileID: 2844778135830479358}
   _sellPopup: {fileID: 1667666515}
+  _tooltip: {fileID: 0}
 --- !u!1001 &1348118781
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12473,6 +12482,7 @@ MonoBehaviour:
   inventory: {fileID: 1367929132}
   inventoryUI: {fileID: 2844778135830479358}
   _sellPopup: {fileID: 1667666515}
+  _tooltip: {fileID: 0}
 --- !u!1001 &1366738782
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13627,6 +13637,7 @@ MonoBehaviour:
   inventory: {fileID: 1367929132}
   inventoryUI: {fileID: 2844778135830479358}
   _sellPopup: {fileID: 1667666515}
+  _tooltip: {fileID: 0}
 --- !u!1001 &1466898239
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -14974,6 +14985,7 @@ MonoBehaviour:
   inventory: {fileID: 1367929132}
   inventoryUI: {fileID: 2844778135830479358}
   _sellPopup: {fileID: 1667666515}
+  _tooltip: {fileID: 0}
 --- !u!224 &1636526309
 RectTransform:
   m_ObjectHideFlags: 0
@@ -15288,9 +15300,30 @@ MonoBehaviour:
   - {fileID: 2844778135830479352}
   _levelUpCardCount: 3
   _chestCardCount: 5
+  _levelUpMaxSelect: 2
+  _chestMaxSelect: 3
+  _rewardPool: []
+  _weaponWeight: 50
+  _passiveWeight: 35
+  _expendableWeight: 15
+  _rerollCost: 2
+  _currency: {fileID: 0}
+  _rerollButton: {fileID: 0}
+  _currencyText: {fileID: 0}
+  _selectionCountText: {fileID: 0}
+  _confirmButton: {fileID: 0}
+  _selectingGroup: {fileID: 0}
   _inventory: {fileID: 1367929132}
   _temporaryWarning: {fileID: 2102362994}
   _storageCountText: {fileID: 1912612806}
+  _temporaryArea: {fileID: 0}
+  _itemPrefab: {fileID: 0}
+  _itemLayer: {fileID: 0}
+  _itemLayerGroup: {fileID: 0}
+  _inventoryUI: {fileID: 0}
+  _sellPopup: {fileID: 0}
+  _tooltip: {fileID: 0}
+  _chestExpansionCount: 4
 --- !u!1 &1673433031
 GameObject:
   m_ObjectHideFlags: 0
@@ -18596,6 +18629,7 @@ MonoBehaviour:
   inventory: {fileID: 1367929132}
   inventoryUI: {fileID: 2844778135830479358}
   _sellPopup: {fileID: 1667666515}
+  _tooltip: {fileID: 0}
 --- !u!1001 &2009831476
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22750,6 +22784,10 @@ MonoBehaviour:
   - {fileID: 1989425829}
   _sellArea: {fileID: 405184531}
   _rotateAction: {fileID: 835590030820426825, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  _inventory: {fileID: 1367929132}
+  _availableCellColor: {r: 1, g: 1, b: 1, a: 1}
+  _lockedCellColor: {r: 0.45, g: 0.5, b: 0.58, a: 1}
+  _candidateCellColor: {r: 1, g: 0.85, b: 0.2, a: 1}
 --- !u!1001 &3204916819369846296
 PrefabInstance:
   m_ObjectHideFlags: 0

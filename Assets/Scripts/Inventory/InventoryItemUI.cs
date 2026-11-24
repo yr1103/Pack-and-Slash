@@ -38,6 +38,9 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     // 드래그 중에는 선택 아이템 대신 드래그 아이템만 회전 입력을 받도록 전체 UI가 공유
     private static InventoryItemUI _draggingItem;
 
+    /// <summary>아이템 드래그 허용 여부 (보상 선택 중 툴팁은 유지하고 드래그만 차단하도록 전체 UI가 공유)</summary>
+    public static bool IsDragEnabled = true;
+
     private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
@@ -173,6 +176,13 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        // 드래그 대상을 비워 OnDrag·OnEndDrag가 호출되지 않게 취소
+        if (!IsDragEnabled)
+        {
+            eventData.pointerDrag = null;
+            return;
+        }
+
         if (_tooltip != null)
             _tooltip.Hide(this);
 

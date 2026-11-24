@@ -67,7 +67,7 @@ public class Inventory : MonoBehaviour
     /// <summary>보관함에 아이템이 들어오거나 나갈 때만, 도착 영역 기록 후 발생</summary>
     public event Action StorageCountChanged;
 
-    /// <summary>공개 조작(배치·이동·회전·제거·보관·Temporary 이동·판매·합성·캐릭터 설정)이 성공해 상태가 확정된 뒤 1회 발생, 실패·조회 시 미발생</summary>
+    /// <summary>공개 조작(배치·이동·회전·제거·보관·Temporary 이동·판매·합성·캐릭터 설정·칸 해제)이 성공해 상태가 확정된 뒤 1회 발생, 실패·조회 시 미발생</summary>
     public event Action Changed;
 
     // 실제 아이템 하나
@@ -682,6 +682,61 @@ public class Inventory : MonoBehaviour
 
         return item.Data.ItemType == ItemType.Weapon ||
                (item.Data.ItemType == ItemType.Passive && item.IsPlaced);
+    }
+
+    /// <summary>사용 가능(잠금 해제) 칸인지 (범위 밖이면 false)</summary>
+    public bool IsCellAvailable(Vector2Int cell)
+    {
+        return IsInGrid(cell) && cells[cell.x, cell.y].IsAvailable;
+    }
+
+    /// <summary>확장 후보 칸인지 (잠긴 칸 중 상하좌우에 사용 가능한 칸이 있음)</summary>
+    public bool IsExpansionCandidate(Vector2Int cell)
+    {
+        if (!IsInGrid(cell) || cells[cell.x, cell.y].IsAvailable)
+            return false;
+
+        foreach (Vector2Int direction in _adjacentDirections)
+        {
+            if (IsCellAvailable(cell + direction))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>현재 확장 후보 칸 수</summary>
+    public int CountExpansionCandidates()
+    {
+        int count = 0;
+
+        for (int x = 0; x < Width; x++)
+        {
+            for (int y = 0; y < Height; y++)
+            {
+                if (IsExpansionCandidate(new Vector2Int(x, y)))
+                    count++;
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>확장 후보 칸을 사용 가능으로 해제, 성공 시 Changed 1회 발생</summary>
+    /// <returns>후보가 아니면 false, 상태 변화 없음</returns>
+    public bool TryUnlockCell(Vector2Int cell)
+    {
+        if (!IsExpansionCandidate(cell))
+            return false;
+
+        cells[cell.x, cell.y].IsAvailable = true;
+        Changed?.Invoke();
+        return true;
+    }
+
+    private static bool IsInGrid(Vector2Int cell)
+    {
+        return cell.x >= 0 && cell.x < Width && cell.y >= 0 && cell.y < Height;
     }
 
     /// <summary>보관함 슬롯 아이템 (비어 있으면 null)</summary>
