@@ -43,7 +43,8 @@ public class RewardCardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     {
         _data = data;
         _icon.sprite = data.Icon;
-        _nameText.text = string.Format(NAME_FORMAT, data.ItemName);
+        // 레벨 없는 아이템(소비 등, MaxLevel 1)은 툴팁과 같은 기준으로 레벨 생략
+        _nameText.text = data.MaxLevel > 1 ? string.Format(NAME_FORMAT, data.ItemName) : data.ItemName;
         _descriptionText.text = data.Description;
     }
 

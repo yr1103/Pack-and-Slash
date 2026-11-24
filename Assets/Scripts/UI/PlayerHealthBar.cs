@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// 플레이어 머리 위 World Space 체력바 (피해 시 갱신, 카메라와 같은 회전으로 빌보드)
+/// 플레이어 머리 위 World Space 체력바 (피해·회복 시 갱신, 카메라와 같은 회전으로 빌보드)
 /// </summary>
 public class PlayerHealthBar : MonoBehaviour
 {
@@ -13,6 +13,7 @@ public class PlayerHealthBar : MonoBehaviour
     private void OnEnable()
     {
         _playerHealth.Damaged += Refresh;
+        _playerHealth.Healed += Refresh;
     }
 
     // PlayerHealth.Awake에서 체력이 초기화된 뒤 읽도록 Start에서 갱신
@@ -30,6 +31,7 @@ public class PlayerHealthBar : MonoBehaviour
     private void OnDisable()
     {
         _playerHealth.Damaged -= Refresh;
+        _playerHealth.Healed -= Refresh;
     }
 
     private void Refresh()
