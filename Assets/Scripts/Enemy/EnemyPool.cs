@@ -10,9 +10,11 @@ public class EnemyPool : MonoBehaviour
     [SerializeField] private Transform _enemyParent; // 생성 Enemy를 모을 Hierarchy 부모
     [SerializeField, Min(1)] private int _defaultCapacity = 64; // 프리팹별 풀마다 적용
     [SerializeField, Min(1)] private int _maxSize = 512; // 프리팹별 풀마다 적용
+    [SerializeField] private ProjectilePool _projectilePool; // 보스 사격 패턴에 주입할 탄 풀
 
     // 종류가 다른 Enemy끼리 섞여 재사용되지 않도록 프리팹마다 풀 분리
     private readonly Dictionary<Enemy, ObjectPool<Enemy>> _pools = new Dictionary<Enemy, ObjectPool<Enemy>>();
+    private readonly List<BossShootPattern> _shootPatterns = new List<BossShootPattern>(); // 스폰마다 할당 없이 재사용
 
     /// <summary>프리팹의 풀에서 Enemy를 꺼내 위치 지정 후 초기화 (해당 프리팹 첫 생성 시 풀 생성)</summary>
     /// <param name="prefab">생성할 Enemy 프리팹</param>
@@ -27,15 +29,17 @@ public class EnemyPool : MonoBehaviour
         }
 
         Enemy enemy = pool.Get();
-        // 재사용 Enemy의 이전 위치·회전 제거
+        // 위치 지정 후 활성화: Auto Sync Transforms가 꺼져 있어 먼저 켜면 같은 프레임 물리 판정이 이전 위치(사망 지점 등)에 남아 오피격 발생
         enemy.transform.SetPositionAndRotation(position, Quaternion.identity);
-        enemy.Initialize(flowFieldManager, player, pool);
-        return enemy;
-    }
-
-    private static void ActivateEnemy(Enemy enemy)
-    {
         enemy.gameObject.SetActive(true);
+        enemy.Initialize(flowFieldManager, player, pool);
+        enemy.GetComponents(_shootPatterns);
+        foreach (BossShootPattern shootPattern in _shootPatterns)
+        {
+            shootPattern.Initialize(_projectilePool);
+        }
+
+        return enemy;
     }
 
     private static void DeactivateEnemy(Enemy enemy)
@@ -49,9 +53,17 @@ public class EnemyPool : MonoBehaviour
         Destroy(enemy.gameObject);
     }
 
+    // 새 Enemy도 부모 원점에서 활성 상태로 물리에 등록되지 않도록 비활성으로 생성, Spawn에서 위치 지정 후 활성화
+    private Enemy CreateInactiveEnemy(Enemy prefab)
+    {
+        Enemy enemy = Instantiate(prefab, _enemyParent);
+        enemy.gameObject.SetActive(false);
+        return enemy;
+    }
+
     private ObjectPool<Enemy> CreatePool(Enemy prefab)
     {
-        return new ObjectPool<Enemy>(() => Instantiate(prefab, _enemyParent), ActivateEnemy,
+        return new ObjectPool<Enemy>(() => CreateInactiveEnemy(prefab), null,
             DeactivateEnemy, DestroyEnemy, collectionCheck: true, defaultCapacity: _defaultCapacity,
             maxSize: _maxSize);
     }

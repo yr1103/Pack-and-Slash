@@ -124,6 +124,13 @@ public class Projectile : MonoBehaviour
             }
 
             target.TakeDamage(_context.Damage);
+            // 피해 대상(Enemy)과 EnemyMovement는 같은 GameObject, 이번 피해로 사망(풀 반환)한 적은 넉백 제외
+            if (_context.KnockbackStrength > 0f && target.IsAlive && target is Component targetComponent &&
+                targetComponent.TryGetComponent(out EnemyMovement movement))
+            {
+                movement.AddKnockback(_direction, _context.KnockbackStrength);
+            }
+
             if (_hitDetector.HasReachedLimit)
             {
                 Despawn();

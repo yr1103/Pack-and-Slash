@@ -65,6 +65,7 @@
 | 0이 아닌 루프 초기값 | `i = 2; i < arr.Length; i++` — 시작 값을 쓴 이유를 주석으로 설명한다 |
 | 다른 시스템 연동 전 임시로 쓰는 값·API | GameState 연동 전 `Time.deltaTime` — `shortcut:` 주석에 한계와 교체 시점을 적는다 |
 | 테스트 코드의 기대값·입력 예시 리터럴 | `Assert.AreEqual(10, GetRequiredExperience(2))` |
+| 인자·인덱스로 넘기는 `0`, `1` (의미를 주석으로 설명) | `maxUniqueTargetsHit: 1 // 탄 1발은 대상 1명만 적중`, `SetPosition(0, start) // 경고선 시작 정점` |
 
 ```csharp
 // 앞의 두 칸은 고정 블록이라 검사에서 제외

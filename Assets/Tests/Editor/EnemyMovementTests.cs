@@ -2,7 +2,7 @@ using NUnit.Framework;
 using UnityEngine;
 
 /// <summary>
-/// EnemyMovement 이동 방향 결정 분기(정지 거리·격자 밖·목적지 타일·일반 타일·방향 0)와 Separation 계산·장애물 진입 방지 검증
+/// EnemyMovement 이동 방향 결정 분기(정지 거리·격자 밖·목적지 타일·일반 타일·방향 0)와 Separation 계산·장애물 진입 방지, 넉백 저항·상한 계산 검증
 /// </summary>
 public class EnemyMovementTests
 {
@@ -13,6 +13,8 @@ public class EnemyMovementTests
     private const float SEPARATION_RADIUS = 1f;
     private const float STRONG_SEPARATION_WEIGHT = 10f; // Flow 방향보다 Separation이 우세하도록
     private const float NEXT_MOVE_DISTANCE = 0.5f; // _nearWallPosition에서 왼쪽 이동 시 벽 타일 (1, 0) 진입
+    private const float KNOCKBACK_STRENGTH = 4f;
+    private const float KNOCKBACK_MAX_SPEED = 10f;
 
     // 목적지 (0, 0), 벽 (1, 0)·(1, 1) → (2, 0)은 플레이어 방향(왼쪽)이 아닌 위로 우회
     private static readonly Vector2Int _targetTile = new Vector2Int(0, 0);
@@ -130,6 +132,30 @@ public class EnemyMovementTests
             Vector3.left, STRONG_SEPARATION_WEIGHT, NEXT_MOVE_DISTANCE);
 
         AssertDirection(Vector3.forward, direction);
+    }
+
+    [Test]
+    public void CalculateKnockbackVelocity_Resistance_ScalesStrengthAndIgnoresY()
+    {
+        // 방향 Y는 투영으로 제거, 4 × (1 - 0.75) = 1
+        Vector3 velocity = EnemyMovement.CalculateKnockbackVelocity(Vector3.zero, new Vector3(2f, 5f, 0f),
+            KNOCKBACK_STRENGTH, 0.75f, KNOCKBACK_MAX_SPEED);
+
+        AssertDirection(Vector3.right, velocity);
+    }
+
+    [Test]
+    public void CalculateKnockbackVelocity_Accumulated_ClampedToMaxSpeed()
+    {
+        Vector3 velocity = Vector3.zero;
+        for (int i = 0; i < 5; i++)
+        {
+            velocity = EnemyMovement.CalculateKnockbackVelocity(velocity, Vector3.forward, KNOCKBACK_STRENGTH,
+                0f, KNOCKBACK_MAX_SPEED);
+        }
+
+        // 4 × 5 = 20 → 상한 10
+        AssertDirection(Vector3.forward * KNOCKBACK_MAX_SPEED, velocity);
     }
 
     private Vector3 GetMoveDirection(Vector3 enemyPosition, Vector3 playerPosition, Vector3 previousDirection)

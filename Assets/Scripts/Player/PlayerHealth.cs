@@ -20,7 +20,8 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private Health _health;
     private DamageGate _damageGate;
 
-    public float MaxHealth => _maxHealth;
+    /// <summary>배율이 적용된 현재 최대 체력 (체력바 표시용)</summary>
+    public float MaxHealth => _health.MaxHealth;
 
     /// <summary>현재 체력 (체력바 표시용)</summary>
     public float CurrentHealth => _health.CurrentHealth;
@@ -33,6 +34,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     /// <summary>무적 게이트를 통과해 피해가 적용될 때마다 발생 (사망하는 피해 포함)</summary>
     public event Action Damaged;
+
+    /// <summary>Heal 호출 시 발생, 사망 상태라 회복이 무시돼도 발생 (체력바 갱신용)</summary>
+    public event Action Healed;
 
     /// <summary>사망 확정 시 1회 발생 (게임 오버 판정 구독 지점)</summary>
     public event Action Died;
@@ -77,6 +81,12 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         }
     }
 
+    /// <summary>최대 체력 = Inspector 기본값 × multiplier (매번 기본값에서 재계산, 감소 시 현재 체력 clamp·증가 시 유지)</summary>
+    public void SetMaxHealthMultiplier(float multiplier)
+    {
+        _health.SetMaxHealth(_maxHealth * multiplier);
+    }
+
     /// <summary>무적 게이트 통과 시에만 체력 감소, 이번 피해로 처음 사망하면 사망 처리 (사망 상태면 무시)</summary>
     /// <param name="damage">피해량</param>
     public void TakeDamage(float damage)
@@ -92,6 +102,14 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         {
             Die();
         }
+    }
+
+    /// <summary>체력 회복 (최대 체력까지, 사망 상태면 무시)</summary>
+    /// <param name="amount">회복량</param>
+    public void Heal(float amount)
+    {
+        _health.Heal(amount);
+        Healed?.Invoke();
     }
 
     private void Die()

@@ -18,14 +18,21 @@ public class EnemyMovement : MonoBehaviour
     [SerializeField, Min(0f)] private float _separationRadius = 1.2f; // 큐브 폭 1 + 여유
     [SerializeField, Min(0f)] private float _separationWeight = 1f; // Flow 방향(길이 1) 대비 Separation 비중
     [SerializeField] private LayerMask _enemyLayer; // Separation 이웃 탐색 대상
+    [SerializeField, Min(0f)] private float _knockbackDeceleration = 20f; // 넉백 속도 초당 감소량 (임시값)
+    [SerializeField, Min(0f)] private float _maxKnockbackSpeed = 10f; // 누적 넉백 속도 상한 (임시값)
+    [SerializeField, Range(0f, 1f)] private float _knockbackResistance; // 넉백 감소율, 0 = 저항 없음 (보스 0.7 임시값)
 
     private FlowFieldManager _flowFieldManager; // Initialize로 주입, 미주입이면 정지
     private Transform _player;
     private Vector3 _lastDirection; // 보간 방향 0(장애물 모서리 파고듦)에서 고착 방지용
     private Vector3 _velocity;
+    private Vector3 _knockbackVelocity; // Flow·Separation 이동과 별도로 더하는 XZ 넉백 속도
 
     /// <summary>현재 이동 속도 벡터 (정지 시 Vector3.zero, Animator 등 표시용)</summary>
     public Vector3 Velocity => _velocity;
+
+    public FlowFieldManager FlowFieldManager => _flowFieldManager;
+    public Transform Player => _player;
 
     // FlowField를 캐시하지 않고 매 프레임 조회 (초기화 순서·재계산과 무관하게 유효)
     private void Update()
@@ -37,6 +44,9 @@ public class EnemyMovement : MonoBehaviour
         }
 
         CostField costField = _flowFieldManager.CostField;
+        // 정지 거리 안 등 아래 조기 반환 경로에서도 밀려나도록 먼저 적용
+        ApplyKnockback(costField);
+
         Vector2Int targetTile = _flowFieldManager.TargetTile;
         Vector3 position = transform.position;
         Vector3 playerPosition = _player.position;
@@ -70,6 +80,51 @@ public class EnemyMovement : MonoBehaviour
         transform.position = position + direction * moveDistance;
         transform.rotation = Quaternion.LookRotation(direction);
         _velocity = direction * _moveSpeed;
+    }
+
+    // Time.deltaTime 기준이라 일시정지(timeScale 0) 중에는 이동·감속 모두 정지
+    private void ApplyKnockback(CostField costField)
+    {
+        if (_knockbackVelocity == Vector3.zero)
+        {
+            return;
+        }
+
+        Vector3 position = transform.position;
+        Vector3 nextPosition = position + _knockbackVelocity * Time.deltaTime;
+        // 격자 밖에서는 기존 이동처럼 타일 검사 생략, 격자 안에서 이동 불가 타일로 밀리면 넉백 종료
+        // shortcut: 중심점의 다음 타일만 검사해 ㄱ자 모서리 대각 통과·몸체 일부 벽 겹침 가능, 문제되면 몸체 반폭 기준 검사로 교체
+        Vector2Int tile = costField.WorldToTile(position);
+        Vector2Int nextTile = costField.WorldToTile(nextPosition);
+        if (costField.IsInBounds(tile.x, tile.y) && !costField.IsWalkable(nextTile.x, nextTile.y))
+        {
+            _knockbackVelocity = Vector3.zero;
+            return;
+        }
+
+        transform.position = nextPosition;
+        _knockbackVelocity = Vector3.MoveTowards(_knockbackVelocity, Vector3.zero, _knockbackDeceleration * Time.deltaTime);
+    }
+
+    /// <summary>넉백 속도를 더함 (저항만큼 감소, 누적 크기는 상한으로 자름)</summary>
+    /// <param name="direction">밀어낼 방향 (XZ 평면 투영 후 정규화, 0이면 무시)</param>
+    /// <param name="strength">넉백 속도 (초당 거리)</param>
+    public void AddKnockback(Vector3 direction, float strength)
+    {
+        _knockbackVelocity = CalculateKnockbackVelocity(_knockbackVelocity, direction, strength,
+            _knockbackResistance, _maxKnockbackSpeed);
+    }
+
+    /// <summary>현재 넉백 속도에 방향 × 강도 × (1 - 저항)을 더하고 크기를 상한으로 자름</summary>
+    /// <param name="direction">XZ 평면 투영 후 정규화, 0이면 현재 속도 유지</param>
+    /// <param name="resistance">0 = 저항 없음, 1 = 넉백 무효</param>
+    /// <returns>XZ 평면 넉백 속도 (크기 maxSpeed 이하)</returns>
+    public static Vector3 CalculateKnockbackVelocity(Vector3 current, Vector3 direction, float strength,
+        float resistance, float maxSpeed)
+    {
+        Vector3 planarDirection = Vector3.ProjectOnPlane(direction, Vector3.up).normalized;
+        Vector3 added = current + planarDirection * (strength * (1f - resistance));
+        return Vector3.ClampMagnitude(added, maxSpeed);
     }
 
     // 물리 탐색으로 주변 Enemy 위치를 모아 Separation 벡터 계산
@@ -172,5 +227,6 @@ public class EnemyMovement : MonoBehaviour
     {
         _flowFieldManager = flowFieldManager;
         _player = player;
+        _knockbackVelocity = Vector3.zero; // 풀 재사용 시 이전 생애의 넉백 제거
     }
 }

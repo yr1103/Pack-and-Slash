@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 536773cbcdc1fb346b8d675e4a057e6c, type: 3}
+  m_Name: SO_Inventory_GunStock
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryData
+  _id: 4
+  _itemName: GunStock
+  _icon: {fileID: 21300000, guid: 5d1d61d9a0526334395ff3bfe13b2707, type: 3}
+  _levelIcons:
+  - {fileID: 21300000, guid: e751dbd2b67b28c4caf758c47836fc59, type: 3}
+  - {fileID: 21300000, guid: 7c062190874907e4a88c54f6f2d8e80e, type: 3}
+  - {fileID: 21300000, guid: e111d98c96fb71d49aca1ab577c47ac1, type: 3}
+  - {fileID: 21300000, guid: 4353771f6bec91e4a8d82803c6524170, type: 3}
+  _description: "\uB9DE\uB2FF\uC740 \uBB34\uAE30\uC758 \uBC1C\uC0AC \uAC04\uACA9\uC744
+    \uC904\uC785\uB2C8\uB2E4. Lv.3\uBD80\uD130 \uC7A5\uCC29 \uC911 \uD68D\uB4DD\uD558\uB294
+    \uACBD\uD5D8\uCE58\uAC00 \uB298\uC5B4\uB0A9\uB2C8\uB2E4. \uAD8C\uCD1D\uC758 \uC9C4\uD654\uC5D0
+    \uC0AC\uC6A9\uD569\uB2C8\uB2E4."
+  _itemType: 1
+  _itemShape:
+  - {x: 0, y: 0}
+  - {x: 1, y: 0}
+  - {x: 1, y: 1}
+  _maxLevel: 5
+  _isSellable: 1
+  _adjacencyEffectType: 2
+  _level3EffectType: 1
+  _level3EffectValue: 0.1
+  _expendableEffectType: 0
+  _expendableEffectValue: 0
+  _weaponDefinition: {fileID: 0}
+  _equippedEffect: 
+  _unequippedBuff: 
+  _unequippedDebuff: 

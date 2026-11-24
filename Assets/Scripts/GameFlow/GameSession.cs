@@ -112,6 +112,11 @@ public class GameSession : MonoBehaviour
         {
             _killCount++;
         }
+
+        if (enemy.ClearsSessionOnDeath)
+        {
+            End(SessionState.Cleared);
+        }
     }
 
     private void HandlePlayerDied()

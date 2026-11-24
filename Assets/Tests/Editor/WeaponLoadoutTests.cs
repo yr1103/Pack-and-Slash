@@ -36,7 +36,7 @@ public class WeaponLoadoutTests
         // 다른 테스트·Play 세션이 남긴 선택이 있으면 기본 캐릭터 대신 쓰이므로 비움
         CharacterSelection.Selected = null;
 
-        // EditMode에서는 AddComponent 시 Awake가 호출되지 않아 고유 무기 자동 장착 없이 빈 목록으로 시작
+        // 시작 무기는 Inventory 경유로 장착되므로 빈 목록으로 시작
         _loadoutObject = new GameObject();
         _loadout = _loadoutObject.AddComponent<WeaponLoadout>();
         SerializedObject serializedLoadout = new SerializedObject(_loadout);
