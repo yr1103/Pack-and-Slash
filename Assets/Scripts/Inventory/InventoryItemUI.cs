@@ -314,11 +314,16 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         string itemName = item.Data.ItemName;
         Debug.Log($"[InventoryMerge] {itemName} Lv.{previousLevel} + {itemName} Lv.{previousLevel} → {itemName} Lv.{targetUI.item.Level}");
 
-        // shortcut: 결과 아이템 UI에 레벨 표시가 없어 갱신하지 않음, 레벨 표시 UI 추가 시 대상 UI 갱신 필요
+        targetUI.RefreshIcon();
 
         // 판매와 같은 방식, OnDisable이 툴팁·선택·드래그 상태 정리
         gameObject.SetActive(false);
         return true;
+    }
+
+    private void RefreshIcon()
+    {
+        _image.sprite = item.Data.GetIcon(item.Level);
     }
 
     private void RefreshPosition()
@@ -422,14 +427,13 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         _sellPopup = sellPopup;
         _tooltip = tooltip;
 
-        _image.sprite = target.Data.Icon;
-
         // 회전은 localRotation으로 표시하므로 크기는 회전 0 기준
         Vector2 size = inventoryUI.GetItemSize(inventory.GetRotatedShape(target, 0));
         rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, size.x);
         rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, size.y);
 
         Initialize(target);
+        RefreshIcon();
     }
 }
 
