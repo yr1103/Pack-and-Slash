@@ -29,23 +29,24 @@
 | 포함 | 이슈 미등록 (브랜치 `art/fix-inven-ui`) : 공통 아이템 툴팁 `ItemTooltipUI`(인벤토리·저장고·Temporary 아이템과 보상 후보 카드 Hover), 아이템 설명 데이터(`InventoryData`의 설명·장착 효과·해제 버프·해제 디버프 텍스트), `Inventory.GetSellPrice(InventoryData, int)` |
 | 포함 | 이슈 미등록 (브랜치 `art/fix-inven-ui`) : 아이템 합성(`Inventory.CanMerge`/`TryMerge`), 무기 레벨 성장·패시브 인접 효과(`GetAdjacencyBonus`/`GetEffectiveAdjacencyBonus`), 패시브 Lv.3 효과(`GetLevel3Bonus`), 캐릭터 고유 아이템 장착/해제 효과(`CharacterDefinition` 고유 효과 필드, `Inventory.Character`), 시작 아이템 지급(`InventoryWeaponSync`), 플레이어 스탯 반영(`PlayerStatSync`, `PlayerMovement`/`PlayerHealth`/`PlayerExperience` 배율), 툴팁 스탯 표시(레벨 보너스·인접·고유 효과·최종 공격력 범위·Lv.3 활성), 재장전 게이지(`WeaponReloadGauge`), 플레이어 피격 반경·젬 획득 반경 조정 |
 | 포함 | Issue #23 : 보물 상자 회차의 인벤토리 4칸 확장 선택(`LevelUpPanel.BeginExpansion`, `Inventory.IsCellAvailable`/`IsExpansionCandidate`/`CountExpansionCandidates`/`TryUnlockCell`, `InventoryUI` 칸 색 표시·`SetExpansionMode`·`ExpansionCellClicked`, 안내 문구 `ExpansionGuideText`), 보상 선택(`Selecting`) 중 아이템 hover 툴팁 표시(`InventoryItemUI.IsDragEnabled`로 드래그만 차단), 레벨업 인벤토리 UI에 `InventoryUI_casual` 스프라이트 적용 |
-| 제외 (후속) | 소비 아이템 효과(1칸 확장·체력 회복), 1칸 확장권 효과(`BeginExpansion` 진입점만 마련), 인벤토리 전체 기술 문서(별도 작업), 판매 외 재화 획득, 다시하기, 전투 조끼 +2칸 확장·회수, 무기별 재장전 게이지 |
+| 포함 | Issue #25 : 소비 아이템 2종(구급 상자 `SO_Inventory_HealthPack` 회복 20, 확장권 `SO_Inventory_ExpansionTicket` 1칸 확장) 효과 적용(`InventoryData.ExpendableEffectType`/`ExpendableEffectValue`, `LevelUpPanel.ApplyExpendable`, `PlayerHealth.Heal`/`Healed`, `Health.Heal`), 확장 후보가 없을 때 확장권 후보 제외, 보상 카드 레벨 표기 생략(`MaxLevel` 1) |
+| 제외 (후속) | 인벤토리 전체 기술 문서(별도 작업), 판매 외 재화 획득, 다시하기, 전투 조끼 +2칸 확장·회수, 무기별 재장전 게이지 |
 
 ## 주요 클래스와 역할
 
 | 클래스 | 책임 | 의존성 |
 |---|---|---|
 | `GameSession` (MonoBehaviour) | 상태 `SessionState`(`Playing`·`Cleared`·`GameOver`), `ElapsedTime`, `KillCount` 소유. 생존 시간이 `_clearTime` 이상이거나 `ClearsSessionOnDeath`인 Enemy(최종 보스)가 죽으면 클리어, 플레이어 사망 시 게임 오버. 종료 후 `_endFreezeDelay`초 뒤 `Time.timeScale = 0`과 `Ended(bool)` 발생. 일시정지 `Pause`·재개 `Resume`(진행 중일 때만). `Time.timeScale`을 바꾸는 유일한 클래스. 판정·표시 함수 `IsCleared`, `FormatTime`(static) | `PlayerHealth`(`Died`), `Enemy`(`Died`, static) |
-| `PlayerHealth` (MonoBehaviour) | `IDamageable` 구현. `Health`·`DamageGate` 소유. 매 프레임 `Physics.OverlapSphereNonAlloc`으로 Enemy 접촉 판정 후 피해 (`Time.timeScale` 0이면 생략). 이벤트 `Damaged`, `Died`. 사망 시 `_disableOnDeath` 컴포넌트를 끔. `MaxHealth`(배율 적용), `CurrentHealth`, `IsDead`, `IsAlive` 노출. 최대 체력 배율 `SetMaxHealthMultiplier` | `Health`, `DamageGate`, `Enemy`(`ContactDamage`, `IsAlive`), `Physics` |
+| `PlayerHealth` (MonoBehaviour) | `IDamageable` 구현. `Health`·`DamageGate` 소유. 매 프레임 `Physics.OverlapSphereNonAlloc`으로 Enemy 접촉 판정 후 피해 (`Time.timeScale` 0이면 생략). 이벤트 `Damaged`, `Healed`, `Died`. 사망 시 `_disableOnDeath` 컴포넌트를 끔. `MaxHealth`(배율 적용), `CurrentHealth`, `IsDead`, `IsAlive` 노출. 최대 체력 배율 `SetMaxHealthMultiplier`, 회복 `Heal` | `Health`, `DamageGate`, `Enemy`(`ContactDamage`, `IsAlive`), `Physics` |
 | `PlayerExperience` (MonoBehaviour) | 누적 경험치 `Experience`, `Level`, 현재 레벨 경험치 `CurrentLevelExperience`, 요구치 `RequiredExperience`, 젬 수집 반경 `CollectRadius`(배율 적용). `AddExperience`로 증가(배율 적용·소수 누적)·다중 레벨업·이월. 배율 설정 `SetExperienceMultiplier`, `SetCollectRadiusMultiplier`. 이벤트 `LevelChanged`, `ExperienceGained`. 요구치 함수 `GetRequiredExperience`(static, 임시 곡선) | 없음 |
 | `PlayerStatSync` (MonoBehaviour) | `Inventory.Changed`마다(`Start`에서 1회 포함) 캐릭터 고유 아이템 장착/해제·패시브 Lv.3 효과로 플레이어 이동속도·최대 체력·경험치·젬 수집 반경 배율을 기본값 기준으로 다시 계산해 적용 (`ApplyStats`) | `Inventory`(`Character`, `IsUniqueItemEquipped`, `GetLevel3Bonus`, `Changed`), `PlayerMovement`, `PlayerHealth`, `PlayerExperience`, `CharacterDefinition` |
 | `WeaponReloadGauge` (MonoBehaviour) | `HealthBarCanvas` 자식의 World Space 세로 재장전 게이지. 매 `LateUpdate`에 장착 무기 중 첫 재장전 중 무기를 찾아 `_visualRoot`를 켜고 `fillAmount = ReloadProgress`, 없으면 끈다. 빌보드는 부모 `HealthBarCanvas`(`PlayerHealthBar`)가 처리 | `WeaponLoadout`(`Weapons`), `WeaponInstance`(`IsReloading`, `ReloadProgress`), `Image` |
 | `GameHUD` (MonoBehaviour) | 생존 시간·처치 수는 매 프레임 폴링해 값이 바뀔 때만 텍스트 갱신. 경험치 바·레벨은 `ExperienceGained` 구독으로 갱신. 재화는 `Start`에서 현재 잔액을 표시하고 `Currency.Changed` 구독으로 갱신 | `GameSession`, `PlayerExperience`, `Currency`(`Balance`, `Changed`), TMP(`TMP_Text`), `Image` |
-| `PlayerHealthBar` (MonoBehaviour) | 플레이어 머리 위 World Space 체력바. `PlayerHealth.Damaged`로 채움 비율 갱신, `LateUpdate`에서 카메라와 같은 회전(빌보드) | `PlayerHealth`, `Image`, `Camera` |
+| `PlayerHealthBar` (MonoBehaviour) | 플레이어 머리 위 World Space 체력바. `PlayerHealth.Damaged`·`Healed`로 채움 비율 갱신, `LateUpdate`에서 카메라와 같은 회전(빌보드) | `PlayerHealth`, `Image`, `Camera` |
 | `ResultPanel` (MonoBehaviour) | `GameSession.Ended` 구독. 결과 문구(`CLEAR`/`GAME OVER`)와 통계(생존 시간·레벨·무기 목록·처치 수·진화 무기 수)를 영문으로 표시. 타이틀 버튼으로 `TitleScene` 로드. 문자열 함수 `BuildWeaponList`, `CountEvolved`(static) | `GameSession`, `PlayerExperience`, `WeaponLoadout`, `SceneManager`, TMP, `Button` |
 | `PauseMenu` (MonoBehaviour) | ESC(`UI/Cancel`) 입력으로 일시정지하며 설정 판넬을 열고, 닫으며 재개. 설정 판넬의 타이틀 복귀 버튼·확인창(예/아니오) 처리. 입력 액션을 직접 `Enable`/`Disable`. 레벨업 화면이 열려 있으면 ESC 무시 | `GameSession`(`IsPlaying`, `Pause`, `Resume`), `LevelUpPanel`(`IsOpen`), `Button`, `InputActionReference`, `SceneManager` |
-| `LevelUpPanel` (MonoBehaviour) | `PlayerExperience.LevelChanged`마다 레벨업 대기 횟수를, `RequestChestReward()`마다 보물 상자 대기 횟수를 1 늘리고, 화면이 닫혀 있으면 `GameSession.Pause()` 후 화면을 연다. 회차 종류는 레벨업 우선이며 종류에 따라 카드 수(3/5)·선택 수(2/3)를 정한다. 회차 단계 `RewardPhase`(`Selecting` → `Organizing`)를 소유한다. `Selecting`에서 후보 생성·카드 선택·리롤·확정, 확정 시 선택 아이템을 Temporary 영역에 생성하고 `Organizing`으로 전환. Temporary가 비면 완료 버튼으로 표시 중인 종류의 대기 횟수를 1 줄이고, 둘 다 0이면 화면을 닫고 `Resume()`. 표시 여부 `IsOpen` 노출. `RewardPhase` enum도 같은 파일에 선언 | `GameSession`(`Pause`, `Resume`), `PlayerExperience`(`LevelChanged`), `Currency`(`Balance`, `TrySpend`, `Changed`), `Inventory`(`TemporaryCount`, `StorageCount`, `MoveToTemporary`, `GetRotatedShape`, 이벤트 2개), `InventoryUI`(`GetItemSize`, `ClampToTemporary`, `SetRotateEnabled`), `InventoryItemUI`(프리팹 생성·`Initialize`), `SellConfirmPopup`·`ItemTooltipUI`(`_tooltip`, 아이템 UI에 전달), `RewardCardUI`, `RewardCandidateGenerator`, `Button`, `Text`, `CanvasGroup`. 호출자 `TreasureChest`(`Docs/TechDocs/Enemy.md`) |
-| `RewardCardUI` (MonoBehaviour) | 보상 후보 카드 1장 표시. `Bind(InventoryData)`로 데이터를 `_data`에 보관하고 아이콘·이름(`"{이름} Lv.1"`)·설명 표시, `SetSelected(bool)`로 배경 색(`_normalColor`/`_selectedColor`) 변경. 카드 버튼 클릭 시 `Clicked(this)` 발생. 선택 판정은 하지 않는다. 마우스를 올리면(`IPointerEnterHandler`) `_tooltip.Show(_data, this)`, 벗어나거나(`IPointerExitHandler`) 비활성화되면 `_tooltip.Hide(this)`. `_tooltip`이 비어 있으면 툴팁 없음 | `Button`, `Image`, `Text`, `InventoryData`(`Icon`, `ItemName`, `Description`), `ItemTooltipUI` |
+| `LevelUpPanel` (MonoBehaviour) | `PlayerExperience.LevelChanged`마다 레벨업 대기 횟수를, `RequestChestReward()`마다 보물 상자 대기 횟수를 1 늘리고, 화면이 닫혀 있으면 `GameSession.Pause()` 후 화면을 연다. 회차 종류는 레벨업 우선이며 종류에 따라 카드 수(3/5)·선택 수(2/3)를 정한다. 회차 단계 `RewardPhase`(`Selecting` → `Organizing`)를 소유한다. `Selecting`에서 후보 생성·카드 선택·리롤·확정, 확정 시 선택 아이템을 Temporary 영역에 생성하고 `Organizing`으로 전환. Temporary가 비면 완료 버튼으로 표시 중인 종류의 대기 횟수를 1 줄이고, 둘 다 0이면 화면을 닫고 `Resume()`. 표시 여부 `IsOpen` 노출. `RewardPhase` enum도 같은 파일에 선언 | `GameSession`(`Pause`, `Resume`), `PlayerExperience`(`LevelChanged`), `PlayerHealth`(`Heal`), `Currency`(`Balance`, `TrySpend`, `Changed`), `Inventory`(`TemporaryCount`, `StorageCount`, `MoveToTemporary`, `GetRotatedShape`, 이벤트 2개), `InventoryUI`(`GetItemSize`, `ClampToTemporary`, `SetRotateEnabled`), `InventoryItemUI`(프리팹 생성·`Initialize`), `SellConfirmPopup`·`ItemTooltipUI`(`_tooltip`, 아이템 UI에 전달), `RewardCardUI`, `RewardCandidateGenerator`, `Button`, `Text`, `CanvasGroup`. 호출자 `TreasureChest`(`Docs/TechDocs/Enemy.md`) |
+| `RewardCardUI` (MonoBehaviour) | 보상 후보 카드 1장 표시. `Bind(InventoryData)`로 데이터를 `_data`에 보관하고 아이콘·이름(`MaxLevel` > 1이면 `"{이름} Lv.1"`, 아니면 이름만. `ItemTooltipUI` 레벨 표기와 같은 기준, 코드 주석)·설명 표시, `SetSelected(bool)`로 배경 색(`_normalColor`/`_selectedColor`) 변경. 카드 버튼 클릭 시 `Clicked(this)` 발생. 선택 판정은 하지 않는다. 마우스를 올리면(`IPointerEnterHandler`) `_tooltip.Show(_data, this)`, 벗어나거나(`IPointerExitHandler`) 비활성화되면 `_tooltip.Hide(this)`. `_tooltip`이 비어 있으면 툴팁 없음 | `Button`, `Image`, `Text`, `InventoryData`(`Icon`, `ItemName`, `Description`), `ItemTooltipUI` |
 | `ItemTooltipUI` (MonoBehaviour) | 보유 아이템·보상 후보 공통 툴팁 하나를 커서 옆에 표시. `Show(Inventory.ItemInstance, source)`(현재 레벨·판매가) / `Show(InventoryData, source)`(Lv.1·미배치 기준) / `Hide(source)`(마지막으로 `Show`한 `source`만 숨김). 무기·패시브는 스탯 줄(레벨 보너스·인접·고유 효과·최종 공격력 범위·Lv.3 활성 여부)을 표시. 표시 중에는 `LateUpdate`마다 커서 위치로 갱신 | `Inventory`(`GetSellPrice` 두 오버로드, `GetWeaponLevelMultiplier`, `GetEffectiveAdjacencyBonus`, `GetPassiveAdjacencyBonus`, `GetUnique*`, `GetCharacterAccuracyBonus`, `GetWeaponStats`, `IsLevel3EffectActive`), `InventoryData`(`Icon`, `ItemName`, `ItemType`, `Description`, `MaxLevel`, `WeaponDefinition`, `AdjacencyEffectType`, `IsSellable`, `EquippedEffect`, `UnequippedBuff`, `UnequippedDebuff`), `WeaponDefinition`(`ProjectileDamage`, `DamageVariance`, `GetRolledDamage`), `Mouse`(Input System), `LayoutRebuilder`, `Image`, `Text`. 호출자 `RewardCardUI`, `InventoryItemUI` |
 | `RewardCandidateGenerator` (static class) | 후보 풀에서 서로 다른 아이템을 최대 `count`개 추첨 (`Generate`). 종류별 가중치로 종류를 고른 뒤 종류 안에서 균등 추첨, 직전 후보에 없는 아이템 우선 | `InventoryData`(`ItemType`, `IsSellable`, `Id`), `System.Random` |
 | `SettingsPanel` (MonoBehaviour) | 설정 판넬 UI(볼륨 슬라이더, 피격 효과·데미지 숫자 토글)와 `GameSettings` 동기화. 켜질 때 현재 값 표시, 변경 즉시 반영, 꺼질 때 저장. 열고 닫기는 메뉴 스크립트(`PauseMenu`, `TitleMenu`)가 담당 | `GameSettings`, `Slider`, `Toggle` |
@@ -62,6 +63,7 @@
 |---|---|---|---|---|
 | `GameSession.Ended` | `GameSession` | 클리어 여부(`bool`) | 종료(`End`) 후 `_endFreezeDelay`초 뒤, `Time.timeScale = 0` 직후 1회 | `ResultPanel.HandleEnded` |
 | `PlayerHealth.Damaged` | `PlayerHealth` | 없음 | 무적 게이트를 통과해 피해가 적용될 때마다 (사망하는 피해 포함, `Died`보다 먼저) | `PlayerHealthBar.Refresh`, `PlayerAnimator.PlayHit`(`Weapon.md`) |
+| `PlayerHealth.Healed` | `PlayerHealth` | 없음 | `Heal` 호출마다. 사망 상태라 회복이 무시돼도 발생 (요약 주석 : 체력바 갱신용) | `PlayerHealthBar.Refresh` |
 | `PlayerHealth.Died` | `PlayerHealth` | 없음 | 처음 사망한 피해에서 1회. `_disableOnDeath`를 끈 뒤 발생 | `GameSession.HandlePlayerDied` |
 | `PlayerExperience.LevelChanged` | `PlayerExperience` | 새 레벨(`int`) | 레벨업 1회마다. 한 번에 여러 레벨이 오르면 레벨 수만큼 발생 | `LevelUpPanel.HandleLevelChanged` |
 | `PlayerExperience.ExperienceGained` | `PlayerExperience` | 이번 추가량(`int`) | `AddExperience`(양수)마다 1회. 같은 호출의 `LevelChanged`가 모두 끝난 뒤 발생 | `GameHUD.HandleExperienceGained` |
@@ -101,6 +103,7 @@
 - 접촉 외 경로(`IDamageable.TakeDamage` 직접 호출)도 같은 무적 게이트를 거친다. `timeScale` 0 생략은 접촉 판정(`Update`)에만 있고 `TakeDamage`에는 없다.
 - 피격 반경 `_contactRadius` : `PFB_Player` 값 0.45 (임시값, 이 브랜치에서 축소. 코드 기본값은 0.6이며 필드 주석 "Enemy 정지 거리 1.0 - 캡슐 반지름 0.5 = 표면 0.5 + 여유"는 0.6 기준으로 남아 있다).
 - `SetMaxHealthMultiplier(multiplier)` : `Health.SetMaxHealth(_maxHealth × multiplier)`. 매번 Inspector 기본값에서 다시 계산한다. 최대 체력이 줄면 현재 체력을 새 최대치로 clamp하고, 늘어나도 회복하지 않는다 (`Health.SetMaxHealth` 요약 주석).
+- `Heal(amount)` : `Health.Heal`(최대 체력 clamp, 사망 상태면 무시) 후 `Healed`. 회복이 무시돼도 `Healed`는 발생한다. 호출부 `LevelUpPanel.ApplyExpendable`.
 
 ### `PlayerExperience`
 
@@ -142,7 +145,7 @@
 
 ### `PlayerHealthBar`
 
-- `Start`에서 1회, `Damaged`마다 `fillAmount = CurrentHealth / MaxHealth`. `PlayerHealth.Awake`에서 체력이 만들어진 뒤 읽도록 첫 갱신을 `Start`에서 한다.
+- `Start`에서 1회, `Damaged`·`Healed`마다 `fillAmount = CurrentHealth / MaxHealth`. `PlayerHealth.Awake`에서 체력이 만들어진 뒤 읽도록 첫 갱신을 `Start`에서 한다.
 - `LateUpdate`에서 `transform.rotation = _camera.transform.rotation`.
 
 ### `ResultPanel`
@@ -192,7 +195,7 @@
 | `_levelUpCardCount` (Inspector, `Min(1)`) | 레벨업 회차에 켤 보상 카드 수. 기본값·`GameScene` 값 3 |
 | `_chestCardCount` (Inspector, `Min(1)`) | 보물 상자 회차에 켤 보상 카드 수. 기본값·`GameScene` 값 5 |
 | `_levelUpMaxSelect` / `_chestMaxSelect` (Inspector, `Min(1)`) | 회차 종류별 최대 선택 수. 기본값·`GameScene` 값 2 / 3 |
-| `_rewardPool` (Inspector) | 후보 풀 `InventoryData[]`. `GameScene`에는 6개 연결 |
+| `_rewardPool` (Inspector) | 후보 풀 `InventoryData[]`. `GameScene`에는 8개 연결 |
 | `_weaponWeight` / `_passiveWeight` / `_expendableWeight` (Inspector, `Min(0)`) | 종류 등장 가중치. 기본값·`GameScene` 값 50 / 35 / 15 |
 | `_rerollCost` (Inspector, `Min(1)`) | 리롤 1회 비용. 기본값·`GameScene` 값 2 |
 | `_phase` (private, `RewardPhase`) | 현재 회차 단계. `Selecting`(후보 선택) / `Organizing`(Temporary 정리) |
@@ -200,7 +203,7 @@
 | `_selectedIndices` (private) | 선택한 카드 인덱스. 선택 순서대로 저장되고 확정 시 이 순서로 Temporary에 배치한다 |
 | `CardCount` (private) | `Min(회차 종류별 카드 수, _rewardCards.Length)` |
 | `RequiredSelectCount` (private) | `Min(회차 종류별 최대 선택 수, _candidates.Count)`. 후보가 최대 선택 수보다 적으면 후보 수만큼만 선택한다 |
-| `BeginExpansion(int count)` | 남은 확장 수 `_remainingExpansionCount = Min(count, Inventory.CountExpansionCandidates())`. `Organizing`이면 즉시 `InventoryUI.SetExpansionMode(남은 수 > 0)`. 이어서 `RefreshExpansionGuide`·`RefreshCompleteButton`. 보물 상자 외 확장 출처(1칸 확장권 등)도 같은 경로로 호출하도록 둔 진입점이며 (요약 주석), 현재 호출부는 `StartRound` 하나다 |
+| `BeginExpansion(int count)` | 남은 확장 수 `_remainingExpansionCount = Min(count, Inventory.CountExpansionCandidates())`. `Organizing`이면 즉시 `InventoryUI.SetExpansionMode(남은 수 > 0)`. 이어서 `RefreshExpansionGuide`·`RefreshCompleteButton`. 보물 상자 외 확장 출처(1칸 확장권 등)도 같은 경로로 호출하도록 둔 진입점이며 (요약 주석), 호출부는 `StartRound`와 `ApplyExpendable`(확장권 : 현재 남은 수 + 효과 수치) 두 곳이다 |
 | `_chestExpansionCount` (Inspector, `Min(0)`) | 보물 상자 회차당 확장 칸 수. 기본값 4 |
 | `_remainingExpansionCount` (private) | 현재 회차에서 남은 확장 수. 0이어야 완료할 수 있다 |
 | `_expansionGuideText` (Inspector, `Text`) | 확장 안내 문구 `"확장할 {남은 수}칸을 선택하세요!!"`. `null` 허용 (미연결 Scene은 안내 생략) |
@@ -239,7 +242,10 @@
 
 1. `Selecting`이 아니거나 선택 수 != `RequiredSelectCount`이면 무시.
 2. 연속 클릭으로 중복 지급되지 않도록 `_phase = Organizing`을 먼저 설정한다 (코드 주석).
-3. 선택 순서대로 후보를 모은다. `ItemType.Expendables`는 `TODO` 주석(소비 아이템 효과 적용 : 1칸 확장, 체력 회복)만 있고 Temporary에 등록하지 않는다 (주의사항 x).
+3. 선택 순서대로 후보를 모은다. `ItemType.Expendables`는 `ApplyExpendable(data)`로 효과를 즉시 적용하고 Temporary에 등록하지 않는다.
+   - `ExpendableEffectType.Heal` : `_playerHealth.Heal(ExpendableEffectValue)`.
+   - `ExpendableEffectType.ExpandCell` : `BeginExpansion(남은 확장 수 + RoundToInt(ExpendableEffectValue))`. 결과는 `CountExpansionCandidates()`로 제한된다.
+   - `None` : 효과 없음.
 4. 나머지 아이템마다 `AddToTemporary(data, i, 개수)` : `Inventory.ItemInstance` 생성 → Temporary 영역을 가로로 개수만큼 등분한 i번째 칸 중심을 구함 → `InventoryUI.GetItemSize(회전 0 Shape)`와 `ClampToTemporary(..., rotation 0, camera null)`로 영역 안으로 보정 → `Inventory.MoveToTemporary(item, 위치, 0)` → `_itemPrefab`을 `_itemLayer`에 `Instantiate` → `InventoryItemUI.Initialize(item, _inventory, _inventoryUI, _sellPopup, _tooltip)`. 데이터를 먼저 Temporary로 옮기는 것은 UI가 초기화 시 데이터의 영역·좌표로 표시하기 때문이다 (코드 주석).
 5. 선택·후보를 비우고 `RefreshRewardCards()`로 카드를 모두 끈다. 카드는 프리팹 구조상 `_selectingGroup` 밖이라 그룹 비활성화로 숨겨지지 않기 때문이다 (코드 주석, 주의사항 ab).
 6. `ApplyPhase()`.
@@ -288,6 +294,7 @@
 - 1개를 뽑을 때마다 남은 아이템이 있는 종류끼리만 가중치(무기 50 / 패시브 35 / 소비 15, `GameScene` 값)를 정규화해 종류를 고르고, 그 종류 안에서 균등 추첨한다.
 - 종류 인덱스는 `ItemType` 정수값 0~2(Weapon·Passive·Expendables)를 그대로 쓴다 (`DRAWABLE_TYPE_COUNT` 주석).
 - `LevelUpPanel`은 `System.Random` 인스턴스 1개를 필드로 두고 매번 넘긴다.
+- `LevelUpPanel.GenerateCandidates`는 `Inventory.CountExpansionCandidates()`가 남은 확장 수보다 크지 않으면 `ExpendableEffectType.ExpandCell` 아이템(확장권)을 풀에서 빼고 넘긴다. 이미 예약된 확장 수를 빼면 남는 칸이 없어 확장권이 효과가 없기 때문이다 (코드 주석).
 
 #### 기타
 
@@ -458,7 +465,7 @@
 [Awake] PlayerHealth → Health(_maxHealth), DamageGate(_invulnerabilityDuration)
 [Awake] ResultPanel → _panelRoot 끔   LevelUpPanel → _panelRoot 끔
 [OnEnable] GameSession : Enemy.Died += HandleEnemyDied, PlayerHealth.Died += HandlePlayerDied
-           GameHUD : ExperienceGained += …   PlayerHealthBar : Damaged += Refresh   ResultPanel : Ended += HandleEnded
+           GameHUD : ExperienceGained += …   PlayerHealthBar : Damaged·Healed += Refresh   ResultPanel : Ended += HandleEnded
            PauseMenu : 버튼 onClick 4개 구독, UI/Cancel performed += HandleCancelPerformed, 액션 Enable
            LevelUpPanel : LevelChanged += HandleLevelChanged, 완료·선택 완료·리롤 버튼 onClick, Inventory 이벤트 2개, Currency.Changed, 카드 Clicked 구독
            PlayerStatSync : Inventory.Changed += ApplyStats   InventoryWeaponSync : Inventory.Changed += SyncWeapons
@@ -495,7 +502,7 @@ StartRound : _isShowingChest = (_pendingCount == 0) → Phase = Selecting
   ├─ 새 후보 0개 → 중단 (차감 없음)
   └─ Currency.TrySpend 성공 → 후보 교체·선택 초기화 → RefreshRewardCards   (Currency.Changed → RefreshCurrency)
 [선택 완료 버튼] HandleConfirmClicked : Selecting·선택 수 == 필요 수 확인 → Phase = Organizing (먼저)
-  → 선택 순서대로 (Expendables는 TODO, 등록 안 함) AddToTemporary : ItemInstance → 가로 균등 칸 중심 → ClampToTemporary
+  → 선택 순서대로 (Expendables는 ApplyExpendable : Heal → PlayerHealth.Heal / ExpandCell → BeginExpansion(남은 수 + 값), 등록 안 함) AddToTemporary : ItemInstance → 가로 균등 칸 중심 → ClampToTemporary
        → Inventory.MoveToTemporary → Instantiate(PFB_InventoryItem, ItemLayer) → InventoryItemUI.Initialize(5인자, _tooltip 포함)
   → 후보·선택 비움 → RefreshRewardCards (카드 모두 끔) → ApplyPhase (SelectingGroup 끔, TemporaryArea·완료 버튼 켬, 드래그·회전 허용,
        남은 확장 수 > 0이면 SetExpansionMode(true)로 후보 칸 노란색·안내 문구 "확장할 {n}칸을 선택하세요!!" 켬)
@@ -671,12 +678,13 @@ UI
 | | `_levelUpPanel` | `HUDCanvas`의 `LevelUpPanel` 컴포넌트 |
 | `LevelUpPanel` (HUDCanvas) | `_gameSession` | `Managers/GameSession` |
 | | `_playerExperience` | 플레이어 `PlayerExperience` |
+| | `_playerHealth` | 플레이어(`PFB_Player`) `PlayerHealth` |
 | | `_panelRoot` | `HUDCanvas/PFB_LevelUpPanel` (Scene 인스턴스 루트 GameObject, 컴포넌트가 붙은 `HUDCanvas`와 다른 오브젝트) |
 | | `_completeButton` | 인스턴스의 `CompleteButton` Button |
 | | `_rewardCards` | 인스턴스의 보상 카드 `RewardCardUI` 5개 (Scene 인스턴스 오브젝트) |
 | | `_levelUpCardCount` / `_chestCardCount` | 3 / 5 |
 | | `_levelUpMaxSelect` / `_chestMaxSelect` | 2 / 3 |
-| | `_rewardPool` | `InventoryData` 에셋 6개 |
+| | `_rewardPool` | `InventoryData` 에셋 8개 (Issue #25에서 `SO_Inventory_HealthPack`(구급 상자, Heal 20)·`SO_Inventory_ExpansionTicket`(확장권, ExpandCell 1) 추가) |
 | | `_weaponWeight` / `_passiveWeight` / `_expendableWeight` | 50 / 35 / 15 |
 | | `_rerollCost` | 2 |
 | | `_currency` | Scene의 `Currency` 오브젝트의 `Currency` |
@@ -840,7 +848,7 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 | b | (해결) `GameSession`, `PlayerHealth`가 `Time.deltaTime`을 직접 쓰던 일시정지 미연동 `shortcut` 주석은 Issue #13에서 삭제됐다. 일시정지·종료 정지 모두 `Time.timeScale`로 구현하므로 `Time.deltaTime` 직접 사용이 의도된 방식이다 | 해결 (#13) |
 | c | `PlayerHealth`의 접촉 버퍼는 static 4칸이다. 반경 안 Enemy Collider가 4개를 넘으면 앞 4개만 검사한다. 앞 4개가 모두 사망·비활성이면 살아 있는 Enemy와 접촉해도 피해가 없을 수 있다 | 문제가 보이면 버퍼 확장 |
 | d | `_disableOnDeath`에 없는 컴포넌트(`WeaponViewController`, `PlayerAnimator`, `PlayerHealth` 자신 등)는 사망 후에도 동작한다 | 참고 |
-| e | (해결) `LevelChanged` 구독자가 없던 문제는 Issue #17에서 `LevelUpPanel`이 구독해 해결됐다. 보상 선택·획득(레벨업·보물 상자)은 `LevelUpPanel`의 `Selecting`/`Organizing` 단계로 구현됐다. 남은 미구현은 소비 아이템 효과(주의사항 x)와 레벨업 효과음(주의사항 s)이다 | 해결 (#17, 이슈 미등록 `art/fix-inven-ui`) |
+| e | (해결) `LevelChanged` 구독자가 없던 문제는 Issue #17에서 `LevelUpPanel`이 구독해 해결됐다. 보상 선택·획득(레벨업·보물 상자)은 `LevelUpPanel`의 `Selecting`/`Organizing` 단계로 구현됐다. 소비 아이템 효과는 Issue #25에서 구현됐다(주의사항 x). 남은 미구현은 레벨업 효과음(주의사항 s)이다 | 해결 (#17, 이슈 미등록 `art/fix-inven-ui`, #25) |
 | f | (해결) 재화 표시는 "0" 고정이 아니다. `GameHUD`가 `Currency` 잔액을 표시하고 `Currency.Changed`로 갱신한다 (`INITIAL_CURRENCY_TEXT` 상수는 없다). 판매 외 재화 획득처는 주의사항 w 참고 | 해결 |
 | g | 결과 패널에는 다시하기 버튼이 없다. 타이틀 복귀만 있다 | 다시하기 구현 시 |
 | h | `_endFreezeDelay` 대기는 `WaitForSeconds`(scaled time)라 대기 중 `timeScale`이 0이면 `Ended`가 발생하지 않는다. Issue #13에서 두 경로를 막았다 : `Pause`·`Resume`은 `IsPlaying`일 때만 동작해 종료 대기 중에는 일시정지되지 않고, 일시정지 중에는 `PlayerHealth`가 접촉 판정을 생략해 사망(`End`)이 일어나지 않는다. 단, 이 생략은 접촉 판정에만 있어 `TakeDamage` 직접 호출로 일시정지 중 사망하면 같은 문제가 남는다. 접촉 외 호출 경로는 `IDamageable`을 통한 `Projectile` 적중뿐이다. Issue #19부터 보스 탄(`PFB_BossBullet`, `_hitMask` Player)이 이 경로로 플레이어에게 피해를 준다 (`Docs/TechDocs/Enemy.md`). 일시정지 중 보스 탄 적중으로 사망하는 상황이 실제로 생기는지는 확인하지 않았다 (미검증) | 플레이어에게 피해를 주는 다른 경로 추가 시 |
@@ -859,16 +867,16 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 | u | 후보 풀에서 뽑을 수 있는 아이템 수가 카드 수 이하이면 리롤해도 같은 아이템 조합(순서만 다를 수 있음)이 나오지만 재화는 차감된다. 새 후보가 0개일 때만 차감하지 않는다 | 풀 확장 또는 리롤 차단 조건 검토 시 |
 | v | Temporary 영역을 `LevelUpPanel._temporaryArea`(배치 좌표 계산)와 `InventoryUI._temporaryArea`(보정·표시 좌표)가 각각 참조한다. 두 필드에 같은 오브젝트를 연결해야 한다. 다르면 확정 시 배치 위치가 어긋날 수 있다 (코드 기준 추정, reviewer 권고, 미반영) | 참조 단일화 시 |
 | w | 특수 재화 획득처는 아이템 판매뿐이다. 보스·엘리트 처치 시 지급은 검토 중이다 | 재화 지급처 확정 시 |
-| x | 소비 아이템(`ItemType.Expendables`)을 선택하면 효과(1칸 확장·체력 회복)는 `TODO` 주석만 있고 적용되지 않으며, Temporary에도 등록되지 않는다. 선택 수에는 포함되므로 그 칸만큼 보상이 사라진다 | 소비 아이템 효과 구현 시 |
+| x | (해결) 소비 아이템 선택 시 효과가 적용되지 않던 문제는 Issue #25에서 `LevelUpPanel.ApplyExpendable`(체력 회복·칸 확장)로 해결됐다. Temporary에는 여전히 등록하지 않는다 | 해결 (#25) |
 | y | `PFB_InventoryItem`을 비활성으로 저장하면 `Instantiate` 직후 `Awake`가 실행되지 않아 `InventoryItemUI.Initialize`(5인자)에서 `_image`가 null이라 `NullReferenceException`이 난다. Prefab 루트는 활성으로 저장해야 한다 | Prefab 수정 시 |
 | z | 판매한 아이템의 UI는 `SellConfirmPopup`이 `SetActive(false)`로 끄기만 하고 파괴하지 않는다. 판매가 반복되면 비활성 오브젝트가 `ItemLayer`에 쌓인다 | 아이템 UI 수명 관리 정리 시 |
 | aa | 확정(`HandleConfirmClicked`) 시점에는 `ApplyPhase` 전이라 Temporary 영역이 비활성인 상태에서 `rect`·`TransformPoint`를 읽는다. Temporary 영역이 중앙 앵커·고정 크기라 레이아웃 재계산의 영향이 없다고 판단했다 (reviewer 권고, 미반영, 미검증) | 영역 앵커를 stretch로 바꿀 때 |
 | ab | `RewardCards`는 `PFB_LevelUpPanel`의 Prefab 자식이라 `SelectingGroup` 밖에 있다. 그룹 비활성화로 숨겨지지 않으므로 확정 시 후보를 비우고 `RefreshRewardCards`로 카드를 모두 끈다. 카드 표시를 그룹 기준으로 바꾸려면 Prefab 구조 변경이 필요하다 | 레이아웃 정리 시 |
 | ac | (해결) `Selecting` 단계에서 아이템 툴팁이 뜨지 않던 문제. Issue #23에서 `_itemLayerGroup`을 제거하고 드래그만 `InventoryItemUI.IsDragEnabled`로 막아 선택 중에도 아이템 hover 툴팁이 뜬다 | 해결 (#23) |
 | ad | (해결) 툴팁의 무기 공격력이 레벨 계산 없는 기본값이던 문제. 레벨 보너스 줄과 `GetWeaponStats` 기준 최종 공격력 범위를 표시한다. 기본 공격력 줄은 여전히 `ProjectileDamage` 원본이다 | 해결 (`art/fix-inven-ui`) |
-| ae | 해제 버프와 해제 디버프가 같은 접두어 `"해제 시:"`(`UNEQUIPPED_FORMAT`)를 쓰고 텍스트 색(`GameScene` 값 초록/빨강)으로만 구분한다. 종류 표시는 `ItemType`이 무기·패시브·소비가 아니면 모두 `"고유"`(`default`)다. 보상 Lv.1 규칙이 `ItemTooltipUI.REWARD_LEVEL`과 `RewardCardUI.NAME_FORMAT` 두 곳에 있다 (reviewer 권고, 미반영) | 툴팁 문구·보상 레벨 규칙 정리 시 |
+| ae | 해제 버프와 해제 디버프가 같은 접두어 `"해제 시:"`(`UNEQUIPPED_FORMAT`)를 쓰고 텍스트 색(`GameScene` 값 초록/빨강)으로만 구분한다. 종류 표시는 `ItemType`이 무기·패시브·소비가 아니면 모두 `"고유"`(`default`)다. 보상 Lv.1 규칙이 `ItemTooltipUI.REWARD_LEVEL`과 `RewardCardUI.NAME_FORMAT` 두 곳에 있다 (reviewer 권고, 미반영). Issue #25에서 레벨 표기 생략 기준은 두 곳 모두 `MaxLevel > 1`로 맞췄지만 규칙은 여전히 두 곳에 있다 | 툴팁 문구·보상 레벨 규칙 정리 시 |
 | af | 장착 효과·해제 버프·해제 디버프 텍스트는 표시 전용이다. 실제 효과는 `CharacterDefinition` 고유 효과 필드로 구현되었으나 텍스트와 수치는 서로 연결되지 않아 따로 맞춰야 한다. 전투 조끼 +2칸 확장·회수는 구현되지 않았다 | 아이템 효과 문구 정리 시 |
-| ai | `PlayerHealthBar`는 `Damaged`와 `Start`에서만 갱신한다. 고유 아이템 탈착으로 최대 체력만 바뀌면 다음 피격 전까지 체력바 비율이 갱신되지 않는다 (코드 기준, Play 미검증) | 체력바 갱신 경로 정리 시 |
+| ai | `PlayerHealthBar`는 `Damaged`·`Healed`와 `Start`에서만 갱신한다. 고유 아이템 탈착으로 최대 체력만 바뀌면 다음 피격·회복 전까지 체력바 비율이 갱신되지 않는다 (코드 기준, Play 미검증) | 체력바 갱신 경로 정리 시 |
 | aj | 최대 체력 배율이 다시 1로 돌아와도(고유 아이템 재장착) 현재 체력은 회복되지 않는다 (`Health.SetMaxHealth`가 증가 시 유지) | 기획 확정 시 |
 | ak | `PlayerHealth._contactRadius`(0.45)·`PlayerExperience._collectRadius`(0.8)의 필드 주석은 이전 값(0.6·0.4)의 근거를 설명한다. Prefab 값만 바뀌어 주석과 값이 다르다 | 주석 정리 시 |
 | al | `WeaponReloadGauge`는 재장전 중인 첫 무기만 표시한다 (코드의 `shortcut` 주석). 미니건 2개를 장착해 동시에 재장전하면 목록 앞 무기의 진행률만 보인다 | 무기별 게이지가 필요해지면 |
