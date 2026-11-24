@@ -105,7 +105,7 @@ public class ItemTooltipUI : MonoBehaviour
         _source = source;
         InventoryData data = item.Data;
 
-        _icon.sprite = data.Icon;
+        _icon.sprite = data.GetIcon(item.Level);
         _nameText.text = data.ItemName;
         _typeText.text = GetTypeLabel(data.ItemType);
         _descriptionText.text = data.Description;

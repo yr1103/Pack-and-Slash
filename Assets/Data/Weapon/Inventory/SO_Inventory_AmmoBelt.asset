@@ -15,6 +15,11 @@ MonoBehaviour:
   _id: 5
   _itemName: AmmoBelt
   _icon: {fileID: 21300000, guid: 1a022184144efee498df20a4f159264a, type: 3}
+  _levelIcons:
+  - {fileID: 21300000, guid: 3306316a9840e884485439406f7e798b, type: 3}
+  - {fileID: 21300000, guid: 3e3bde9c5e3be3141825b75d6f93173a, type: 3}
+  - {fileID: 21300000, guid: 7e523e34d9b940c4eb3936fc578e6cdb, type: 3}
+  - {fileID: 21300000, guid: c25f0314d61440d43bd6f72c1d9484b5, type: 3}
   _description: "\uB9DE\uB2FF\uC740 \uBB34\uAE30\uC758 \uACF5\uACA9\uB825\uC744 \uB192\uC785\uB2C8\uB2E4.
     Lv.3\uBD80\uD130 \uC7A5\uCC29 \uC911 \uC774\uB3D9\uC18D\uB3C4\uAC00 \uBE68\uB77C\uC9D1\uB2C8\uB2E4.
     \uC0F7\uAC74\uC758 \uC9C4\uD654\uC5D0 \uC0AC\uC6A9\uD569\uB2C8\uB2E4."
@@ -27,6 +32,8 @@ MonoBehaviour:
   _adjacencyEffectType: 1
   _level3EffectType: 2
   _level3EffectValue: 0.1
+  _expendableEffectType: 0
+  _expendableEffectValue: 0
   _weaponDefinition: {fileID: 0}
   _equippedEffect: 
   _unequippedBuff: 

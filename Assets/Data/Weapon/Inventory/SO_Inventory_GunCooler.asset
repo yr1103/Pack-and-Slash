@@ -15,6 +15,11 @@ MonoBehaviour:
   _id: 6
   _itemName: GunCooler
   _icon: {fileID: 21300000, guid: 10fd57cb0ed64794b8bfcd1ee75fc792, type: 3}
+  _levelIcons:
+  - {fileID: 21300000, guid: fadf65dc3dd2d1942ba4f31ce062c497, type: 3}
+  - {fileID: 21300000, guid: d7c7385a42243954c953e1b22a82a4b6, type: 3}
+  - {fileID: 21300000, guid: 112af8c720150b14f941f7d67b134992, type: 3}
+  - {fileID: 21300000, guid: 9aad798df178fd747abbc64bfd4e0e8c, type: 3}
   _description: "\uB9DE\uB2FF\uC740 \uBB34\uAE30\uC758 \uBB34\uC791\uC704 \uD0C4\uD37C\uC9D0\uC744
     \uC904\uC785\uB2C8\uB2E4. Lv.3\uBD80\uD130 \uC7A5\uCC29 \uC911 \uB354 \uBA3C
     \uACF3\uC758 \uACBD\uD5D8\uCE58 \uBCF4\uC11D\uC744 \uC218\uC9D1\uD569\uB2C8\uB2E4.
@@ -27,6 +32,8 @@ MonoBehaviour:
   _adjacencyEffectType: 3
   _level3EffectType: 3
   _level3EffectValue: 0.15
+  _expendableEffectType: 0
+  _expendableEffectValue: 0
   _weaponDefinition: {fileID: 0}
   _equippedEffect: 
   _unequippedBuff: 

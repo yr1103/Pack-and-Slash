@@ -10,6 +10,7 @@ public class InventoryData : ScriptableObject
     [SerializeField] private int _id;
     [SerializeField] private string _itemName;
     [SerializeField] private Sprite _icon;
+    [SerializeField] private Sprite[] _levelIcons; // 인덱스 0 = Lv.2, 1 = Lv.3 ... (비어 있으면 _icon 사용)
     [SerializeField, TextArea] private string _description;
     [SerializeField] private ItemType _itemType;
     [SerializeField] private Vector2Int[] _itemShape; // 몇칸 차지하는지
@@ -48,6 +49,16 @@ public class InventoryData : ScriptableObject
     public string EquippedEffect => _equippedEffect;
     public string UnequippedBuff => _unequippedBuff;
     public string UnequippedDebuff => _unequippedDebuff;
+
+    /// <summary>레벨별 아이콘, Lv.1 또는 해당 레벨 아이콘이 없으면 기본 아이콘</summary>
+    public Sprite GetIcon(int level)
+    {
+        int index = level - 2;
+        if (_levelIcons != null && index >= 0 && index < _levelIcons.Length && _levelIcons[index] != null)
+            return _levelIcons[index];
+
+        return _icon;
+    }
 
     public void SetData(int id, string itemName, Sprite icon, ItemType itemType, string description, Vector2Int[] itemShape, int maxLevel, WeaponDefinition weaponDefinition)
     {
