@@ -35,6 +35,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     /// <summary>무적 게이트를 통과해 피해가 적용될 때마다 발생 (사망하는 피해 포함)</summary>
     public event Action Damaged;
 
+    /// <summary>Heal 호출 시 발생, 사망 상태라 회복이 무시돼도 발생 (체력바 갱신용)</summary>
+    public event Action Healed;
+
     /// <summary>사망 확정 시 1회 발생 (게임 오버 판정 구독 지점)</summary>
     public event Action Died;
 
@@ -99,6 +102,14 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         {
             Die();
         }
+    }
+
+    /// <summary>체력 회복 (최대 체력까지, 사망 상태면 무시)</summary>
+    /// <param name="amount">회복량</param>
+    public void Heal(float amount)
+    {
+        _health.Heal(amount);
+        Healed?.Invoke();
     }
 
     private void Die()

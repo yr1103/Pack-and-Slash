@@ -40,7 +40,7 @@
 | `EnemyMovement` (MonoBehaviour, 넉백 부분만) | Flow Field 이동과 별도인 XZ 넉백 속도 `_knockbackVelocity` 소유. `AddKnockback(direction, strength)`로 누적, 매 `Update`에서 이동·선형 감속. 계산 함수 `CalculateKnockbackVelocity`(static). 이동 알고리즘(Flow Field·Separation)은 `Docs/TechDocs/Map.md` | `CostField`(`WorldToTile`, `IsInBounds`, `IsWalkable`). 호출자 `Projectile`(`Docs/TechDocs/Weapon.md`) |
 | `TempEnemySpawner` (MonoBehaviour, 임시) | `TestMap` 전용. `Start`에서 `_spawnCount`마리를 자기 위치 기준 반경 `_spawnRadius` 원 위 랜덤 각도에 `EnemyPool`로 일괄 생성. 프리팹은 `_enemyPrefabs`에서 생성마다 균등 랜덤 | `EnemyPool`, `FlowFieldManager`, 플레이어 `Transform` |
 | `EnemyHitFeedback` (MonoBehaviour) | `Enemy.Damaged` 구독. 피해마다 `_renderer.sharedMaterial`을 `_flashMaterial`로 `_flashDuration`초 교체, `DamageNumber.Spawn(위치, 피해량)`으로 피해 숫자 표시. 각각 `GameSettings` 설정이 꺼져 있으면 생략 | `Enemy`, `Renderer`, `Material`, `DamageNumbersPro.DamageNumber`, `GameSettings` |
-| `Health` (일반 클래스) | 최대·현재 체력, `ApplyDamage`(0 미만으로 내려가지 않음, 처음 사망한 호출만 `true`), `ResetToMax`. `Enemy`·`PlayerHealth`가 사용 | 없음 |
+| `Health` (일반 클래스) | 최대·현재 체력, `ApplyDamage`(0 미만으로 내려가지 않음, 처음 사망한 호출만 `true`), `Heal`(최대 체력 clamp, 사망 시 무시), `ResetToMax`. `Enemy`·`PlayerHealth`가 사용 | 없음 |
 | `DamageGate` (일반 클래스) | 피해 1회 통과 후 무적 시간 동안 추가 통과를 막는 게이트(`TryPass`, `Tick`, `IsOpen`). 현재 `PlayerHealth`만 사용 | 없음 |
 | `ExperienceGem` (MonoBehaviour) | 상태 `Idle` → `Scatter` → `Attract`. 도착 시 `PlayerExperience.AddExperience` 1회 후 풀 반환. 판정 함수 `IsInCollectRadius`, `GetScatterDirection`(static). 수명 없음 | `PlayerExperience`, `IObjectPool<ExperienceGem>` |
 | `ExperienceGemPool` (MonoBehaviour) | `Enemy.Died` 구독. 사망 위치(높이는 `_spawnHeight`로 고정)에 젬을 꺼내 `Initialize` 호출. `ExperienceValue`가 0 이하면 생성하지 않음. 젬 Prefab마다 풀을 따로 둔다(`Dictionary<ExperienceGem, ObjectPool<ExperienceGem>>`, Enemy의 `GemPrefab` 또는 기본 `_gemPrefab`) | `ExperienceGem`, `PlayerExperience`, `Enemy` |
@@ -86,6 +86,7 @@
 
 - 생성자에서 현재 체력 = 최대 체력. 최대 체력이 0 이하면 생성 즉시 사망 상태다.
 - `ApplyDamage(damage)` : 이미 사망 상태면 `false`를 반환하고 무시한다. 아니면 `max(0, 현재 - 피해)`로 줄이고 사망 여부를 반환한다. 따라서 `true`는 처음 사망한 호출에서만 나온다.
+- `Heal(amount)` : 사망 상태면 무시한다. 아니면 `min(최대, 현재 + 회복량)`으로 늘린다. 호출부는 `PlayerHealth.Heal`(`GameFlow.md`)이다.
 - `IsDead` = 현재 체력 ≤ 0.
 
 ### `DamageGate`

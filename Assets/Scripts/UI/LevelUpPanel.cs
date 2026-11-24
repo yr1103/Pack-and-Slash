@@ -46,6 +46,7 @@ public class LevelUpPanel : MonoBehaviour
     [SerializeField] private ItemTooltipUI _tooltip; // 생성한 Temporary 아이템 UI에 주입
     [SerializeField, Min(0)] private int _chestExpansionCount = 4; // 보물 상자 회차당 확장 칸 수
     [SerializeField] private Text _expansionGuideText; // null 허용 (미연결 씬은 안내 생략)
+    [SerializeField] private PlayerHealth _playerHealth; // 회복 소비 아이템 적용 대상
 
     private readonly System.Random _random = new System.Random();
     private readonly List<int> _selectedIndices = new List<int>(); // 선택한 카드 인덱스 (선택 순서대로 Temporary 배치)
@@ -172,9 +173,14 @@ public class LevelUpPanel : MonoBehaviour
         ApplyPhase();
     }
 
+    // 이미 예약된 확장 수를 빼고 남는 칸이 없으면 확장권은 효과가 없으므로 후보 풀에서 제외
     private List<InventoryData> GenerateCandidates(ICollection<InventoryData> previous)
     {
-        return RewardCandidateGenerator.Generate(_rewardPool, CardCount,
+        InventoryData[] pool = _inventory.CountExpansionCandidates() > _remainingExpansionCount
+            ? _rewardPool
+            : Array.FindAll(_rewardPool, data => data.ExpendableEffectType != ExpendableEffectType.ExpandCell);
+
+        return RewardCandidateGenerator.Generate(pool, CardCount,
             _weaponWeight, _passiveWeight, _expendableWeight, previous, _random);
     }
 
@@ -218,7 +224,7 @@ public class LevelUpPanel : MonoBehaviour
         RefreshRewardCards();
     }
 
-    // 연속 클릭으로 중복 지급되지 않도록 Phase를 먼저 전환한 뒤 선택 아이템을 Temporary에 생성
+    // 연속 클릭으로 중복 지급되지 않도록 Phase를 먼저 전환한 뒤 소비 아이템은 즉시 적용, 나머지는 Temporary에 생성
     private void HandleConfirmClicked()
     {
         if (_phase != RewardPhase.Selecting || _selectedIndices.Count != RequiredSelectCount)
@@ -234,7 +240,7 @@ public class LevelUpPanel : MonoBehaviour
 
             if (data.ItemType == ItemType.Expendables)
             {
-                // TODO : 소비 아이템 효과 적용 (1칸 확장, 체력 회복)
+                ApplyExpendable(data);
                 continue;
             }
 
@@ -250,6 +256,20 @@ public class LevelUpPanel : MonoBehaviour
         _candidates.Clear();
         RefreshRewardCards(); // 카드는 프리팹 구조상 _selectingGroup 밖이라 후보 0개로 갱신해 모두 비활성화
         ApplyPhase();
+    }
+
+    // 소비 아이템은 Temporary에 두지 않고 즉시 적용 (Organizing 전환 후 호출되므로 확장 모드도 바로 켜짐)
+    private void ApplyExpendable(InventoryData data)
+    {
+        switch (data.ExpendableEffectType)
+        {
+            case ExpendableEffectType.Heal:
+                _playerHealth.Heal(data.ExpendableEffectValue);
+                break;
+            case ExpendableEffectType.ExpandCell:
+                BeginExpansion(_remainingExpansionCount + Mathf.RoundToInt(data.ExpendableEffectValue));
+                break;
+        }
     }
 
     // Temporary 영역을 가로로 slotCount등분한 slot번째 칸 중심에 회전 0으로 배치 (영역 밖으로 나가지 않게 보정)

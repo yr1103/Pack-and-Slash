@@ -16788,6 +16788,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: eec78ae81cc669644b4769ba6e4ed6be, type: 2}
   - {fileID: 11400000, guid: f323c65de92e6d6499668454ec609404, type: 2}
   - {fileID: 11400000, guid: 5358c68e0bb0bcd449d8652619c9db05, type: 2}
+  - {fileID: 11400000, guid: cf7feb16d980fdd44834658bd2365033, type: 2}
+  - {fileID: 11400000, guid: b1e370e6e65d0e044863752789bf6926, type: 2}
   _weaponWeight: 50
   _passiveWeight: 35
   _expendableWeight: 15
@@ -16809,6 +16811,7 @@ MonoBehaviour:
   _tooltip: {fileID: 1087517654}
   _chestExpansionCount: 4
   _expansionGuideText: {fileID: 1914201218}
+  _playerHealth: {fileID: 1136806271}
 --- !u!1 &1673433031
 GameObject:
   m_ObjectHideFlags: 0

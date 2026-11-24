@@ -43,6 +43,18 @@ public class Health
         return IsDead;
     }
 
+    /// <summary>체력 회복 (최대 체력을 넘지 않음, 사망 상태면 무시)</summary>
+    /// <param name="amount">회복량</param>
+    public void Heal(float amount)
+    {
+        if (IsDead)
+        {
+            return;
+        }
+
+        _currentHealth = Mathf.Min(_maxHealth, _currentHealth + amount);
+    }
+
     /// <summary>현재 체력을 최대로 복구 (Enemy 풀 재사용 시 OnEnable에서 호출)</summary>
     public void ResetToMax()
     {
