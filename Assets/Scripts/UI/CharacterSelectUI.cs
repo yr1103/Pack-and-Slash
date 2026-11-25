@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
@@ -10,11 +12,15 @@ using UnityEngine.UI;
 public class CharacterSelectUI : MonoBehaviour
 {
     private const string GAME_SCENE_NAME = "GameScene";
+    private const string START_WEAPON_FORMAT = "{0} ({1}x{2})"; // "시작 무기" 라벨이 따로 있음, {0} 이름, {1}x{2} 칸수 가로x세로
+    private const string UNIQUE_ITEM_FORMAT = "고유 아이템: {0} ({1}x{2})";
+    private const string LINE_SEPARATOR = "\n";
 
     [SerializeField] private CharacterSlot[] _slots;
     // shortcut: 레거시 Text로 OS 폰트 한글 폴백 사용, 한글 TMP 폰트 에셋 준비 시 TMP로 교체
     [SerializeField] private Text _nameText;
     [SerializeField] private Text _weaponText;
+    [SerializeField] private Text _uniqueItemText;
     [SerializeField] private Text _descriptionText;
     [SerializeField] private Button _startButton;
 
@@ -63,6 +69,7 @@ public class CharacterSelectUI : MonoBehaviour
 
         _nameText.text = string.Empty;
         _weaponText.text = string.Empty;
+        _uniqueItemText.text = string.Empty;
         _descriptionText.text = string.Empty;
         _startButton.interactable = false;
     }
@@ -76,9 +83,53 @@ public class CharacterSelectUI : MonoBehaviour
 
         _selected = _slots[slotIndex].Character;
         _nameText.text = _selected.DisplayName;
-        _weaponText.text = _selected.StartWeaponName;
+        _weaponText.text = GetItemLine(START_WEAPON_FORMAT, _selected.StartWeaponItem) ?? string.Empty;
+        _uniqueItemText.text = GetUniqueItemText(_selected);
         _descriptionText.text = _selected.Description;
         _startButton.interactable = true;
+    }
+
+    // 고유 아이템 이름·장착 효과를 한 줄씩, 빈 줄은 생략
+    private static string GetUniqueItemText(CharacterDefinition character)
+    {
+        List<string> lines = new List<string>();
+        InventoryData item = character.UniqueItem;
+
+        if (item != null)
+        {
+            lines.Add(GetItemLine(UNIQUE_ITEM_FORMAT, item));
+            // 해제 효과는 Tooltip에서만 안내, 선택 화면은 장착 효과를 기본 패시브처럼 표시
+            lines.Add(item.EquippedEffect);
+        }
+
+        return JoinNonEmpty(LINE_SEPARATOR, lines.ToArray());
+    }
+
+    private static string JoinNonEmpty(string separator, params string[] values)
+    {
+        return string.Join(separator, values.Where(value => !string.IsNullOrEmpty(value)));
+    }
+
+    // 칸수는 회전 0 도형 바운딩 박스 가로x세로, 도형이 없으면 이름만
+    private static string GetItemLine(string format, InventoryData item)
+    {
+        if (item == null)
+            return null;
+
+        if (item.ItemShape == null || item.ItemShape.Length == 0)
+            return item.ItemName;
+
+        Vector2Int min = item.ItemShape[0];
+        Vector2Int max = item.ItemShape[0];
+
+        foreach (Vector2Int cell in item.ItemShape)
+        {
+            min = Vector2Int.Min(min, cell);
+            max = Vector2Int.Max(max, cell);
+        }
+
+        Vector2Int size = max - min + Vector2Int.one;
+        return string.Format(format, item.ItemName, size.x, size.y);
     }
 
     private void StartGame()

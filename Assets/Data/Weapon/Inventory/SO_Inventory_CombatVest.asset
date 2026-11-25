@@ -15,11 +15,11 @@ MonoBehaviour:
   _id: 11
   _itemName: CombatVest
   _icon: {fileID: 21300000, guid: 6390a72a5bc35084ea7c48f776d44797, type: 3}
-  _description: "\uAC81\uC774 \uB9CE\uC740 \uC0DD\uC874\uC790\uAC00 \uC548\uC804\uC744
-    \uC704\uD574 \uCC29\uC6A9\uD55C \uB450\uAEBC\uC6B4 \uC804\uD22C \uC870\uB07C.
-    \uC870\uB07C\uB97C \uBC97\uC73C\uBA74 \uBAB8\uC774 \uAC00\uBCBC\uC6CC\uC838 \uB3C4\uB9DD\uCE58\uB294
-    \uC18D\uB3C4\uB294 \uBE68\uB77C\uC9C0\uC9C0\uB9CC, \uACF5\uACA9\uC744 \uBC84\uD2F8
-    \uC790\uC2E0\uB3C4 \uD568\uAED8 \uC0AC\uB77C\uC9C4\uB2E4."
+  _levelIcons: []
+  _description: "\uC0DD\uC874\uC744 \uC704\uD55C \uB450\uAEBC\uC6B4 \uC870\uB07C.
+    \uCC29\uC6A9\uD558\uBA74 \uC218\uB0A9\uACF5\uAC04\uC774 \uB298\uC5B4\uB098\uACE0,
+    \uBC97\uC73C\uBA74 \uB354 \uBE60\uB974\uAC8C \uB3C4\uB9DD\uCE60 \uC218 \uC788\uC9C0\uB9CC
+    \uC0DD\uC874\uB825\uC774 \uB5A8\uC5B4\uC9D1\uB2C8\uB2E4."
   _itemType: 3
   _itemShape:
   - {x: 0, y: 0}
@@ -28,7 +28,13 @@ MonoBehaviour:
   - {x: 1, y: 1}
   _maxLevel: 1
   _isSellable: 1
+  _adjacencyEffectType: 0
+  _level3EffectType: 0
+  _level3EffectValue: 0
+  _level3EffectName: 
+  _expendableEffectType: 0
+  _expendableEffectValue: 0
   _weaponDefinition: {fileID: 0}
-  _equippedEffect: "\uAE30\uC874 \uCE90\uB9AD\uD130 \uAE30\uBCF8 \uD6A8\uACFC \uC720\uC9C0"
+  _equippedEffect: "\uAC00\uBC29 +2\uCE78, \uBCF4\uAD00\uD568 \uD55C\uB3C4 +2\uAC1C"
   _unequippedBuff: "\uC774\uB3D9\uC18D\uB3C4 +30%"
   _unequippedDebuff: "\uCD5C\uB300 \uCCB4\uB825 -30%"

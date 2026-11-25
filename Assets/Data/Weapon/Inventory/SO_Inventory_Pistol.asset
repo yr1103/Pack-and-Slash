@@ -20,10 +20,8 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 601c404fe19884045b5dab70da7f6579, type: 3}
   - {fileID: 21300000, guid: 3bce86513f318c9489a760c7347fad6f, type: 3}
   - {fileID: 21300000, guid: 8255ade29ba44714cb30498966048c28, type: 3}
-  _description: "\uBA3C \uAC70\uB9AC\uC758 \uC801\uC744 \uD5A5\uD574 \uD55C \uBC1C\uC529
-    \uC790\uB3D9 \uC0AC\uACA9\uD569\uB2C8\uB2E4. \uC7AC\uC7A5\uC804 \uC5C6\uC774
-    \uBC1C\uC0AC\uD558\uBA70, Lv.3\uBD80\uD130 \uAD8C\uCD1D \uB450 \uC790\uB8E8\uB85C
-    \uACF5\uACA9\uD569\uB2C8\uB2E4."
+  _description: "\uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uC801\uC744 \uD5A5\uD574 \uD0C4\uD658\uC744
+    \uBC1C\uC0AC\uD569\uB2C8\uB2E4."
   _itemType: 0
   _itemShape:
   - {x: 0, y: 0}
@@ -33,6 +31,7 @@ MonoBehaviour:
   _adjacencyEffectType: 0
   _level3EffectType: 0
   _level3EffectValue: 0
+  _level3EffectName: "\uC30D\uAD8C\uCD1D"
   _expendableEffectType: 0
   _expendableEffectValue: 0
   _weaponDefinition: {fileID: 11400000, guid: c8428468fe4d08940ba664176b113bc1, type: 2}

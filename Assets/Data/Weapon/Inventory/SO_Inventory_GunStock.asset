@@ -20,10 +20,8 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 7c062190874907e4a88c54f6f2d8e80e, type: 3}
   - {fileID: 21300000, guid: e111d98c96fb71d49aca1ab577c47ac1, type: 3}
   - {fileID: 21300000, guid: 4353771f6bec91e4a8d82803c6524170, type: 3}
-  _description: "\uB9DE\uB2FF\uC740 \uBB34\uAE30\uC758 \uBC1C\uC0AC \uAC04\uACA9\uC744
-    \uC904\uC785\uB2C8\uB2E4. Lv.3\uBD80\uD130 \uC7A5\uCC29 \uC911 \uD68D\uB4DD\uD558\uB294
-    \uACBD\uD5D8\uCE58\uAC00 \uB298\uC5B4\uB0A9\uB2C8\uB2E4. \uAD8C\uCD1D\uC758 \uC9C4\uD654\uC5D0
-    \uC0AC\uC6A9\uD569\uB2C8\uB2E4."
+  _description: "\uC778\uC811\uD55C \uBB34\uAE30\uC758 \uBC1C\uC0AC \uAC04\uACA9\uC744
+    \uC904\uC785\uB2C8\uB2E4.\n\uAD8C\uCD1D\uC758 \uC9C4\uD654\uC5D0 \uC0AC\uC6A9\uD569\uB2C8\uB2E4."
   _itemType: 1
   _itemShape:
   - {x: 0, y: 0}
@@ -34,6 +32,7 @@ MonoBehaviour:
   _adjacencyEffectType: 2
   _level3EffectType: 1
   _level3EffectValue: 0.1
+  _level3EffectName: "\uACBD\uD5D8\uCE58 \uD68D\uB4DD\uB7C9 \uC99D\uAC00"
   _expendableEffectType: 0
   _expendableEffectValue: 0
   _weaponDefinition: {fileID: 0}

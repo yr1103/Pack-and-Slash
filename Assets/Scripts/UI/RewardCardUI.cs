@@ -1,10 +1,11 @@
 using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 /// <summary>
-/// 보상 후보 카드 1장 표시 (아이콘·이름·설명·선택 색), 클릭 시 Clicked로 통지, 마우스를 올리면 공통 툴팁 표시
+/// 보상 후보 카드 1장 표시 (아이콘·이름·종류·선택 색), 클릭 시 Clicked로 통지, 마우스를 올리면 공통 툴팁 표시
 /// </summary>
 public class RewardCardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
@@ -14,7 +15,7 @@ public class RewardCardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     [SerializeField] private Image _background; // 선택 여부에 따라 색 변경
     [SerializeField] private Image _icon;
     [SerializeField] private Text _nameText;
-    [SerializeField] private Text _descriptionText;
+    [SerializeField, FormerlySerializedAs("_descriptionText")] private Text _typeText;
     [SerializeField] private Color _normalColor = Color.white;
     [SerializeField] private Color _selectedColor = new Color(1f, 0.85f, 0.3f);
     [SerializeField] private ItemTooltipUI _tooltip; // 미연결이면 툴팁 없음
@@ -45,7 +46,7 @@ public class RewardCardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
         _icon.sprite = data.Icon;
         // 레벨 없는 아이템(소비 등, MaxLevel 1)은 툴팁과 같은 기준으로 레벨 생략
         _nameText.text = data.MaxLevel > 1 ? string.Format(NAME_FORMAT, data.ItemName) : data.ItemName;
-        _descriptionText.text = data.Description;
+        _typeText.text = ItemTooltipUI.GetTypeLabel(data.ItemType);
     }
 
     /// <summary>선택 상태 색 표시</summary>
