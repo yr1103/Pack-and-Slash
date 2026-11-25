@@ -25,6 +25,7 @@ public class ItemTooltipUI : MonoBehaviour
     private const float MIN_DAMAGE_RATIO = 0f;
     private const float MAX_DAMAGE_RATIO = 1f;
     private const string LEVEL3_ACTIVE_TEXT = "Lv.3 효과 활성";
+    private const string LEVEL3_ACTIVE_FORMAT = "Lv.3 활성: {0}"; // {0} Lv.3 효과 이름
     private const string LEVEL3_INACTIVE_TEXT = "Lv.3 효과 비활성";
     private const string EQUIPPED_FORMAT = "장착: {0}";
     private const string UNEQUIPPED_FORMAT = "해제 시: {0}";
@@ -171,7 +172,12 @@ public class ItemTooltipUI : MonoBehaviour
             return null;
         }
 
-        lines.Add(_inventory.IsLevel3EffectActive(item) ? LEVEL3_ACTIVE_TEXT : LEVEL3_INACTIVE_TEXT);
+        if (!_inventory.IsLevel3EffectActive(item))
+            lines.Add(LEVEL3_INACTIVE_TEXT);
+        else if (string.IsNullOrEmpty(data.Level3EffectName))
+            lines.Add(LEVEL3_ACTIVE_TEXT);
+        else
+            lines.Add(string.Format(LEVEL3_ACTIVE_FORMAT, data.Level3EffectName));
         return string.Join(LINE_SEPARATOR, lines);
     }
 
@@ -219,7 +225,8 @@ public class ItemTooltipUI : MonoBehaviour
         return hasValue;
     }
 
-    private static string GetTypeLabel(ItemType itemType)
+    /// <summary>아이템 종류 표시 이름 (툴팁·보상 카드 공용)</summary>
+    public static string GetTypeLabel(ItemType itemType)
     {
         switch (itemType)
         {

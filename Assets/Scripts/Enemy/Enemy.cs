@@ -20,6 +20,7 @@ public class Enemy : MonoBehaviour, ITargetable, IDamageable
     [SerializeField, Min(0)] private int _experienceValue = 1; // 사망 시 드롭할 젬의 경험치, 0이면 드롭 없음
     [SerializeField] private ExperienceGem _gemPrefab; // 드롭할 젬 프리팹, 비우면 ExperienceGemPool 기본 젬
     [SerializeField] private bool _dropsTreasureChest; // 사망 시 보물 상자 드롭 여부 (중간 보스만)
+    [SerializeField, Min(0)] private int _currencyReward; // 사망 시 지급할 특수 재화량, 0이면 지급 없음 (엘리트만)
     [SerializeField] private bool _clearsSessionOnDeath; // 처치 시 세션 클리어 여부 (최종 보스만)
 
     private static int _nextSpawnId;
@@ -48,6 +49,7 @@ public class Enemy : MonoBehaviour, ITargetable, IDamageable
     public int ExperienceValue => _experienceValue;
     public ExperienceGem GemPrefab => _gemPrefab;
     public bool DropsTreasureChest => _dropsTreasureChest;
+    public int CurrencyReward => _currencyReward;
     public bool ClearsSessionOnDeath => _clearsSessionOnDeath;
 
     /// <summary>Enemy 사망 확정 시 1회 발생 (젬 드롭 등 구독 지점, 경험치는 직접 지급하지 않음)</summary>

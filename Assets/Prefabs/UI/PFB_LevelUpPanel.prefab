@@ -2092,7 +2092,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
+    m_Font: {fileID: 12800000, guid: 86fb155e1035ceb4a96cdc15993e0018, type: 3}
     m_FontSize: 26
     m_FontStyle: 0
     m_BestFit: 0
@@ -4291,7 +4291,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
+    m_Font: {fileID: 12800000, guid: 86fb155e1035ceb4a96cdc15993e0018, type: 3}
     m_FontSize: 26
     m_FontStyle: 0
     m_BestFit: 0
@@ -5217,6 +5217,10 @@ PrefabInstance:
       propertyPath: m_Text
       value: "\uD0C4\uB760 Lv.1"
       objectReference: {fileID: 0}
+    - target: {fileID: 3440564921049413764, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
+      propertyPath: m_FontData.m_Font
+      value: 
+      objectReference: {fileID: 12800000, guid: 86fb155e1035ceb4a96cdc15993e0018, type: 3}
     - target: {fileID: 4365659821698633434, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -5301,6 +5305,10 @@ PrefabInstance:
       propertyPath: m_Text
       value: "\uC778\uC811 \uBB34\uAE30 \uACF5\uACA9\uB825 6% \uC99D\uAC00."
       objectReference: {fileID: 0}
+    - target: {fileID: 4376598709062350090, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
+      propertyPath: m_FontData.m_Font
+      value: 
+      objectReference: {fileID: 12800000, guid: 86fb155e1035ceb4a96cdc15993e0018, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -5331,6 +5339,10 @@ PrefabInstance:
       propertyPath: m_Text
       value: "\uAC1C\uBA38\uB9AC\uD310 Lv.1"
       objectReference: {fileID: 0}
+    - target: {fileID: 3440564921049413764, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
+      propertyPath: m_FontData.m_Font
+      value: 
+      objectReference: {fileID: 12800000, guid: 86fb155e1035ceb4a96cdc15993e0018, type: 3}
     - target: {fileID: 4365659821698633434, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -5415,6 +5427,10 @@ PrefabInstance:
       propertyPath: m_Text
       value: "\uC778\uC811 \uBB34\uAE30 \uBC1C\uC0AC \uAC04\uACA9 4% \uAC10\uC18C."
       objectReference: {fileID: 0}
+    - target: {fileID: 4376598709062350090, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
+      propertyPath: m_FontData.m_Font
+      value: 
+      objectReference: {fileID: 12800000, guid: 86fb155e1035ceb4a96cdc15993e0018, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -5437,6 +5453,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PFB_RewardCard_01
       objectReference: {fileID: 0}
+    - target: {fileID: 3440564921049413764, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
+      propertyPath: m_FontData.m_Font
+      value: 
+      objectReference: {fileID: 12800000, guid: 86fb155e1035ceb4a96cdc15993e0018, type: 3}
     - target: {fileID: 4365659821698633434, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -5521,6 +5541,10 @@ PrefabInstance:
       propertyPath: m_Text
       value: "\uAC00\uAE4C\uC6B4 \uC801\uC744 \uC790\uB3D9 \uC870\uC900\uD574 \uBC1C\uC0AC\uD55C\uB2E4."
       objectReference: {fileID: 0}
+    - target: {fileID: 4376598709062350090, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
+      propertyPath: m_FontData.m_Font
+      value: 
+      objectReference: {fileID: 12800000, guid: 86fb155e1035ceb4a96cdc15993e0018, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -5551,6 +5575,10 @@ PrefabInstance:
       propertyPath: m_Text
       value: "\uBBF8\uB2C8\uAC74 Lv.1"
       objectReference: {fileID: 0}
+    - target: {fileID: 3440564921049413764, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
+      propertyPath: m_FontData.m_Font
+      value: 
+      objectReference: {fileID: 12800000, guid: 86fb155e1035ceb4a96cdc15993e0018, type: 3}
     - target: {fileID: 4365659821698633434, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -5635,6 +5663,10 @@ PrefabInstance:
       propertyPath: m_Text
       value: "\uBE60\uB978 \uC5F0\uC0AC\uB85C \uD0C4\uC744 \uC3DF\uC544\uB0B8\uB2E4."
       objectReference: {fileID: 0}
+    - target: {fileID: 4376598709062350090, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
+      propertyPath: m_FontData.m_Font
+      value: 
+      objectReference: {fileID: 12800000, guid: 86fb155e1035ceb4a96cdc15993e0018, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -5665,6 +5697,10 @@ PrefabInstance:
       propertyPath: m_Text
       value: "\uC0F7\uAC74 Lv.1"
       objectReference: {fileID: 0}
+    - target: {fileID: 3440564921049413764, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
+      propertyPath: m_FontData.m_Font
+      value: 
+      objectReference: {fileID: 12800000, guid: 86fb155e1035ceb4a96cdc15993e0018, type: 3}
     - target: {fileID: 4365659821698633434, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -5750,6 +5786,10 @@ PrefabInstance:
       value: "\uBD80\uCC44\uAF34\uB85C \uC5EC\uB7EC \uBC1C\uC744 \uB3D9\uC2DC\uC5D0
         \uBC1C\uC0AC\uD55C\uB2E4."
       objectReference: {fileID: 0}
+    - target: {fileID: 4376598709062350090, guid: 9a6f8d7e046ce1b4aab566c773eda2c9, type: 3}
+      propertyPath: m_FontData.m_Font
+      value: 
+      objectReference: {fileID: 12800000, guid: 86fb155e1035ceb4a96cdc15993e0018, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

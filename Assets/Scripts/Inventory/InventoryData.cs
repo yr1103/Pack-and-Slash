@@ -19,6 +19,7 @@ public class InventoryData : ScriptableObject
     [SerializeField] private AdjacencyEffectType _adjacencyEffectType; // 패시브가 맞닿은 무기에 주는 효과 종류 (수치는 레벨 기준 공통)
     [SerializeField] private Level3EffectType _level3EffectType; // 패시브 Lv.3 이상 Inventory 배치 시 플레이어 효과 종류 (인접 무관)
     [SerializeField] private float _level3EffectValue; // Lv.3 효과 수치 (0.1 = 10%, Lv.3~5 동일)
+    [SerializeField] private string _level3EffectName; // 툴팁 Lv.3 활성 줄에 표시할 효과 이름 (예: 쌍권총, 비어 있으면 이름 생략)
     [SerializeField] private ExpendableEffectType _expendableEffectType; // 소비 아이템 선택 시 즉시 적용 효과 종류
     [SerializeField] private float _expendableEffectValue; // 소비 효과 수치 (Heal = 회복량, ExpandCell = 확장 칸 수)
 
@@ -42,6 +43,7 @@ public class InventoryData : ScriptableObject
     public AdjacencyEffectType AdjacencyEffectType => _adjacencyEffectType;
     public Level3EffectType Level3EffectType => _level3EffectType;
     public float Level3EffectValue => _level3EffectValue;
+    public string Level3EffectName => _level3EffectName;
     public ExpendableEffectType ExpendableEffectType => _expendableEffectType;
     public float ExpendableEffectValue => _expendableEffectValue;
 

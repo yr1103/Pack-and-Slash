@@ -111,9 +111,14 @@ InitTestScene*.unity*
 # 추가 ignore 처리
 /[Aa]ssets/[Ii]mports/
 .mcp.json
+
 .idea/
 /[Aa]ssets/[Tt]extMesh [Pp]ro/
 Assets/TextMesh Pro.meta
 
 # 개인 MCP 설정 (엔드포인트 주소 포함)
 .mcp.json
+
+# Unity가 자동 생성하는 UI Toolkit 기본 테마 (프로젝트 UI는 uGUI 사용)
+/[Aa]ssets/UI Toolkit/
+/[Aa]ssets/UI Toolkit.meta

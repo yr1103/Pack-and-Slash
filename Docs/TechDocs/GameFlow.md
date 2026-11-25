@@ -43,7 +43,8 @@
 | `WeaponReloadGauge` (MonoBehaviour) | `HealthBarCanvas` 자식의 World Space 세로 재장전 게이지. 매 `LateUpdate`에 장착 무기 중 첫 재장전 중 무기를 찾아 `_visualRoot`를 켜고 `fillAmount = ReloadProgress`, 없으면 끈다. 빌보드는 부모 `HealthBarCanvas`(`PlayerHealthBar`)가 처리 | `WeaponLoadout`(`Weapons`), `WeaponInstance`(`IsReloading`, `ReloadProgress`), `Image` |
 | `GameHUD` (MonoBehaviour) | 생존 시간·처치 수는 매 프레임 폴링해 값이 바뀔 때만 텍스트 갱신. 경험치 바·레벨은 `ExperienceGained` 구독으로 갱신. 재화는 `Start`에서 현재 잔액을 표시하고 `Currency.Changed` 구독으로 갱신 | `GameSession`, `PlayerExperience`, `Currency`(`Balance`, `Changed`), TMP(`TMP_Text`), `Image` |
 | `PlayerHealthBar` (MonoBehaviour) | 플레이어 머리 위 World Space 체력바. `PlayerHealth.Damaged`·`Healed`로 채움 비율 갱신, `LateUpdate`에서 카메라와 같은 회전(빌보드) | `PlayerHealth`, `Image`, `Camera` |
-| `ResultPanel` (MonoBehaviour) | `GameSession.Ended` 구독. 결과 문구(`CLEAR`/`GAME OVER`)와 통계(생존 시간·레벨·무기 목록·처치 수·진화 무기 수)를 영문으로 표시. 타이틀 버튼으로 `TitleScene` 로드. 문자열 함수 `BuildWeaponList`, `CountEvolved`(static) | `GameSession`, `PlayerExperience`, `WeaponLoadout`, `SceneManager`, TMP, `Button` |
+| `HelpHoverUI` (MonoBehaviour, Issue #39) | `?` 버튼(`GameScene`의 `HelpButton`, `InventoryFrame` 우상단)에 마우스를 올리면 `_helpPanel`(`TooltipLayer`의 `HelpPanel`)을 켜고, 벗어나면 끈다. `Awake`·`OnDisable`에서도 끈다(상위 패널이 닫히면 Exit가 오지 않으므로, 코드 주석). `GameScene`에는 회전 안내 `RotateHint`(R키·우클릭 아이콘, `Assets/Sprites/UI/InputPrompts`)도 추가됐다. Scene 배치 세부값은 메인 세션 변경 요약 기준이며 대조하지 않았다 (미검증) | `IPointerEnterHandler`, `IPointerExitHandler` |
+| `ResultPanel` (MonoBehaviour) | `GameSession.Ended` 구독. 결과 문구(`CLEAR`/`GAME OVER`)와 통계(생존 시간·레벨·무기 목록·처치 수·진화 무기 수)를 한글 항목명으로 표시. 타이틀 버튼으로 `TitleScene` 로드. 문자열 함수 `BuildWeaponList`, `CountEvolved`(static) | `GameSession`, `PlayerExperience`, `WeaponLoadout`, `SceneManager`, TMP, `Button` |
 | `PauseMenu` (MonoBehaviour) | ESC(`UI/Cancel`) 입력으로 일시정지하며 설정 판넬을 열고, 닫으며 재개. 설정 판넬의 타이틀 복귀 버튼·확인창(예/아니오) 처리. 입력 액션을 직접 `Enable`/`Disable`. 레벨업 화면이 열려 있으면 ESC 무시 | `GameSession`(`IsPlaying`, `Pause`, `Resume`), `LevelUpPanel`(`IsOpen`), `Button`, `InputActionReference`, `SceneManager` |
 | `LevelUpPanel` (MonoBehaviour) | `PlayerExperience.LevelChanged`마다 레벨업 대기 횟수를, `RequestChestReward()`마다 보물 상자 대기 횟수를 1 늘리고, 화면이 닫혀 있으면 `GameSession.Pause()` 후 화면을 연다. 회차 종류는 레벨업 우선이며 종류에 따라 카드 수(3/5)·선택 수(2/3)를 정한다. 회차 단계 `RewardPhase`(`Selecting` → `Organizing`)를 소유한다. `Selecting`에서 후보 생성·카드 선택·리롤·확정, 확정 시 선택 아이템을 Temporary 영역에 생성하고 `Organizing`으로 전환. Temporary가 비면 완료 버튼으로 표시 중인 종류의 대기 횟수를 1 줄이고, 둘 다 0이면 화면을 닫고 `Resume()`. 표시 여부 `IsOpen` 노출. `RewardPhase` enum도 같은 파일에 선언 | `GameSession`(`Pause`, `Resume`), `PlayerExperience`(`LevelChanged`), `PlayerHealth`(`Heal`), `Currency`(`Balance`, `TrySpend`, `Changed`), `Inventory`(`TemporaryCount`, `StorageCount`, `MoveToTemporary`, `GetRotatedShape`, 이벤트 2개), `InventoryUI`(`GetItemSize`, `ClampToTemporary`, `SetRotateEnabled`), `InventoryItemUI`(프리팹 생성·`Initialize`), `SellConfirmPopup`·`ItemTooltipUI`(`_tooltip`, 아이템 UI에 전달), `RewardCardUI`, `RewardCandidateGenerator`, `Button`, `Text`, `CanvasGroup`. 호출자 `TreasureChest`(`Docs/TechDocs/Enemy.md`) |
 | `RewardCardUI` (MonoBehaviour) | 보상 후보 카드 1장 표시. `Bind(InventoryData)`로 데이터를 `_data`에 보관하고 아이콘·이름(`MaxLevel` > 1이면 `"{이름} Lv.1"`, 아니면 이름만. `ItemTooltipUI` 레벨 표기와 같은 기준, 코드 주석)·설명 표시, `SetSelected(bool)`로 배경 색(`_normalColor`/`_selectedColor`) 변경. 카드 버튼 클릭 시 `Clicked(this)` 발생. 선택 판정은 하지 않는다. 마우스를 올리면(`IPointerEnterHandler`) `_tooltip.Show(_data, this)`, 벗어나거나(`IPointerExitHandler`) 비활성화되면 `_tooltip.Hide(this)`. `_tooltip`이 비어 있으면 툴팁 없음 | `Button`, `Image`, `Text`, `InventoryData`(`Icon`, `ItemName`, `Description`), `ItemTooltipUI` |
@@ -155,13 +156,14 @@
 
 | 항목명 | 값 |
 |---|---|
-| `Survival Time` | `GameSession.FormatTime(ElapsedTime)` |
-| `Level` | `PlayerExperience.Level` |
-| `Weapons` | `BuildWeaponList(WeaponLoadout.Weapons)` (둘째 줄부터도 값 열에 정렬) |
-| `Kills` | `GameSession.KillCount` |
-| `Evolved` | `CountEvolved(WeaponLoadout.Weapons)` |
+| `생존 시간` | `GameSession.FormatTime(ElapsedTime)` |
+| `레벨` | `PlayerExperience.Level` |
+| `무기` | `BuildWeaponList(WeaponLoadout.Weapons)` (둘째 줄부터도 값 열에 정렬) |
+| `처치 수` | `GameSession.KillCount` |
+| `진화` | `CountEvolved(WeaponLoadout.Weapons)` |
 
-- `BuildWeaponList` : 무기마다 `"{WeaponType} Lv.{Level}"`, 진화면 `" (Evolved)"`를 붙여 줄바꿈으로 연결한다. 빈 목록이면 `"-"`.
+- 항목명은 Issue #39에서 한글로 바뀌었다. 제목 `CLEAR`/`GAME OVER`와 HUD 레벨 표기 `"LV"`는 영문 그대로다.
+- `BuildWeaponList` : 무기마다 `"{WeaponType} Lv.{Level}"`, 진화면 `" (진화)"`를 붙여 줄바꿈으로 연결한다. 빈 목록이면 `"-"`.
 - `CountEvolved` : `IsEvolved`인 무기 수.
 - 타이틀 버튼 : `SceneManager.LoadScene("TitleScene")`. `timeScale`은 `GameSession.OnDestroy`가 1로 복구한다.
 - `_panelRoot`는 이 컴포넌트가 붙은 오브젝트와 달라야 한다. 같으면 `Awake`에서 자기 자신을 꺼 `OnEnable` 구독이 일어나지 않는다 (코드 주석 "이 컴포넌트와 다른 오브젝트여야 이벤트 구독이 유지됨").
@@ -214,7 +216,7 @@
 - `Awake`에서 `_panelRoot.SetActive(false)`.
 - 구독 (`OnEnable`) : `LevelChanged` → `HandleLevelChanged`, 완료 버튼 → `HandleCompleteClicked`, 선택 완료 버튼 → `HandleConfirmClicked`, 리롤 버튼 → `HandleRerollClicked`, `Inventory.TemporaryCountChanged` → `RefreshCompleteButton`, `Inventory.StorageCountChanged` → `RefreshStorageCount`, `Currency.Changed` → `RefreshCurrency`, `InventoryUI.ExpansionCellClicked` → `HandleExpansionCellClicked`, 각 카드의 `RewardCardUI.Clicked` → `HandleCardClicked`. `OnDisable`에서 모두 해제.
 - `HandleLevelChanged(level)` : `_pendingCount++`. 화면이 닫혀 있을 때만 `Open`. 한 번에 여러 레벨이 올라 이벤트가 연속 발생해도 횟수만 쌓고 화면은 한 번만 연다 (코드 주석). 인자 `level`은 쓰지 않는다.
-- `Open` : `_gameSession.Pause()` → `StartRound()` → `RefreshStorageCount()`(`"Storage {보관 수}/{Inventory.STORAGE_CAPACITY}"`) → `_panelRoot.SetActive(true)`.
+- `Open` : `_gameSession.Pause()` → `StartRound()` → `RefreshStorageCount()`(`"보관함 {보관 수}/{Inventory.STORAGE_CAPACITY}"`) → `_panelRoot.SetActive(true)`.
 
 #### 회차 시작 (`StartRound`)
 
@@ -226,7 +228,7 @@
 
 - `Selecting`이 아니면 무시.
 - 이미 선택한 카드면 선택 취소. 선택하지 않은 카드는 선택 수가 `RequiredSelectCount` 미만일 때만 선택한다. 필요 수에 도달하면 다른 카드를 취소해야 새로 고를 수 있다.
-- `RefreshSelection` : 선택 수 텍스트 `"{선택 수}/{필요 수}"`, 선택 완료 버튼은 `Selecting`이고 선택 수 == 필요 수일 때만 `interactable`.
+- `RefreshSelection` : 선택 수 텍스트 `"선택 {선택 수}/{필요 수}"`. 안내 텍스트 `_selectionGuideText`는 선택 수 < 필요 수이면 `"보상을 선택하세요! {후보 수}개 중 {필요 수}개를 클릭해 선택하세요."`, 아니면 `"{필요 수}개 선택 완료! 인벤토리 정리하기를 눌러 진행하세요."`. 선택 완료 버튼은 `Selecting`이고 선택 수 == 필요 수일 때만 `interactable`.
 
 #### 리롤 (`HandleRerollClicked`)
 
@@ -334,7 +336,8 @@
     - 무기 : `"기본 공격력 {ProjectileDamage}"` → `"레벨 보너스 +{(레벨 배율 − 1) × 100:0}%"` → 인접 효과 공격력·발사 간격·탄퍼짐(`GetEffectiveAdjacencyBonus`, 상한 적용 값, 0이면 줄 생략) → 고유 효과 공격력·공격속도·확산각(°)·무기 정확도(`GetCharacterAccuracyBonus`)(0 이하이면 줄 생략) → `"최종 공격력 {최소:0}~{최대:0}"` → Lv.3 줄.
     - 최종 공격력 범위 = `GetRolledDamage(GetWeaponStats(item).Damage, DamageVariance, 0)` ~ `GetRolledDamage(…, 1)`, 반올림 정수 표기. 전투의 탄별 피해와 같은 함수·같은 최종 공격력을 쓴다 (`Docs/TechDocs/Weapon.md`).
     - 패시브 : `AdjacencyEffectType`이 None이 아니면 인접 효과 줄(`GetPassiveAdjacencyBonus(레벨)`, 패시브 1개가 주는 수치) → Lv.3 줄.
-    - Lv.3 줄 : `IsLevel3EffectActive(item)`이면 `"Lv.3 효과 활성"`, 아니면 `"Lv.3 효과 비활성"`.
+    - Lv.3 줄 : `IsLevel3EffectActive(item)`이 false면 `"Lv.3 효과 비활성"`. 활성이면 `InventoryData.Level3EffectName`(`_level3EffectName`)이 있을 때 `"Lv.3 활성: {효과명}"`, 비어 있으면 `"Lv.3 효과 활성"`.
+- 종류 라벨 `ItemTooltipUI.GetTypeLabel(ItemType)`(무기/패시브/소비/고유)은 public static이며 `RewardCardUI`도 쓴다.
 - 무기 툴팁의 인접 탄퍼짐 줄은 상한 적용 인접 값만 보여 주고, 실제 탄퍼짐 감소율(인접 + 정확도 + Lv.3 합산 후 상한 0.7, `Docs/TechDocs/Weapon.md`)과 다를 수 있다. 무기 Lv.3 감소율은 별도 줄로 표시하지 않는다.
 - 해제 버프와 해제 디버프는 같은 접두어 `"해제 시:"`이며 텍스트 색(`GameScene` 값 : 버프 초록, 디버프 빨강)으로만 구분한다 (주의사항 ae).
 
@@ -652,7 +655,7 @@ UI
 - `KillCounter`·`CurrencyCounter` 아래 텍스트·아이콘의 부모 관계는 `GameHUD` 연결과 오브젝트 이름 기준이며, 형제 순서는 확인하지 않았다.
 - `HUDCanvas`의 마지막 네 자식 `PFB_LevelUpPanel` → `ResultPanel` → `PFB_SettingsPanel` → `ReturnDialog`는 Transform 순서로 확인했다. 뒤의 것이 위에 그려지므로 확인창이 설정 판넬 위에, 결과 패널이 레벨업 화면 위에 표시된다. 레벨업 화면은 HUD 요소(경험치 바·타이머 등)보다 뒤라 HUD 위에 그려지지만, 배경이 반투명이라 HUD가 비쳐 보인다 (주의사항 q).
 - `ReturnTitleButton`은 Prefab 인스턴스의 추가 오브젝트(`m_AddedGameObjects`)라 `TitleScene`의 설정 판넬에는 없다. 판넬 안에서의 형제 순서는 확인하지 않았다.
-- 새 텍스트는 레거시 `UnityEngine.UI.Text`이며 폰트는 Unity 내장 폰트(`fileID: 10102`)다. HUD·결과 패널의 TMP와 다르다 (아래 `텍스트·폰트`).
+- 새 텍스트는 레거시 `UnityEngine.UI.Text`이며 폰트는 `Bithumb Gothic Basic.ttf`다. HUD·결과 패널의 TMP와 다르다 (아래 `텍스트·폰트`).
 
 | 컴포넌트 | 필드 | 값 |
 |---|---|---|
@@ -750,7 +753,7 @@ PFB_SettingsPanel             (Prefab에서는 활성, 전체 화면 stretch, Im
       └─ Label                (Text "닫기")
 ```
 
-- 텍스트는 모두 레거시 `Text`, Unity 내장 폰트(`fileID: 10102`)다.
+- 텍스트는 모두 레거시 `Text`, `Bithumb Gothic Basic.ttf`다.
 - 슬라이더·토글에 저장된 값은 표시 초기값일 뿐이다. 판넬이 켜질 때 `SettingsPanel.OnEnable`이 `GameSettings` 값으로 덮어쓴다.
 - 닫기 버튼 동작은 Prefab에 없다. 사용하는 Scene의 메뉴 스크립트(`PauseMenu._settingsCloseButton`, `TitleMenu._settingsCloseButton`)가 코드로 연결한다.
 - 인스턴스는 Scene에서 비활성으로 저장한다 (`GameScene`, `TitleScene` 모두 `m_IsActive` 0 오버라이드). Prefab 원본은 활성이다.
@@ -777,7 +780,7 @@ PFB_LevelUpPanel              (Prefab에서는 활성, 전체 화면 stretch, Im
 - `CompleteButton`의 위치는 레이아웃 이미지에 완료 버튼이 없어 정한 임시 위치다 (브리핑 기준).
 - 카드 아이콘·이름·설명의 저장 값은 임시 값이다. 실행 중에는 `RewardCardUI.Bind`가 후보 데이터로 덮어쓴다.
 - 인스턴스는 `GameScene`에서 비활성으로 저장한다 (`m_IsActive` 0 오버라이드). Prefab 원본은 활성이다. `LevelUpPanel.Awake`도 `_panelRoot`를 끄므로 비활성 상태가 두 곳에서 정해진다 (주의사항 o).
-- 텍스트는 모두 레거시 `Text`, Unity 내장 폰트(`fileID: 10102`)다. 한글 표시를 위해서다 (브리핑 기준).
+- 텍스트는 모두 레거시 `Text`이며 폰트는 `Bithumb Gothic Basic.ttf`다 (Issue #39, 아래 `텍스트·폰트`).
 
 ### `Assets/Prefabs/UI/PFB_RewardCard.prefab`
 
@@ -785,19 +788,22 @@ PFB_LevelUpPanel              (Prefab에서는 활성, 전체 화면 stretch, Im
 PFB_RewardCard                (342×158, Image RewardCard Sliced, Button, RewardCardUI)
 ├─ Icon                       (Image, 상단 가운데 기준 아래 10 · 64×64, 기본 스프라이트 Pistol, RewardCardUI._icon)
 ├─ NameText                   (Text 크기 20 · 상단 가운데 정렬, 상단 기준 아래 78 · 높이 28, 기본 "권총 Lv.1", RewardCardUI._nameText)
-└─ DescriptionText            (Text 크기 16 · 상단 가운데 정렬, 카드 하단 영역 높이 42, 기본 "설명", RewardCardUI._descriptionText)
+├─ DescriptionText            (Text, RewardCardUI._typeText. 오브젝트 이름은 그대로이며 종류 라벨을 표시)
+└─ StatusText                 (Text, RewardCardUI._statusText)
 ```
+
+- Issue #39 : 카드는 설명 대신 종류(`ItemTooltipUI.GetTypeLabel`)를 `_typeText`에 표시한다. 필드는 `FormerlySerializedAs("_descriptionText")`로 기존 연결을 유지한다. `_statusText`는 `SetSelected`에서 `"선택됨"`/`"클릭하여 선택"`을 표시한다. 두 Text의 크기·위치 값은 Prefab에서 대조하지 않았다 (미검증).
 
 | 컴포넌트 | 필드 | 값 |
 |---|---|---|
 | `RewardCardUI` (루트) | `_button` | 루트 Button |
 | | `_background` | 루트 Image |
-| | `_icon` / `_nameText` / `_descriptionText` | 위 Hierarchy 참고 |
+| | `_icon` / `_nameText` / `_typeText` / `_statusText` | 위 Hierarchy 참고 |
 | | `_normalColor` / `_selectedColor` | 흰색 / (1, 0.85, 0.3) |
 | | `_tooltip` | Prefab 파일에는 저장된 값이 없다(비어 있음). `GameScene`의 카드 5장은 인스턴스 오버라이드로 연결 |
 
 - 카드별 `RerollButton`(하위 `RerollIcon`·`CurrencyIcon`·`CostText` 포함)은 삭제됐다. 리롤 버튼은 패널에 1개만 있다 (`GameScene`의 `SelectingGroup/RerollButton`).
-- 세로 배치 : 아이콘 → 이름 → 설명 순으로 위에서 아래.
+- 세로 배치 : 아이콘 → 이름 → 종류(`DescriptionText`, `_typeText`) → 상태(`StatusText`) 순으로 위에서 아래.
 - 루트 Button의 OnClick 영구 리스너는 없다. `RewardCardUI`가 `OnEnable`에서 코드로 구독한다.
 - 카드 크기 342×158은 3장 배치 기준이다. `RewardCards`의 `HorizontalLayoutGroup`이 자식 폭을 제어하므로 실제 폭은 켜진 카드 수로 정해진다. 켜지는 카드 수는 후보 수이며, 풀이 부족하면 회차 카드 수(3/5)보다 적을 수 있다 (3장 약 342, 5장 약 184, 주의사항 p).
 
@@ -809,9 +815,10 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 
 | 컴포넌트 | 필드 | 값 |
 |---|---|---|
-| `InventoryItemUI` | `rotateAction` | `InputSystem_Actions` 에셋의 `UI/Rotate` 액션 참조 (fileID `835590030820426825`) |
+| `InventoryItemUI` | `rotateAction` | `InputSystem_Actions` 에셋의 `UI/Rotate` 액션 참조 (fileID `835590030820426825`). Issue #39에서 이 액션에 마우스 우클릭 바인딩이 추가됐다 |
 | | `inventory` / `inventoryUI` / `_sellPopup` / `_tooltip` | 비어 있음 (`_tooltip`은 Prefab 파일에 항목 자체가 없다). Prefab은 Scene 오브젝트를 참조할 수 없어 `LevelUpPanel`이 `Initialize` 5인자 오버로드로 주입한다 |
 
+- 회전·드래그 입력 (Issue #39) : 판매 확인 팝업이 열려 있으면(`_sellPopup.IsOpen`) 회전 입력을 무시한다. 드래그 중이면 드래그 중인 아이템 자신이고 `hasGrabbedCell`일 때만 회전 입력(키보드·우클릭)으로 드래그 미리보기를 회전한다. 드래그 중이 아니면 마우스 장치의 회전 입력은 무시하고, 선택 아이템 회전은 키보드 입력만 받는다. 드래그는 좌클릭(`PointerEventData.InputButton.Left`)으로만 시작한다.
 - `LevelUpPanel._itemPrefab`으로 쓰이며 확정 시 `ItemLayer` 아래에 생성된다. 스프라이트·크기는 `Initialize`가 데이터에 맞게 바꾼다.
 - Prefab 루트를 활성 상태로 저장해야 한다. 비활성으로 저장하면 `Instantiate` 직후 `Awake`가 실행되지 않아 `Initialize`에서 `_image`가 null이 된다 (주의사항 y).
 - `rotateAction`의 fileID가 `UI/Rotate` 액션인지는 Prefab 파일만으로 대조하지 않았다. `GameScene`의 기존 테스트 아이템과 같은 fileID다 (미검증).
@@ -835,7 +842,8 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 
 ### 텍스트·폰트
 
-- HUD·결과 패널 텍스트는 TextMesh Pro 기본 폰트(`LiberationSans SDF`)를 쓴다. 결과 패널 문구는 영문이다.
+- Issue #39부터 UI 폰트는 `Assets/Fonts/Bithumb Gothic Basic`이다. 레거시 `Text`는 `Bithumb Gothic Basic.ttf`, TMP는 동적 SDF 에셋 `Bithumb Gothic Basic SDF.asset`을 쓴다. 데미지 숫자 폰트는 기존 것을 유지한다.
+- 결과 패널 제목(`CLEAR`/`GAME OVER`)과 HUD 레벨 `"LV"`는 영문이고, 결과 통계 항목명은 한글이다.
 - `Assets/TextMesh Pro/`는 `.gitignore` 대상이다. 저장소를 새로 받은 뒤에는 Unity 메뉴에서 TMP Essential Resources를 임포트해야 텍스트가 표시된다.
 
 ## 예외·주의사항·검증 방법
