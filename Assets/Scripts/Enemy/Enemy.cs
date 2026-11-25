@@ -148,6 +148,15 @@ public class Enemy : MonoBehaviour, ITargetable, IDamageable
         _movement.Initialize(flowFieldManager, player);
     }
 
+    // shortcut: 배율은 EnemySpawner 경로만 적용, TempEnemySpawner로 풀 재사용 시 이전 배율이 남음 — 필요 시 Spawn 경로에서 1로 초기화
+    /// <summary>최대 체력을 기본값 × 배율로 바꾸고 현재 체력을 최대로 채움 (풀에서 꺼낸 직후 호출)</summary>
+    public void ApplyHealthMultiplier(float multiplier)
+    {
+        _health.SetMaxHealth(_maxHealth * multiplier);
+        // SetMaxHealth는 늘어날 때 회복하지 않으므로 직접 최대로 채움
+        _health.ResetToMax();
+    }
+
     private void CacheComponents()
     {
         _movement = GetComponent<EnemyMovement>();

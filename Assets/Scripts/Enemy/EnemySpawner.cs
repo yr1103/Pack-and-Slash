@@ -35,6 +35,7 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private Enemy _ringPrefab; // 원형 대량 스폰에 쓰는 저속 몬스터
     [SerializeField, Min(1)] private int _ringCount = 30; // 회차당 생성 수, 수치미정
     [SerializeField, Min(0f)] private float _ringRadius = 14f; // 플레이어 중심 원 반지름, 수치미정
+    [SerializeField] private AnimationCurve _healthMultiplierByTime = AnimationCurve.Constant(0f, 1f, 1f); // 경과 시간(초)별 일반·원형 스폰 체력 배율, 보스·강화몹 미적용
 
     private readonly Vector2[] _groundCorners = new Vector2[_viewportCorners.Length];
     private readonly List<Enemy> _unlockedPrefabs = new List<Enemy>();
@@ -244,12 +245,13 @@ public class EnemySpawner : MonoBehaviour
         }
 
         _nextRingIndex++;
-        SpawnRing();
+        SpawnRing(elapsedTime);
     }
 
     // 그 순간 플레이어 XZ 위치 중심 원 위에 일괄 생성, 통행 불가·격자 밖 지점은 그 1마리만 건너뜀
-    private void SpawnRing()
+    private void SpawnRing(float elapsedTime)
     {
+        float healthMultiplier = _healthMultiplierByTime.Evaluate(elapsedTime);
         float groundHeight = _player.position.y;
         Vector2 center = new Vector2(_player.position.x, _player.position.z);
         CostField costField = _flowFieldManager.CostField;
@@ -270,7 +272,7 @@ public class EnemySpawner : MonoBehaviour
                 continue;
             }
 
-            _enemyPool.Spawn(_ringPrefab, position, _flowFieldManager, _player);
+            _enemyPool.Spawn(_ringPrefab, position, _flowFieldManager, _player).ApplyHealthMultiplier(healthMultiplier);
         }
     }
 
@@ -297,7 +299,8 @@ public class EnemySpawner : MonoBehaviour
             }
 
             Enemy prefab = _unlockedPrefabs[Random.Range(0, _unlockedPrefabs.Count)];
-            _enemyPool.Spawn(prefab, position, _flowFieldManager, _player);
+            _enemyPool.Spawn(prefab, position, _flowFieldManager, _player)
+                .ApplyHealthMultiplier(_healthMultiplierByTime.Evaluate(elapsedTime));
         }
     }
 

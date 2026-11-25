@@ -22198,6 +22198,66 @@ MonoBehaviour:
   _ringPrefab: {fileID: 4268184432913942235, guid: 087a028abfa43f346b83dd1e628c0b4b, type: 3}
   _ringCount: 50
   _ringRadius: 25
+  _healthMultiplierByTime:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: Infinity
+      tangentMode: 101
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 240
+      value: 1.5
+      inSlope: 0.0020833334
+      outSlope: 0
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 480
+      value: 1.5
+      inSlope: -0
+      outSlope: 0.0125
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 600
+      value: 3
+      inSlope: 0.0125
+      outSlope: 0.01
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 900
+      value: 6
+      inSlope: 0.01
+      outSlope: 0.013333334
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1200
+      value: 10
+      inSlope: 0.013333334
+      outSlope: 0
+      tangentMode: 69
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1001 &2080346360
 PrefabInstance:
   m_ObjectHideFlags: 0
