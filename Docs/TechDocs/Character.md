@@ -54,10 +54,15 @@
 | `Awake` | 슬롯 수만큼 클릭 핸들러(`() => Select(slotIndex)`)를 만들어 배열에 보관한다. 람다 리스너를 `OnDisable`에서 같은 참조로 해제하기 위해서다 |
 | `OnEnable` | 슬롯 버튼마다 보관한 핸들러를, 시작 버튼에 `StartGame`을 `onClick.AddListener`로 구독한다 |
 | `OnDisable` | 같은 핸들러·`StartGame`을 `RemoveListener`로 해제한다 |
-| `Start` | 슬롯마다 `Portrait.sprite = Character.Portrait`, 선택 표시(`SelectionMark`) 끔. 이름·시작 무기·설명 텍스트를 빈 문자열로, 시작 버튼 `interactable = false` |
-| `Select(slotIndex)` | 해당 슬롯의 선택 표시만 켜고 나머지는 끔. `_selected`에 슬롯 캐릭터 저장, 텍스트에 `DisplayName`·`StartWeaponName`·`Description` 표시, 시작 버튼 `interactable = true` |
+| `Start` | 슬롯마다 `Portrait.sprite = Character.Portrait`, 선택 표시(`SelectionMark`) 끔. 이름·시작 무기·고유 아이템·설명 텍스트를 빈 문자열로, 시작 버튼 `interactable = false` |
+| `Select(slotIndex)` | 해당 슬롯의 선택 표시만 켜고 나머지는 끔. `_selected`에 슬롯 캐릭터 저장, 텍스트 표시(아래), 시작 버튼 `interactable = true` |
 | `StartGame` | `CharacterSelection.Selected = _selected` 후 `"GameScene"` 로드 (`GAME_SCENE_NAME` 상수) |
 
+- `Select`의 텍스트 (Issue #39)
+    - `_nameText` : `DisplayName`.
+    - `_weaponText` : 시작 무기 아이템(`StartWeaponItem`)을 `"{이름} ({N}칸)"`으로. N은 `ItemShape.Length`(실제 점유 칸 수). 도형이 없으면 이름만, 아이템이 없으면 빈 문자열.
+    - `_uniqueItemText` : 고유 아이템(`UniqueItem`)이 있으면 `"고유 아이템: {이름} ({N}칸)"`과 `EquippedEffect`를 줄바꿈으로 연결(빈 줄 생략). 해제 효과는 선택 화면에 표시하지 않고 아이템 툴팁에서만 안내한다 (코드 주석).
+    - `_descriptionText` : `Description`.
 - `CharacterSelectPanel`은 Scene에 비활성으로 저장되어 있다. 첫 활성화 때 `Awake` → `OnEnable` → `Start` 순으로 실행된다 (같은 컴포넌트 안의 Unity 생명주기 순서).
 - 시작 버튼은 Scene에 `m_Interactable: 1`로 저장되어 있지만 `Start`에서 `false`로 바뀐다. 슬롯을 고르기 전에는 `StartGame`이 호출되지 않으므로 `_selected`가 `null`인 채 저장되는 경로는 없다.
 
@@ -158,6 +163,7 @@ UI
 │  │  │  ├─ NameText             (Text)
 │  │  │  ├─ WeaponLabel          (Text "시작 무기")
 │  │  │  ├─ WeaponText           (Text)
+│  │  │  ├─ UniqueItemText       (Text)
 │  │  │  └─ DescriptionText      (Text)
 │  │  └─ GameStartButton         (Button, OnClick 영구 리스너 없음)
 │  │     └─ Label                (Text "게임 시작")
@@ -172,7 +178,7 @@ UI
 └─ EventSystem                   (EventSystem, InputSystemUIInputModule)
 ```
 
-- 모든 Text는 레거시 `UnityEngine.UI.Text`이며 폰트는 Unity 내장 폰트(`fileID: 10102`)다.
+- 모든 Text는 레거시 `UnityEngine.UI.Text`다. UI 폰트는 Issue #39에서 `Assets/Fonts/Bithumb Gothic Basic.ttf`로 바뀌었다 (메인 세션 변경 요약 기준, Text별 폰트 참조는 Scene 파일로 대조하지 않음, 미검증).
 - `StartButton`·`SettingsButton`·`QuitButton`은 화면 중앙 기준 왼쪽 절반(x -480)에 위에서 아래로 놓이며 크기는 모두 400×110이다. `TitleCanvas` 자식 순서는 `TitleText` → `StartButton` → `SettingsButton` → `QuitButton` → `CharacterSelectPanel` → `PFB_SettingsPanel` → `QuitDialog`다 (Transform 순서로 확인).
 - `TitleScene`의 `PFB_SettingsPanel` 인스턴스에는 추가 오브젝트가 없다. 타이틀 복귀 버튼(`ReturnTitleButton`)은 `GameScene` 인스턴스에만 있다.
 - `EventSystem`의 `InputSystemUIInputModule`은 액션 에셋 GUID `ca9f5fa95ffab41fb9a615ab714db018`을 참조한다. 프로젝트의 `Assets/InputSystem_Actions.inputactions`(GUID `052faaac586de48259a63d0c4782560b`)와 다른 에셋이며, Input System 패키지의 `InputSystem/Plugins/PlayerInput/DefaultInputActions.inputactions`다 (`.meta` 파일의 GUID로 확인).
@@ -186,6 +192,7 @@ UI
 | `_slots[2]` | `_character` = `SO_HeavyGunner`, `_button` = `Slot_03`, `_portrait` = `Slot_03/Portrait`, `_selectionMark` = `Slot_03/SelectionMark` |
 | `_nameText` | `DetailPanel/NameText` |
 | `_weaponText` | `DetailPanel/WeaponText` |
+| `_uniqueItemText` | `DetailPanel/UniqueItemText` (미검증 : Scene의 fileID 연결은 대조하지 않음) |
 | `_descriptionText` | `DetailPanel/DescriptionText` |
 | `_startButton` | `GameStartButton` |
 
@@ -242,7 +249,7 @@ UI
 
 | # | 내용 | 후속 시점 |
 |---|---|---|
-| a | 텍스트는 레거시 UI `Text`이며 한글은 OS 폰트 폴백으로 표시된다 (코드의 `shortcut` 주석) | 한글 TMP 폰트 에셋 준비 시 TMP로 교체 |
+| a | 텍스트는 레거시 UI `Text`이며 한글 폰트는 `Bithumb Gothic Basic` TTF를 쓴다 (Issue #39) | TMP 교체 필요 시 |
 | b | `CharacterSelection.Selected`는 static이라 값이 비워지는 시점이 에디터의 Domain Reload 설정에 달려 있다. 현재 `EditorSettings`는 `m_EnterPlayModeOptionsEnabled: 1`, `m_EnterPlayModeOptions: 0`(비활성화 옵션 없음)이라 Play 모드 진입 시 Domain Reload를 수행한다. 이 설정으로 보아 타이틀을 거친 뒤 `GameScene`을 단독 실행해도 이전 선택이 남지 않을 것으로 추정한다 (설정 기반 추론, Play로 확인하지 않음, 미검증). Domain Reload를 끄면 이전 Play의 선택이 남아 `_defaultCharacter` 대신 쓰인다 | Enter Play Mode 설정 변경 시 |
 | c | 생존자 초상(`SPR_Survivor`)은 Pistol Animator 자세로 캡처되었다 (메인 세션 보고 기준). 생존자의 시작 무기는 샷건이다 | 정식 초상 교체 시 |
 | d | `Start`는 첫 활성화 때만 실행된다. 패널을 껐다 다시 켜면 초기화하지 않아 이전 선택·텍스트·시작 버튼 상태가 유지된다. 현재 패널을 닫는 경로는 없다 | 닫기·뒤로 가기 추가 시 |
