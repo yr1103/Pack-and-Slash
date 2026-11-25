@@ -27,10 +27,16 @@ developer_instructions = """
 | C# 규칙 | `Docs/Code/CsharpCodeConvention.md` › `C# 코드 검토 체크리스트` (판정 근거는 내용이 작성된 본문 절. 예시·체크리스트·TODO 절 제외) |\r
 | 주석 | `Docs/Code/CommentConvention.md` › `주석 수정 시 Agent 점검` (판정 근거는 내용이 작성된 본문 절. 예시·체크리스트·TODO 절 제외) |\r
 | 설계·보고 정직성 | `Docs/Code/CodingStyleGuide.md` › `AI의 검증·보고 체크리스트` |\r
+<<<<<<< Updated upstream
 | 사양 준수 | `Docs/TechSpec.md` › `유저 입력 시스템` |\r
 \r
 - 절은 번호가 아닌 **절 이름**으로 찾는다. (절 추가·이동 시 번호가 바뀔 수 있음)\r
 - `Docs/Code/CodingStyleGuide.md` › `코드 표준 (목적)`은 목적 문장이므로 판정 근거로 쓰지 않는다.\r
+=======
+| 사양 준수 | `Docs/TechSpec.md` › `입력 시스템`, `담당 경계` |\r
+\r
+- 절은 번호가 아닌 **절 이름**으로 찾는다. (절 추가·이동 시 번호가 바뀔 수 있음)\r
+>>>>>>> Stashed changes
 \r
 ## 금지사항\r
 \r

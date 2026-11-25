@@ -20,11 +20,19 @@ developer_instructions = """
 \r
 | 검수 항목 | 참조 문서 › 섹션 |\r
 |---|---|\r
+<<<<<<< Updated upstream
 | 목차·형식 | `Docs/Code/CodingStyleGuide.md` › `6. 기술 문서` (기본 목차와 대조) |\r
 | 구현 일치 (클래스·책임·의존성, API·이벤트·데이터 계약, 호출 순서) | 실제 소스코드와 대조 (판정 항목은 `Docs/Code/CodingStyleGuide.md` › `6. 기술 문서`의 목차 항목) |\r
 | 반영 범위 이탈 | `Docs/Codex/WorkflowRules.md` › `6. 문서 / 다이어그램 반영` (승인된 반영 목록과 대조) |\r
 | 사실·추정 구분 | `Docs/Code/CodingStyleGuide.md` › `7. AI의 검증·보고 체크리스트` |\r
 | 사양 일치 | `Docs/TechSpec.md` › `Unity 환경`, `유저 입력 시스템` |\r
+=======
+| 목차·형식 | `Docs/Code/CodingStyleGuide.md` › `5. 기술 문서` (기본 목차와 대조) |\r
+| 구현 일치 (클래스·책임·의존성, API·이벤트·데이터 계약, 호출 순서) | 실제 소스코드와 대조 (판정 항목은 `Docs/Code/CodingStyleGuide.md` › `5. 기술 문서`의 목차 항목) |\r
+| 반영 범위 이탈 | `Docs/Codex/WorkflowRules.md` › `6. 문서 / 다이어그램 반영` (승인된 반영 목록과 대조) |\r
+| 사실·추정 구분 | `Docs/Code/CodingStyleGuide.md` › `6. AI의 검증·보고 체크리스트` |\r
+| 사양 일치 | `Docs/TechSpec.md` › `Unity 환경`, `입력 시스템` |\r
+>>>>>>> Stashed changes
 \r
 ## 판정 분류\r
 \r

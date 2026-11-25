@@ -26,6 +26,7 @@ developer_instructions = """
 \r
 | 판단 상황 | 참조 문서 › 섹션 |\r
 |---|---|\r
+<<<<<<< Updated upstream
 | 작성 여부·위치·목차 | `Docs/Code/CodingStyleGuide.md` › `6. 기술 문서` |\r
 | 반영 범위·승인 | `Docs/Codex/WorkflowRules.md` › `6. 문서 / 다이어그램 반영` |\r
 | 변경 범위 | `Docs/Codex/ClaudeCodeRules.md` › `행동 원칙`의 `3. 외과적 변경` / `작업 범위 규칙` |\r
@@ -33,6 +34,15 @@ developer_instructions = """
 | 계약·의존성 서술 | `Docs/Code/CodingStyleGuide.md` › `4. 공통 기능·아키텍처`(컴포넌트 간 의존성 관리, 초기화 순서와 참조 연결 기준) |\r
 | Scene·Prefab·Inspector 서술 | `Docs/Code/CodingStyleGuide.md` › `9. 파일·에셋·씬 변경 시 적용 기준` |\r
 | 사양 표기 | `Docs/TechSpec.md` › `Unity 환경`, `유저 입력 시스템` |\r
+=======
+| 작성 여부·위치·목차 | `Docs/Code/CodingStyleGuide.md` › `5. 기술 문서` |\r
+| 반영 범위·승인 | `Docs/Codex/WorkflowRules.md` › `6. 문서 / 다이어그램 반영` |\r
+| 변경 범위 | `Docs/Codex/ClaudeCodeRules.md` › `행동 원칙`의 `3. 외과적 변경` / `작업 범위 규칙` |\r
+| 사실·추정 구분 | `Docs/Codex/ClaudeCodeRules.md` › `행동 원칙`의 `1. 사고 우선` / `Docs/Code/CodingStyleGuide.md` › `6. AI의 검증·보고 체크리스트` |\r
+| 계약·의존성 서술 | `Docs/Code/CodingStyleGuide.md` › `4. 공통 기능·아키텍처` / `Docs/Code/CsharpCodeConvention.md` › `3. 접근 제한자·Inspector·프로퍼티`, `초기화 순서와 참조 연결 기준` |\r
+| Scene·Prefab·Inspector 서술 | `Docs/Code/UnityHierarchyRules.md` |\r
+| 사양 표기 | `Docs/TechSpec.md` › `Unity 환경`, `입력 시스템` |\r
+>>>>>>> Stashed changes
 \r
 ## 금지사항\r
 \r
