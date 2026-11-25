@@ -12,8 +12,8 @@ using UnityEngine.UI;
 public class CharacterSelectUI : MonoBehaviour
 {
     private const string GAME_SCENE_NAME = "GameScene";
-    private const string START_WEAPON_FORMAT = "{0} ({1}x{2})"; // "시작 무기" 라벨이 따로 있음, {0} 이름, {1}x{2} 칸수 가로x세로
-    private const string UNIQUE_ITEM_FORMAT = "고유 아이템: {0} ({1}x{2})";
+    private const string START_WEAPON_FORMAT = "{0} ({1}칸)"; // "시작 무기" 라벨이 따로 있음, {0} 이름, {1} 점유 칸 수
+    private const string UNIQUE_ITEM_FORMAT = "고유 아이템: {0} ({1}칸)";
     private const string LINE_SEPARATOR = "\n";
 
     [SerializeField] private CharacterSlot[] _slots;
@@ -110,7 +110,7 @@ public class CharacterSelectUI : MonoBehaviour
         return string.Join(separator, values.Where(value => !string.IsNullOrEmpty(value)));
     }
 
-    // 칸수는 회전 0 도형 바운딩 박스 가로x세로, 도형이 없으면 이름만
+    // 칸수는 실제 점유 칸 수 (바운딩 박스 가로x세로는 빈 칸까지 세어 보여 오해 소지), 도형이 없으면 이름만
     private static string GetItemLine(string format, InventoryData item)
     {
         if (item == null)
@@ -119,17 +119,7 @@ public class CharacterSelectUI : MonoBehaviour
         if (item.ItemShape == null || item.ItemShape.Length == 0)
             return item.ItemName;
 
-        Vector2Int min = item.ItemShape[0];
-        Vector2Int max = item.ItemShape[0];
-
-        foreach (Vector2Int cell in item.ItemShape)
-        {
-            min = Vector2Int.Min(min, cell);
-            max = Vector2Int.Max(max, cell);
-        }
-
-        Vector2Int size = max - min + Vector2Int.one;
-        return string.Format(format, item.ItemName, size.x, size.y);
+        return string.Format(format, item.ItemName, item.ItemShape.Length);
     }
 
     private void StartGame()

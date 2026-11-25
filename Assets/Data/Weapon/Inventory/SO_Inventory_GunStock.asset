@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SO_Inventory_GunStock
   m_EditorClassIdentifier: Assembly-CSharp::InventoryData
   _id: 4
-  _itemName: GunStock
+  _itemName: "\uAC1C\uBA38\uB9AC\uD310"
   _icon: {fileID: 21300000, guid: 5d1d61d9a0526334395ff3bfe13b2707, type: 3}
   _levelIcons:
   - {fileID: 21300000, guid: e751dbd2b67b28c4caf758c47836fc59, type: 3}

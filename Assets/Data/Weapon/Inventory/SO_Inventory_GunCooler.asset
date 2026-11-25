@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SO_Inventory_GunCooler
   m_EditorClassIdentifier: Assembly-CSharp::InventoryData
   _id: 6
-  _itemName: GunCooler
+  _itemName: "\uB0C9\uAC01\uAE30"
   _icon: {fileID: 21300000, guid: 10fd57cb0ed64794b8bfcd1ee75fc792, type: 3}
   _levelIcons:
   - {fileID: 21300000, guid: fadf65dc3dd2d1942ba4f31ce062c497, type: 3}

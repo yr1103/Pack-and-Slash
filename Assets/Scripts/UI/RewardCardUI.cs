@@ -10,12 +10,15 @@ using UnityEngine.UI;
 public class RewardCardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     private const string NAME_FORMAT = "{0} Lv.1"; // {0} 아이템 이름, 보상은 항상 1레벨로 지급
+    private const string SELECTED_LABEL = "선택됨";
+    private const string UNSELECTED_LABEL = "클릭하여 선택";
 
     [SerializeField] private Button _button;
     [SerializeField] private Image _background; // 선택 여부에 따라 색 변경
     [SerializeField] private Image _icon;
     [SerializeField] private Text _nameText;
     [SerializeField, FormerlySerializedAs("_descriptionText")] private Text _typeText;
+    [SerializeField] private Text _statusText; // 선택 여부 안내 문구
     [SerializeField] private Color _normalColor = Color.white;
     [SerializeField] private Color _selectedColor = new Color(1f, 0.85f, 0.3f);
     [SerializeField] private ItemTooltipUI _tooltip; // 미연결이면 툴팁 없음
@@ -53,6 +56,7 @@ public class RewardCardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     public void SetSelected(bool isSelected)
     {
         _background.color = isSelected ? _selectedColor : _normalColor;
+        _statusText.text = isSelected ? SELECTED_LABEL : UNSELECTED_LABEL;
     }
 
     public void OnPointerEnter(PointerEventData eventData)
