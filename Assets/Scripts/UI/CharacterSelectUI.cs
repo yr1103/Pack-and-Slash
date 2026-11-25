@@ -17,7 +17,6 @@ public class CharacterSelectUI : MonoBehaviour
     private const string LINE_SEPARATOR = "\n";
 
     [SerializeField] private CharacterSlot[] _slots;
-    // shortcut: 레거시 Text로 OS 폰트 한글 폴백 사용, 한글 TMP 폰트 에셋 준비 시 TMP로 교체
     [SerializeField] private Text _nameText;
     [SerializeField] private Text _weaponText;
     [SerializeField] private Text _uniqueItemText;

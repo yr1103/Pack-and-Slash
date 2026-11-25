@@ -50,7 +50,7 @@ public class ResultPanel : MonoBehaviour
         _titleButton.onClick.RemoveListener(HandleTitleButtonClicked);
     }
 
-    /// <summary>무기마다 "종류 Lv.레벨" (진화면 " (Evolved)" 추가)을 줄바꿈으로 연결, 빈 목록이면 "-"</summary>
+    /// <summary>무기마다 "종류 Lv.레벨" (진화면 " (진화)" 추가)을 줄바꿈으로 연결, 빈 목록이면 "-"</summary>
     public static string BuildWeaponList(IReadOnlyList<WeaponInstance> weapons)
     {
         if (weapons.Count == 0)

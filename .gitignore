@@ -114,3 +114,7 @@ InitTestScene*.unity*
 .idea/
 /[Aa]ssets/[Tt]extMesh [Pp]ro/
 Assets/TextMesh Pro.meta
+
+# Unity가 자동 생성하는 UI Toolkit 기본 테마 (프로젝트 UI는 uGUI 사용)
+/[Aa]ssets/UI Toolkit/
+/[Aa]ssets/UI Toolkit.meta
