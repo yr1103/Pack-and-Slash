@@ -1,6 +1,6 @@
 # Enemy·스폰·피격·경험치 젬 (Enemy)
 
-> 근거 : `Assets/Scripts/Enemy/Enemy.cs`, `Assets/Scripts/Enemy/EnemyPool.cs`, `Assets/Scripts/Enemy/EnemySpawner.cs`, `Assets/Scripts/Enemy/TempEnemySpawner.cs`, `Assets/Scripts/Enemy/EnemyHitFeedback.cs`, `Assets/Scripts/Enemy/{BossCharge,BossChargePattern,BossShootPattern,BossPatternSequencer,IBossPattern,EnemyMovement}.cs`, `Assets/Scripts/UI/GameSettings.cs`, `Assets/Scripts/UI/LevelUpPanel.cs`(`RequestChestReward`), `Assets/Scripts/GameFlow/GameSession.cs`(`HandleEnemyDied`, `_endFreezeDelay`), `Assets/Scripts/Player/PlayerHealth.cs`(`TakeDamage`), `Assets/Scripts/Weapon/Projectile/{Projectile,ProjectileHitDetector}.cs`, `Assets/Scripts/Combat/Health.cs`, `Assets/Scripts/Combat/DamageGate.cs`, `Assets/Scripts/Combat/ExperienceGem.cs`, `Assets/Scripts/Combat/ExperienceGemPool.cs`, `Assets/Scripts/Combat/{TreasureChest,TreasureChestSpawner}.cs`, `Assets/Tests/Editor/{HealthTests,DamageGateTests,ExperienceGemTests,EnemySpawnerTests,BossChargeTests,BossShootPatternTests,EnemyMovementTests}.cs`, `Assets/Prefabs/Enemy/*.prefab`, `Assets/Prefabs/Combat/{PFB_ExperienceGem,PFB_ExperienceGemElite,PFB_TreasureChest}.prefab`, `Assets/Prefabs/FX/PFB_DamageNumberComic.prefab`, `Assets/Materials/{MAT_ChargeWarning,MAT_BossBullet}.mat`, `Assets/Animations/Enemy/*`, `ProjectSettings/TagManager.asset`(레이어 번호), `Assets/Scenes/GameScene.unity`, `Assets/Scenes/TestMap.unity`, `Assets/Imports/Other/BTM_Assets/BTM_Items_Gems/Scripts/SimpleGemsAnim.cs`, `Assets/Imports/Fonts/DamageNumbersPro/Scripts/Internal/DamageNumber.cs`(`Spawn` 시그니처)
+> 근거 : `Assets/Scripts/Enemy/Enemy.cs`, `Assets/Scripts/Enemy/EnemyPool.cs`, `Assets/Scripts/Enemy/EnemySpawner.cs`, `Assets/Scripts/Enemy/TempEnemySpawner.cs`, `Assets/Scripts/Enemy/EnemyHitFeedback.cs`, `Assets/Scripts/Enemy/{BossCharge,BossChargePattern,BossShootPattern,BossPatternSequencer,IBossPattern,EnemyMovement}.cs`, `Assets/Scripts/UI/GameSettings.cs`, `Assets/Scripts/UI/LevelUpPanel.cs`(`RequestChestReward`), `Assets/Scripts/GameFlow/GameSession.cs`(`HandleEnemyDied`, `_endFreezeDelay`), `Assets/Scripts/Player/PlayerHealth.cs`(`TakeDamage`), `Assets/Scripts/Weapon/Projectile/{Projectile,ProjectileHitDetector}.cs`, `Assets/Scripts/Combat/Health.cs`, `Assets/Scripts/Combat/DamageGate.cs`, `Assets/Scripts/Combat/ExperienceGem.cs`, `Assets/Scripts/Combat/ExperienceGemPool.cs`, `Assets/Scripts/Combat/{TreasureChest,TreasureChestSpawner}.cs`, `Assets/Scripts/Currency/Currency.cs`, `Assets/Tests/Editor/{HealthTests,DamageGateTests,ExperienceGemTests,EnemySpawnerTests,BossChargeTests,BossShootPatternTests,EnemyMovementTests}.cs`, `Assets/Prefabs/Enemy/*.prefab`, `Assets/Prefabs/Combat/{PFB_ExperienceGem,PFB_ExperienceGemElite,PFB_TreasureChest}.prefab`, `Assets/Prefabs/FX/PFB_DamageNumberComic.prefab`, `Assets/Materials/{MAT_ChargeWarning,MAT_BossBullet}.mat`, `Assets/Animations/Enemy/*`, `ProjectSettings/TagManager.asset`(레이어 번호), `Assets/Scenes/GameScene.unity`, `Assets/Scenes/TestMap.unity`, `Assets/Imports/Other/BTM_Assets/BTM_Items_Gems/Scripts/SimpleGemsAnim.cs`, `Assets/Imports/Fonts/DamageNumbersPro/Scripts/Internal/DamageNumber.cs`(`Spawn` 시그니처)
 >
 > 설계 원본 : `Docs/Spec/Enemy/MonsterSystem.md` (이 문서는 현재 구현 상태만 기술한다)
 >
@@ -27,7 +27,7 @@
 
 | 클래스 | 책임 | 의존성 |
 |---|---|---|
-| `Enemy` (MonoBehaviour) | `ITargetable`·`IDamageable` 구현. 체력(`Health`) 소유, 피해 적용·사망 1회 처리, 사망 연출 시간(`_deathDuration`) 뒤 풀 반환. static 활성 목록 `ActiveEnemies`(무기 표적 후보), static 이벤트 `Died`, 인스턴스 이벤트 `Damaged`. 접촉 피해량 `ContactDamage`, 드롭 경험치 `ExperienceValue`, 드롭 젬 Prefab `GemPrefab`, 보물 상자 드롭 여부 `DropsTreasureChest`, 처치 시 클리어 여부 `ClearsSessionOnDeath` 노출 | `Health`, `EnemyMovement`·`Collider`(`Awake`에서 `GetComponent`), `Animator`(선택), `IObjectPool<Enemy>` |
+| `Enemy` (MonoBehaviour) | `ITargetable`·`IDamageable` 구현. 체력(`Health`) 소유, 피해 적용·사망 1회 처리, 사망 연출 시간(`_deathDuration`) 뒤 풀 반환. static 활성 목록 `ActiveEnemies`(무기 표적 후보), static 이벤트 `Died`, 인스턴스 이벤트 `Damaged`. 접촉 피해량 `ContactDamage`, 드롭 경험치 `ExperienceValue`, 드롭 젬 Prefab `GemPrefab`, 보물 상자 드롭 여부 `DropsTreasureChest`, 재화 지급량 `CurrencyReward`, 처치 시 클리어 여부 `ClearsSessionOnDeath` 노출 | `Health`, `EnemyMovement`·`Collider`(`Awake`에서 `GetComponent`), `Animator`(선택), `IObjectPool<Enemy>` |
 | `EnemyPool` (MonoBehaviour) | 프리팹마다 `UnityEngine.Pool.ObjectPool<Enemy>`를 따로 둔다(`Dictionary<Enemy, ObjectPool<Enemy>>`). `Spawn(prefab, position, flowFieldManager, player)` : 풀에서 비활성 상태로 꺼내 위치 지정 → 활성화 → `Enemy.Initialize` 호출, 이어서 꺼낸 Enemy의 모든 `BossShootPattern`에 `_projectilePool`을 주입(`Initialize`). 프리팹의 풀은 그 프리팹의 첫 `Spawn` 때 생성 | `Enemy`, `FlowFieldManager`, `ProjectilePool`(`_projectilePool`), `BossShootPattern` |
 | `EnemySpawner` (MonoBehaviour) | `GameSession.ElapsedTime` 기준 `_spawnInterval`마다 해금된 프리팹 중 균등 랜덤으로 `_spawnCountPerTick`마리를 시야 사다리꼴 바깥에 생성. 보스·강화몹은 `_bossSchedule` 순서대로 예정 시각에 1마리씩 시야 밖 격자 변 중점에 생성. 원형 대량 스폰 시각(`_ringSpawnTimes`)마다 플레이어 중심 원 위에 `_ringPrefab`을 일괄 생성. 동시 활성 상한 `_maxActiveEnemies`(일반·원형 스폰은 스케줄 길이만큼 예약 제외). 판정 함수 `IsUnlocked`, `HasCapacity`, `GetDistanceToBoundary`, `SelectBossSpawnIndex`, `GetRingPoint`(static) | `GameSession`, `EnemyPool`, `FlowFieldManager`(`CostField`), 플레이어 `Transform`, `Camera`, `Enemy.ActiveEnemies` |
 | `BossCharge` (일반 클래스) | 보스 패턴 공용 상태 전환 `ChargeState`(`Chase` → `Warn` → `Charge` → `EndCharge`로 `Chase`). 범위 판정·경고 시간·쿨다운 타이머. `Tick(deltaTime, distanceToPlayer)`, `EndCharge()`, `Reset()` | 없음 |
@@ -35,8 +35,8 @@
 | `BossChargePattern` (MonoBehaviour, `IBossPattern`) | 돌진 패턴. 범위 안에 들어오면 방향을 고정해 경고선(LineRenderer) 표시, 경고 시간 후 고정 방향 직선 돌진, 거리 도달·이동 불가 타일에서 종료 | `Enemy`, `EnemyMovement`(`enabled`, `FlowFieldManager`, `Player`), `BossCharge`, `LineRenderer`, `CostField` |
 | `BossShootPattern` (MonoBehaviour, `IBossPattern`) | 사격 패턴. 범위 안에 들어오면 예고 후 발사 순간의 플레이어 방향 기준으로 탄 n발 발사(1발 직선 / 360° 균등 / 부채꼴). 방향 계산 `GetSpreadDirection`(static) | `Enemy`, `EnemyMovement`(`enabled`, `Player`), `BossCharge`, `ProjectilePool`(`Initialize`로 주입), `Projectile`, `ProjectileSpawnContext` |
 | `BossPatternSequencer` (MonoBehaviour) | `_patterns` 배열의 패턴 컴포넌트를 한 번에 하나만 켜고, `Finished` 후 `_interval`초 뒤 다음 패턴으로 순환 | `Enemy`, `IBossPattern`(`Behaviour`로 직렬화) |
-| `TreasureChestSpawner` (MonoBehaviour) | `Enemy.Died` 구독. `DropsTreasureChest`인 Enemy가 죽으면 그 위치(높이 `_spawnHeight`)에 상자를 `Instantiate`하고 `Initialize`. 풀 없음 | `TreasureChest`, `Enemy`, 플레이어 `Transform`, `LevelUpPanel` |
-| `TreasureChest` (MonoBehaviour) | 매 프레임 플레이어가 획득 반경(`_pickupRadius`, XZ) 안이면 `LevelUpPanel.RequestChestReward()` 1회 후 `Destroy` | `ExperienceGem.IsInCollectRadius`(static), 플레이어 `Transform`, `LevelUpPanel` |
+| `TreasureChestSpawner` (MonoBehaviour) | `Enemy.Died` 구독. 모든 Enemy 사망 시 `Currency.Add(CurrencyReward)`로 재화를 지급한 뒤, `DropsTreasureChest`인 Enemy면 그 위치(높이 `_spawnHeight`)에 상자를 `Instantiate`하고 `Initialize`(상자에 `Currency` 전달). 풀 없음 | `TreasureChest`, `Enemy`, `Currency`, 플레이어 `Transform`, `LevelUpPanel` |
+| `TreasureChest` (MonoBehaviour) | 매 프레임 플레이어가 획득 반경(`_pickupRadius`, XZ) 안이면 `Currency.Add(_currencyReward)`(기본 3, 필드 주석상 테스트값) → `LevelUpPanel.RequestChestReward()` 1회 후 `Destroy` | `ExperienceGem.IsInCollectRadius`(static), 플레이어 `Transform`, `LevelUpPanel`, `Currency` |
 | `EnemyMovement` (MonoBehaviour, 넉백 부분만) | Flow Field 이동과 별도인 XZ 넉백 속도 `_knockbackVelocity` 소유. `AddKnockback(direction, strength)`로 누적, 매 `Update`에서 이동·선형 감속. 계산 함수 `CalculateKnockbackVelocity`(static). 이동 알고리즘(Flow Field·Separation)은 `Docs/TechDocs/Map.md` | `CostField`(`WorldToTile`, `IsInBounds`, `IsWalkable`). 호출자 `Projectile`(`Docs/TechDocs/Weapon.md`) |
 | `TempEnemySpawner` (MonoBehaviour, 임시) | `TestMap` 전용. `Start`에서 `_spawnCount`마리를 자기 위치 기준 반경 `_spawnRadius` 원 위 랜덤 각도에 `EnemyPool`로 일괄 생성. 프리팹은 `_enemyPrefabs`에서 생성마다 균등 랜덤 | `EnemyPool`, `FlowFieldManager`, 플레이어 `Transform` |
 | `EnemyHitFeedback` (MonoBehaviour) | `Enemy.Damaged` 구독. 피해마다 `_renderer.sharedMaterial`을 `_flashMaterial`로 `_flashDuration`초 교체, `DamageNumber.Spawn(위치, 피해량)`으로 피해 숫자 표시. 각각 `GameSettings` 설정이 꺼져 있으면 생략 | `Enemy`, `Renderer`, `Material`, `DamageNumbersPro.DamageNumber`, `GameSettings` |
@@ -73,6 +73,7 @@
 | `ExperienceValue` | `_experienceValue` (`Min(0)`). 0이면 젬을 드롭하지 않는다 |
 | `GemPrefab` | `_gemPrefab`. 드롭할 젬 Prefab. 비어 있으면 `ExperienceGemPool._gemPrefab`(기본 젬)을 쓴다 (Issue #19) |
 | `DropsTreasureChest` | `_dropsTreasureChest`. true면 사망 시 `TreasureChestSpawner`가 보물 상자를 생성한다 (중간 보스만, 필드 주석) |
+| `CurrencyReward` | `_currencyReward` (`Min(0)`, 기본 0). 사망 시 `TreasureChestSpawner`가 지급하는 특수 재화량. 0이면 지급 없음 (엘리트만, 필드 주석) |
 | `ClearsSessionOnDeath` | `_clearsSessionOnDeath`. true면 사망 시 `GameSession`이 클리어로 종료한다 (최종 보스만, 필드 주석. `Docs/TechDocs/GameFlow.md`) |
 | `TakeDamage(damage)` | `IsAlive`가 false면 무시. 체력 감소 → `Damaged` → 이번 피해로 처음 사망했으면 `Die` |
 | `Initialize(flowFieldManager, player, pool)` | 반환할 풀 저장, `EnemyMovement.Initialize` 호출. `EnemyPool.Spawn`이 꺼낸 직후 호출한다 |
@@ -208,9 +209,10 @@
 
 ### 보물 상자 (`TreasureChestSpawner`, `TreasureChest`, Issue #19)
 
-- `TreasureChestSpawner` : `OnEnable`/`OnDisable`에서 `Enemy.Died` 구독/해제. `SpawnChest(enemy)` : `DropsTreasureChest`가 false면 무시. 위치 = Enemy 위치(Y는 `_spawnHeight`), 회전 없음, 부모 `_chestParent`로 `Instantiate` 후 `Initialize(_player, _levelUpPanel)`.
+- `TreasureChestSpawner` : `OnEnable`/`OnDisable`에서 `Enemy.Died` 구독/해제. `SpawnChest(enemy)` : 먼저 `_currency.Add(enemy.CurrencyReward)`로 재화를 지급한다 (`Currency.Add`는 0 이하를 무시하므로 일반 몬스터·보스는 변화 없음). 이어서 `DropsTreasureChest`가 false면 끝낸다. 위치 = Enemy 위치(Y는 `_spawnHeight`), 회전 없음, 부모 `_chestParent`로 `Instantiate` 후 `Initialize(_player, _levelUpPanel, _currency)`.
+- `Died`는 첫 사망 시 1회만 발생하므로 엘리트 재화도 1회만 지급된다. 메서드 이름 `SpawnChest`는 재화 지급을 포함하지만 그대로 둔다 (사용자 결정).
 - 풀을 쓰지 않는다. 한 판 최대 3개(중간 보스 수)라서다 (코드 주석).
-- `TreasureChest.Update` : `_player`가 `null`(미초기화, Scene 직접 배치 등)이면 판정하지 않는다. `ExperienceGem.IsInCollectRadius(상자 위치, 플레이어 위치, _pickupRadius)`(XZ 거리, 경계 포함)가 true면 `_levelUpPanel.RequestChestReward()` → `Destroy(gameObject)`.
+- `TreasureChest.Update` : `_player`가 `null`(미초기화, Scene 직접 배치 등)이면 판정하지 않는다. `ExperienceGem.IsInCollectRadius(상자 위치, 플레이어 위치, _pickupRadius)`(XZ 거리, 경계 포함)가 true면 `_currency.Add(_currencyReward)` → `_levelUpPanel.RequestChestReward()` → `Destroy(gameObject)`.
 - 중복 요청 방지 플래그가 없다. 요청 경로가 이 `Update` 하나뿐이고, `Destroy`는 그 프레임이 끝난 뒤 적용되어 다음 `Update`가 오지 않기 때문이다 (코드 주석).
 - 상자에는 수명이 없다. 획득 전까지 남는다.
 - 보상 화면의 회차 처리(대기 중인 레벨업 우선, 카드 5장)는 `Docs/TechDocs/GameFlow.md`의 `LevelUpPanel`.
@@ -329,11 +331,11 @@ Enemy.TakeDamage
        └─ Died(this)
             ├─ ExperienceGemPool.SpawnGem → (ExperienceValue > 0) 젬 Prefab(GemPrefab 또는 기본) 풀 Get → Initialize (Idle)
             ├─ GameSession.HandleEnemyDied → IsPlaying이면 KillCount++, ClearsSessionOnDeath면 End(Cleared)
-            └─ TreasureChestSpawner.SpawnChest → DropsTreasureChest면 상자 Instantiate → Initialize
+            └─ TreasureChestSpawner.SpawnChest → Currency.Add(CurrencyReward) (0 이하 무시) → DropsTreasureChest면 상자 Instantiate → Initialize(…, Currency)
        (보스 패턴·시퀀서는 이후 자기 Update에서 IsAlive false를 보고 정지)
 
 [매 프레임 Update] TreasureChest
-  플레이어가 _pickupRadius(XZ) 안 → LevelUpPanel.RequestChestReward → Destroy   (보상 화면은 GameFlow.md)
+  플레이어가 _pickupRadius(XZ) 안 → Currency.Add(_currencyReward) → LevelUpPanel.RequestChestReward → Destroy   (보상 화면은 GameFlow.md)
 
 [매 프레임 Update] Enemy (사망 상태만)
   _deathRemaining -= deltaTime → 0 이하면 Despawn
@@ -463,7 +465,10 @@ PFB_BossBlackKnight           (Layer Enemy(6), CapsuleCollider, EnemyMovement, E
 | | `_experienceValue` | 10 |
 | | `_gemPrefab` | `PFB_ExperienceGemElite` (금색 젬) |
 | | `_dropsTreasureChest` / `_clearsSessionOnDeath` | 0 / 0 |
+| | `_currencyReward` | 1 (Issue #37) |
 | `EnemyHitFeedback` | 연결·값 | 일반 몬스터 3종과 같다 |
+
+- `_currencyReward`는 강화몹 3종만 1이다. 다른 Enemy Prefab은 직렬화 값이 없어 코드 기본값 0이다.
 
 ### `Assets/Prefabs/Enemy/PFB_EnemyGolem.prefab` (원형 대량 스폰용, Issue #19)
 
@@ -586,6 +591,7 @@ Managers
 | | `_defaultCapacity` / `_maxSize` | 64 / 512 (젬 Prefab별 풀마다) |
 | | `_spawnHeight` | 0.3 |
 | `TreasureChestSpawner` | `_chestPrefab` | `PFB_TreasureChest` |
+| | `_currency` | `Currency` 오브젝트의 `Currency` (Issue #37) |
 | | `_chestParent` | `Gameplay/Chests` |
 | | `_player` | 플레이어 Prefab 인스턴스 |
 | | `_levelUpPanel` | `UI/HUDCanvas`의 `LevelUpPanel` |
@@ -632,7 +638,7 @@ Managers
 | n | Play 중 Project 창의 Prefab 에셋 값을 바꾸면 Play 종료 후에도 에셋에 남는다. 보스·패턴 수치를 Play 중 시험할 때는 Hierarchy의 생성된 인스턴스를 수정한다. 또 `BossCharge`는 `Awake`에서 한 번 만들어지므로 Play 중 인스턴스의 범위·경고 시간·쿨다운을 바꿔도 이미 만든 개체에는 반영되지 않는다 (코드 확인) | 참고 |
 | o | 원형 대량 스폰은 한 프레임에 최대 `_ringCount`(GameScene 50)마리를 생성한다. 첫 회차에는 `PFB_EnemyGolem` 풀이 비어 있어 모두 `Instantiate`된다 (풀은 첫 `Spawn` 때 만들어지고 미리 채우지 않음). 프레임 비용은 측정하지 않았다 | M13 Profiler 측정 대상 |
 | p | `PFB_BossBlackKnight`의 사망 연출 `_deathDuration`(2초)이 `GameSession._endFreezeDelay`(1.5초)보다 길다. 최종 보스 처치 클리어 시 1.5초 뒤 `Time.timeScale` 0으로 정지하므로 사망 애니메이션이 끝나기 전에 멈출 수 있다 (코드·값 기준, 실제 표시는 미검증) | 사망 연출·종료 대기 조정 시 |
-| q | 보스 관련 Inspector 연결 누락 시 `null` 검사가 없다. 돌진 패턴 `_warningLine`이 비면 `OnEnable`에서, 사격 패턴 `_projectilePrefab`이 비면 첫 발사의 `ProjectilePool` `Dictionary` 조회에서, 시퀀서 `_patterns`가 비거나 `null` 원소가 있으면 `OnEnable`에서, `TreasureChestSpawner`의 `_chestPrefab`·`_levelUpPanel`이 비면 상자 생성·획득 시 예외가 난다. `EnemyPool._projectilePool`이 비면 예외 없이 사격 패턴이 동작하지 않는다 | 보스 추가 시 연결 필수 |
+| q | 보스 관련 Inspector 연결 누락 시 `null` 검사가 없다. 돌진 패턴 `_warningLine`이 비면 `OnEnable`에서, 사격 패턴 `_projectilePrefab`이 비면 첫 발사의 `ProjectilePool` `Dictionary` 조회에서, 시퀀서 `_patterns`가 비거나 `null` 원소가 있으면 `OnEnable`에서, `TreasureChestSpawner`의 `_chestPrefab`·`_levelUpPanel`이 비면 상자 생성·획득 시 예외가 난다. `TreasureChestSpawner._currency`가 비면 모든 Enemy 사망 시 `SpawnChest` 첫 줄(`Add`)에서 예외가 나고 상자도 생성되지 않는다. `EnemyPool._projectilePool`이 비면 예외 없이 사격 패턴이 동작하지 않는다 | 보스 추가 시 연결 필수 |
 | r | 원형 대량 스폰에는 카메라 시야 조건이 없다. `_ringRadius`가 화면 반경보다 작으면 화면 안에 생성된다 | 수치 확정 시 |
 | s | 넉백은 중심점의 다음 타일만 검사한다 (코드의 `shortcut` 주석). ㄱ자 모서리 대각 통과, 몸체 일부가 벽과 겹치는 상황이 가능하다. 넉백 위치 이동에는 Separation·정지 거리 판정이 없어 플레이어 쪽으로 밀리는 방향이면 정지 거리 안으로 들어갈 수 있다 (코드 기준 추정, 미검증) | 문제되면 몸체 반폭 기준 검사로 교체 |
 | t | 넉백 누적은 상한(`_maxKnockbackSpeed`)만 있고 점감은 없다. 보스 저항은 펠릿마다 강도에 곱해진다. 수치(감속 20, 상한 10, 보스 저항 0.7, 샷건 Lv.3 강도 6)는 모두 임시값이다 | 밸런스 조정 시 |
