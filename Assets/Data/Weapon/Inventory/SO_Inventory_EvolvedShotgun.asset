@@ -13,12 +13,11 @@ MonoBehaviour:
   m_Name: SO_Inventory_EvolvedShotgun
   m_EditorClassIdentifier: Assembly-CSharp::InventoryData
   _id: 8
-  _itemName: EvolvedShotgun
+  _itemName: "\uC9C4\uD654 \uC0F7\uAC74"
   _icon: {fileID: 21300000, guid: 66f736059c5722b4493be0bc3d295ffa, type: 3}
-  _description: "\uD0C4\uB760\uB85C \uC9C4\uD654\uD55C \uC0F7\uAC74\uC785\uB2C8\uB2E4.
-    \uC0B0\uD0C4\uC774 \uB354 \uB113\uAC8C \uD37C\uC9C0\uACE0 \uB354 \uBA40\uB9AC
-    \uB0A0\uC544\uAC00\uBA70, \uC8FC\uAE30\uC801\uC73C\uB85C \uC8FC\uBCC0 \uBAA8\uB4E0
-    \uBC29\uD5A5\uC5D0 \uD0C4\uC744 \uBC1C\uC0AC\uD569\uB2C8\uB2E4."
+  _levelIcons: []
+  _description: "\uB354 \uB113\uACE0 \uBA3C \uBC94\uC704\uC5D0 \uC0B0\uD0C4\uC744
+    \uBC1C\uC0AC\uD558\uBA70, \uC8FC\uAE30\uC801\uC73C\uB85C \uC0AC\uBC29\uC744 \uACF5\uACA9\uD569\uB2C8\uB2E4."
   _itemType: 0
   _itemShape:
   - {x: 0, y: 0}
@@ -28,6 +27,12 @@ MonoBehaviour:
   - {x: 1, y: 2}
   _maxLevel: 1
   _isSellable: 0
+  _adjacencyEffectType: 0
+  _level3EffectType: 0
+  _level3EffectValue: 0
+  _level3EffectName: 
+  _expendableEffectType: 0
+  _expendableEffectValue: 0
   _weaponDefinition: {fileID: 0}
   _equippedEffect: 
   _unequippedBuff: 

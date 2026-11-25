@@ -87,6 +87,10 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
             return;
         }
 
+        // 우클릭 회전은 드래그 중에만 허용, 선택 아이템 회전은 키보드 입력만
+        if (rotateAction.action.activeControl?.device is Mouse)
+            return;
+
         if (selectedItem != this || item == null)
             return;
 
@@ -177,7 +181,8 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     public void OnBeginDrag(PointerEventData eventData)
     {
         // 드래그 대상을 비워 OnDrag·OnEndDrag가 호출되지 않게 취소
-        if (!IsDragEnabled)
+        // 우클릭은 드래그 중 회전 입력이므로 좌클릭만 드래그
+        if (!IsDragEnabled || eventData.button != PointerEventData.InputButton.Left)
         {
             eventData.pointerDrag = null;
             return;

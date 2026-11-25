@@ -13,17 +13,17 @@ public class ResultPanel : MonoBehaviour
     private const string TITLE_SCENE_NAME = "TitleScene";
     private const string CLEAR_TEXT = "CLEAR";
     private const string GAME_OVER_TEXT = "GAME OVER";
-    private const string EVOLVED_SUFFIX = " (Evolved)";
+    private const string EVOLVED_SUFFIX = " (진화)";
     private const string WEAPON_FORMAT = "{0} Lv.{1}";
     private const string EMPTY_WEAPON_LIST = "-";
     private const string LINE_BREAK = "\n";
     private const string VALUE_POSITION = "<pos=50%>"; // 항목명과 값 정렬 위치
     private const string STATS_FORMAT =
-        "Survival Time" + VALUE_POSITION + "{0}" + LINE_BREAK +
-        "Level" + VALUE_POSITION + "{1}" + LINE_BREAK +
-        "Weapons" + VALUE_POSITION + "{2}" + LINE_BREAK +
-        "Kills" + VALUE_POSITION + "{3}" + LINE_BREAK +
-        "Evolved" + VALUE_POSITION + "{4}";
+        "생존 시간" + VALUE_POSITION + "{0}" + LINE_BREAK +
+        "레벨" + VALUE_POSITION + "{1}" + LINE_BREAK +
+        "무기" + VALUE_POSITION + "{2}" + LINE_BREAK +
+        "처치 수" + VALUE_POSITION + "{3}" + LINE_BREAK +
+        "진화" + VALUE_POSITION + "{4}";
 
     [SerializeField] private GameSession _gameSession;
     [SerializeField] private PlayerExperience _playerExperience;
@@ -50,7 +50,7 @@ public class ResultPanel : MonoBehaviour
         _titleButton.onClick.RemoveListener(HandleTitleButtonClicked);
     }
 
-    /// <summary>무기마다 "종류 Lv.레벨" (진화면 " (Evolved)" 추가)을 줄바꿈으로 연결, 빈 목록이면 "-"</summary>
+    /// <summary>무기마다 "종류 Lv.레벨" (진화면 " (진화)" 추가)을 줄바꿈으로 연결, 빈 목록이면 "-"</summary>
     public static string BuildWeaponList(IReadOnlyList<WeaponInstance> weapons)
     {
         if (weapons.Count == 0)

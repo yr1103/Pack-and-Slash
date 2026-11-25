@@ -9,9 +9,11 @@ using UnityEngine.UI;
 /// </summary>
 public class LevelUpPanel : MonoBehaviour
 {
-    private const string STORAGE_COUNT_FORMAT = "Storage {0}/{1}"; // {0} 보관 수, {1} 보관함 용량
+    private const string STORAGE_COUNT_FORMAT = "보관함 {0}/{1}"; // {0} 보관 수, {1} 보관함 용량
     private const string CURRENCY_FORMAT = "보유 {0}"; // {0} 특수 재화 잔액
-    private const string SELECTION_COUNT_FORMAT = "{0}/{1}"; // {0} 선택 수, {1} 필요 선택 수
+    private const string SELECTION_COUNT_FORMAT = "선택 {0}/{1}"; // {0} 선택 수, {1} 필요 선택 수
+    private const string SELECTION_GUIDE_FORMAT = "보상을 선택하세요! {0}개 중 {1}개를 클릭해 선택하세요."; // {0} 후보 카드 수, {1} 필요 선택 수
+    private const string SELECTION_DONE_FORMAT = "{0}개 선택 완료! 인벤토리 정리하기를 눌러 진행하세요."; // {0} 필요 선택 수
     private const string EXPANSION_GUIDE_FORMAT = "확장할 {0}칸을 선택하세요!!"; // {0} 남은 확장 수
     private const float SLOT_CENTER_RATIO = 0.5f; // Temporary 가로 분할 칸의 중심 비율
 
@@ -33,6 +35,7 @@ public class LevelUpPanel : MonoBehaviour
     [SerializeField] private Button _rerollButton;
     [SerializeField] private Text _currencyText;
     [SerializeField] private Text _selectionCountText;
+    [SerializeField] private Text _selectionGuideText; // 선택 단계 상단 안내
     [SerializeField] private Button _confirmButton;
     [SerializeField] private GameObject _selectingGroup; // 리롤·재화·선택 수·선택 완료 버튼 묶음 (카드는 프리팹 구조상 그룹 밖)
     [SerializeField] private Inventory _inventory;
@@ -382,6 +385,9 @@ public class LevelUpPanel : MonoBehaviour
     {
         _selectionCountText.text = string.Format(SELECTION_COUNT_FORMAT, _selectedIndices.Count, RequiredSelectCount);
         _confirmButton.interactable = _phase == RewardPhase.Selecting && _selectedIndices.Count == RequiredSelectCount;
+        _selectionGuideText.text = _selectedIndices.Count < RequiredSelectCount
+            ? string.Format(SELECTION_GUIDE_FORMAT, _candidates.Count, RequiredSelectCount)
+            : string.Format(SELECTION_DONE_FORMAT, RequiredSelectCount);
     }
 
     // 후보 수만큼 카드 활성화, 후보·선택 상태 표시
