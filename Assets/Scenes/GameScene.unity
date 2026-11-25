@@ -3463,6 +3463,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TreasureChestSpawner
   _chestPrefab: {fileID: 659889786447184183, guid: 89d473a4a7ab2d54b968ca31d9550091, type: 3}
+  _currency: {fileID: 1811362688}
   _chestParent: {fileID: 1673433032}
   _player: {fileID: 1136806269}
   _levelUpPanel: {fileID: 1669466780}

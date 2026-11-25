@@ -110,6 +110,9 @@ MonoBehaviour:
   _enemyLayer:
     serializedVersion: 2
     m_Bits: 64
+  _knockbackDeceleration: 20
+  _maxKnockbackSpeed: 10
+  _knockbackResistance: 0
 --- !u!114 &4268184432913942235
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -130,6 +133,7 @@ MonoBehaviour:
   _experienceValue: 10
   _gemPrefab: {fileID: 5322722869455467960, guid: faade87cf2f03b944ab65192893116ff, type: 3}
   _dropsTreasureChest: 0
+  _currencyReward: 1
   _clearsSessionOnDeath: 0
 --- !u!114 &7084415186446271958
 MonoBehaviour:
