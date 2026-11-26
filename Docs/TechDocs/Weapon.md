@@ -22,6 +22,7 @@
 |---|---|
 | 포함 | Issue #5의 W01(무기 설정 SO·장착 인스턴스 분리), W02(최근접 적 탐색·조준 방향), W03(공통 투사체·풀·피격 판정·화면 경계 무효화·임시 Cube 적), W04(무기별 쿨다운·발사 루프, W07에서 앞당긴 주무기 몸통 회전), W05(샷건 기본 발사 : 부채꼴 다중 탄·탄 프리팹별 풀), W06(미니건 기본 연사·재장전·랜덤 퍼짐), W07(부유 총기, 원형 배치, 주무기 변경 이벤트, 손 무기·Animator 교체, 고유 무기 기준 생김새). Issue #10에서 고유 무기·생김새의 기준을 캐릭터로 변경. Issue #8에서 표적 후보를 실제 적(`Enemy`)으로 교체, 플레이어 애니메이션(PA : 이동 방향·사격·피격·사망 Animator 파라미터, 무기별 Animator Controller) 추가 |
 | 포함 | 이슈 미등록 (브랜치 `art/fix-inven-ui`) : 인벤토리 배치 기반 장착(`InventoryWeaponSync`, `WeaponLoadout.Awake` 장착 제거), 인스턴스별 최종 스탯(`WeaponInstance.ApplyStats`, `Inventory.GetWeaponStats`), Lv.3 효과 3종(`_level3GunCount`·`_level3KnockbackStrength`·`_level3SpreadReduction`), 자루 단위 부유 뷰·총구(`GetMuzzle(weapon, gunIndex)`), 공격력 범위(`_damageVariance`, `GetRolledDamage`), 관통 수 데이터화(`_pierceCount`, 상수 `MAX_UNIQUE_TARGETS_HIT` 제거), 재장전 진행률(`ReloadProgress`) |
+| 포함 | Issue #40 : 인스턴스별 발사당 탄 수(`WeaponInstance.ProjectilesPerShot`, `ApplyStats` 인자 추가, `WeaponAttackController`가 인스턴스 값 사용), `Inventory.WeaponStats.ProjectilesPerShot`, `GetWeaponStats`의 특성·고유 아이템 두 층 계산(`GetTraitDamageBonus`, `GetTraitProjectileBonus`, `GetCharacterAccuracyBonus`) |
 | 제외 (후속) | 주무기 수동 지정, 2중 원 배치·총기 수 상한, 진화 효과(권총 난사·샷건 방사·미니건 진화 관통 3), 근접 피해 상한, 넉백 점감 |
 
 ## 주요 클래스와 역할
@@ -29,10 +30,10 @@
 | 클래스 | 책임 | 의존성 |
 |---|---|---|
 | `WeaponDefinition` (ScriptableObject) | 무기 종류별 공유 설정 (`WeaponType`, 발사 간격 `_fireInterval`(기본 `DEFAULT_FIRE_INTERVAL` = 1, `Min(MIN_FIRE_INTERVAL)` = 0.01. 0 이하이면 한 프레임 연속 발사 루프가 끝나지 않으므로 하한을 둠), 탄창, 재장전, 탐지 거리, 탄속, 최대 비행 거리·생존 시간, 피해, 화면 밖 무효화 여부, 발사 1회당 탄 수 `_projectilesPerShot`(기본 1, Min 1), 부채꼴 전체 각도 `_spreadAngle`(도, Min 0), 랜덤 퍼짐 여부 `_randomSpread`(true = 탄마다 ±SpreadAngle/2 범위 랜덤 각도, false = 균등 간격 부채꼴), 탄 프리팹 `_projectilePrefab`, 주무기가 아닐 때 띄우는 부유 외형 프리팹 `_floatingViewPrefab`). 이 브랜치 추가 필드 : 공격력 범위 `_damageVariance`(`Range(0, 1)`, 0 = 고정), 관통 수 `_pierceCount`(`Min(1)`, 기본 1 = 관통 없음), Lv.3 탄퍼짐 감소율 `_level3SpreadReduction`(`Range(0, 1)`, 0 = 효과 없음), Lv.3 자루 수 `_level3GunCount`(`Min(1)`, 기본 1 = 효과 없음), Lv.3 넉백 속도 `_level3KnockbackStrength`(`Min(0)`, 초당 거리, 0 = 효과 없음). 읽기 전용 프로퍼티만 노출. 피해 계산 함수 `GetRolledDamage`(static) | `Projectile`(탄 프리팹 참조), `FloatingWeaponView`(부유 외형 프리팹 참조) |
-| `WeaponInstance` | 장착한 무기 하나의 런타임 상태 (`InstanceId`, `Definition`, `Level`, `IsEvolved`, `ShotCooldown`, `CurrentAmmo`, `IsReloading`, `ReloadRemaining`, `ReloadProgress`, `CurrentTarget`). 인스턴스별 최종 스탯 `Damage`, `FireInterval`, `SpreadAngle`, `RandomSpread`(생성 시 `Definition` 값), `GunCount`(생성 시 1), `KnockbackStrength`(생성 시 0)는 `ApplyStats`로만 바뀐다. 쿨다운·재장전 시간 감소(`Tick`), 다음 발사 예약(`ScheduleNextShot` : `ShotCooldown += FireInterval`(인스턴스 값)), 넘긴 시간 버리기(`ClearOverdueShotCooldown`), 잔탄 소모와 재장전 시작(`ConsumeAmmo`). 이벤트 `AmmoChanged`, `ReloadStarted`, `ReloadFinished`. 탄창 용량·재장전 시간은 `Definition`(`WeaponDefinition`)에서 읽는다 | `WeaponDefinition`, `ITargetable` |
+| `WeaponInstance` | 장착한 무기 하나의 런타임 상태 (`InstanceId`, `Definition`, `Level`, `IsEvolved`, `ShotCooldown`, `CurrentAmmo`, `IsReloading`, `ReloadRemaining`, `ReloadProgress`, `CurrentTarget`). 인스턴스별 최종 스탯 `Damage`, `FireInterval`, `SpreadAngle`, `RandomSpread`, `ProjectilesPerShot`(Issue #40, 생성 시 `Definition` 값), `GunCount`(생성 시 1), `KnockbackStrength`(생성 시 0)는 `ApplyStats`로만 바뀐다. 쿨다운·재장전 시간 감소(`Tick`), 다음 발사 예약(`ScheduleNextShot` : `ShotCooldown += FireInterval`(인스턴스 값)), 넘긴 시간 버리기(`ClearOverdueShotCooldown`), 잔탄 소모와 재장전 시작(`ConsumeAmmo`). 이벤트 `AmmoChanged`, `ReloadStarted`, `ReloadFinished`. 탄창 용량·재장전 시간은 `Definition`(`WeaponDefinition`)에서 읽는다 | `WeaponDefinition`, `ITargetable` |
 | `WeaponLoadout` (MonoBehaviour) | 장착 목록과 주무기(`Primary`) 소유. 캐릭터 읽기 프로퍼티 `Character`(`CharacterSelection.Selected`가 있으면 그것, 없으면 `_defaultCharacter`), 고유 무기 읽기 프로퍼티 `SignatureWeapon`(= `Character.StartWeapon`). 둘 다 캐시하지 않고 읽을 때마다 계산한다. `Equip(definition, level = 1)`/`Unequip`, 자루 수 변경 알림(`NotifyGunCountChanged`), 주무기 선정(`SelectPrimary`). 이벤트 `PrimaryChanged`, `WeaponsChanged`. `Awake`는 없다 (장착은 `InventoryWeaponSync`가 호출) | `WeaponDefinition`, `WeaponInstance`, `CharacterDefinition`, `CharacterSelection` |
 | `InventoryWeaponSync` (MonoBehaviour) | `Start`에서 캐릭터의 시작 무기 아이템(`StartWeaponItem`)·고유 아이템(`UniqueItem`)을 `Inventory`에 배치하고 아이템 UI를 생성한 뒤 `Inventory.Character`를 설정한다. `Inventory.Changed`마다 `SyncWeapons` : 배치된 무기 아이템과 `WeaponLoadout` 장착 무기를 일치시키고, 유지된 무기에 `GetWeaponStats` 결과를 `ApplyStats`로 적용 | `Inventory`, `WeaponLoadout`, `InventoryItemUI`(프리팹), `InventoryUI`, `SellConfirmPopup`, `ItemTooltipUI`, `CharacterDefinition` |
-| `Inventory` (MonoBehaviour, 무기 관련 부분만) | `GetWeaponStats(item)` : 레벨·인접 효과·캐릭터 고유 효과·Lv.3 효과를 반영한 최종 무기 스탯(`WeaponStats` : `Damage`, `FireInterval`, `SpreadAngle`, `RandomSpread`, `GunCount`, `KnockbackStrength`). 툴팁과 전투가 같은 경로를 쓴다. 인벤토리 전반은 `Docs/TechDocs/GameFlow.md` | `InventoryData`, `WeaponDefinition`, `CharacterDefinition` |
+| `Inventory` (MonoBehaviour, 무기 관련 부분만) | `GetWeaponStats(item)` : 레벨·인접 효과·캐릭터 특성·고유 아이템 효과·Lv.3 효과를 반영한 최종 무기 스탯(`WeaponStats` : `Damage`, `FireInterval`, `SpreadAngle`, `RandomSpread`, `GunCount`, `KnockbackStrength`, `ProjectilesPerShot`). 툴팁과 전투가 같은 경로를 쓴다. 인벤토리 전반은 `Docs/TechDocs/GameFlow.md` | `InventoryData`, `WeaponDefinition`, `CharacterDefinition` |
 | `WeaponTargeting` (static) | 상태 없는 계산. `FindNearest`(XZ 반경 내 최근접 표적), `GetAimDirection`(XZ 정규화 방향), `GetFireDirection`(발사 중심 방향, 총구 기준이 0이면 플레이어 중심 기준), `GetSpreadDirection`(부채꼴 안 n번째 탄 방향), `GetRandomSpreadDirection(centerDirection, spreadAngle, randomRatio)`(부채꼴 안 랜덤 위치 탄 방향, 비율은 호출부가 공급) | `ITargetable` |
 | `WeaponAttackController` (MonoBehaviour) | 매 프레임 장착 무기별 쿨다운 감소 → 표적 탐색·`CurrentTarget` 기록 → 발사. 발사 1회에 자루(`GunCount`)마다 `_views.GetMuzzle(weapon, gunIndex)`로 총구를 받아 동시 발사한다 (W06까지의 단일 `_muzzle` 필드는 제거됨) | `WeaponLoadout`, `ProjectilePool`, `WeaponViewController`(`_views`, 무기별 총구), `WeaponTargeting`, `WeaponDefinition`(발사 값), `ProjectileSpawnContext`(탄마다 생성), `Enemy.ActiveEnemies`(후보 공급, 코드의 `shortcut` 주석 : `EnemyManager`/Spatial Hash 연동 시 교체) |
 | `WeaponViewController` (MonoBehaviour) | 무기 외형 표시. 주무기 종류의 손 무기만 켜고 Animator Controller 교체, 자루 단위 부유 총기(`FloatingWeaponView`) 생성·파괴·원형 슬롯 이동·조준(주무기는 `GunCount − 1`개, 나머지 무기는 `GunCount`개), 자루별 총구 제공(`GetMuzzle(weapon, gunIndex)`), 시작 시 캐릭터(`_loadout.Character`)로 생김새(Body·Head) 선택. 슬롯 각도 계산 `GetSlotAngle`(static) | `WeaponLoadout`(이벤트 구독, `Character`), `CharacterDefinition`(`_appearances` 키), `FloatingWeaponView`, `Animator`, `WeaponDefinition.FloatingViewPrefab` |
@@ -120,16 +121,30 @@
 
 | 값 | 계산 |
 |---|---|
-| `Damage` | `ProjectileDamage × 레벨 배율 × (1 + 인접 공격력(상한 없음)) × (1 + 고유 공격력 보너스)`. 레벨 배율 = `1 + (레벨 − 1) × 0.1` (`GetWeaponLevelMultiplier`, 복리 아님) |
-| `FireInterval` | `FireInterval × (1 − 인접 발사 간격 감소(상한 0.5)) / (1 + 고유 공격속도 보너스)` |
-| `SpreadAngle` | `기준 각도 × (1 − 감소율)`. 기준 각도 = 고유 확산각(`GetUniqueSpreadAngle`)이 0보다 크면 그 값, 아니면 `Definition.SpreadAngle`. 감소율 = `Clamp(인접 탄퍼짐 합(상한 미적용) + 캐릭터 정확도(GetCharacterAccuracyBonus) + (Lv.3 활성이면 Level3SpreadReduction), 0, 0.7)`. 같은 탄퍼짐 감소 계열을 모두 더한 뒤 상한을 적용해 1회 곱한다 (코드 주석) |
-| `RandomSpread` | 고유 확산각 적용 중이거나 `Definition.RandomSpread` |
+| `Damage` | `ProjectileDamage × 레벨 배율 × (1 + 인접 공격력(상한 없음)) × (1 + 특성 공격력(GetTraitDamageBonus))`. 레벨 배율 = `1 + (레벨 − 1) × 0.1` (`GetWeaponLevelMultiplier`, 복리 아님) |
+| `FireInterval` | `FireInterval × (1 − 인접 발사 간격 감소(상한 0.5)) / (1 + 해제 공격속도 보너스(GetUniqueAttackSpeedBonus))` |
+| `SpreadAngle` | `기준 각도 × (1 − 감소율)`. 기준 각도 = 해제 확산각(`GetUniqueSpreadAngle`)이 0보다 크면 그 값, 아니면 `Definition.SpreadAngle`. 감소율 = `Clamp(인접 탄퍼짐 합(냉각기, 상한 미적용) + 캐릭터 정확도(GetCharacterAccuracyBonus) + (Lv.3 활성이면 Level3SpreadReduction), 0, 0.7)`. 같은 탄퍼짐 감소 계열을 모두 더한 뒤 상한을 적용해 1회 곱한다 (코드 주석) |
+| `RandomSpread` | 해제 확산각 적용 중이거나 `Definition.RandomSpread` |
 | `GunCount` | Lv.3 활성이면 `Level3GunCount`, 아니면 1 |
 | `KnockbackStrength` | Lv.3 활성이면 `Level3KnockbackStrength`, 아니면 0 |
+| `ProjectilesPerShot` (Issue #40) | `Definition.ProjectilesPerShot + 특성 총알(GetTraitProjectileBonus)` |
+
+캐릭터 효과 조회 (Issue #40, 모두 `Character.UniqueWeaponType`과 같은 종류 무기만 값이 있고, 대상 외 무기·`Character` null이면 0)
+
+| 메서드 | 층 | 값 |
+|---|---|---|
+| `GetTraitDamageBonus(weapon)` | 특성 (항상) | `TraitDamageBonus` |
+| `GetTraitProjectileBonus(weapon)` | 특성 (항상) | `TraitProjectileBonus` (int) |
+| `GetCharacterAccuracyBonus(weapon)` | 특성 + 장착 중 | `TraitAccuracyBonus + (고유 아이템 장착 중이면 EquippedAccuracyBonus)`. 상한 미적용 (상한 0.7은 위 감소율 합산 후) |
+| `GetUniqueAttackSpeedBonus(weapon)` | 해제 중 | `UnequippedAttackSpeedBonus`, 장착 중이면 0 |
+| `GetUniqueSpreadAngle(weapon)` | 해제 중 | `UnequippedSpreadAngle`(도), 장착 중이면 0 |
+
+- 두 층 규칙 : 특성은 고유 아이템 탈착과 무관하게 항상 적용하고, 장착 효과(장착 중)와 해제 효과(해제 중) 중 하나만 더한다. 예 (헤비거너 미니건, 냉각기·Lv.3 없음) : 셰이크 장착 중 감소율 0.1 + 0.1 = 0.2, 해제 중 0.1. 예 (카우보이 권총) : 공격력 ×1.1은 모자 탈착과 무관, 해제 중에만 발사 간격 `/ 1.6`·확산각 70° 랜덤.
+- Issue #40에서 장착 중 공격력 보너스(`EquippedDamageBonus`)와 해제 중 정확도 보너스(`UnequippedAccuracyBonus`)는 삭제되었다. 필드 구성은 `Docs/TechDocs/Character.md`, 장착 판정·플레이어 스탯은 `Docs/TechDocs/GameFlow.md`.
 
 - 인접 효과 수치 : 맞닿은(상하좌우) 패시브 1개당 `패시브 레벨 × 0.1`. 같은 패시브가 여러 셀로 닿아도 1회만 합산한다. 상세는 `Docs/TechDocs/GameFlow.md`.
 - Lv.3 활성 : 무기는 레벨 3 이상이면 배치 여부와 관계없이 활성이다 (`IsLevel3EffectActive`). 다만 장착(`SyncWeapons`)은 배치된 무기만 하므로 전투에는 배치된 무기만 쓰인다.
-- 고유 효과(공격력·공격속도·확산각·정확도)는 `Inventory.Character`의 `UniqueWeaponType`과 같은 종류 무기에만 적용된다. 장착/해제 조건은 `Docs/TechDocs/GameFlow.md`.
+- 특성·고유 효과(공격력·총알·정확도·공격속도·확산각)는 `Inventory.Character`의 `UniqueWeaponType`과 같은 종류 무기에만 적용된다. 장착/해제 조건은 `Docs/TechDocs/GameFlow.md`.
 - 상수 `WEAPON_LEVEL_BONUS_PER_LEVEL`(0.1), `ADJACENCY_BONUS_PER_LEVEL`(0.1), `MAX_FIRE_INTERVAL_REDUCTION`(0.5), `MAX_SPREAD_REDUCTION`(0.7), `LEVEL3_EFFECT_LEVEL`(3)은 `Inventory.cs`에 있다 (모두 임시값).
 
 ### Lv.3 효과
@@ -141,6 +156,7 @@
 | 미니건 | `_level3SpreadReduction` (`SO_Minigun` 0.2) | 냉각기 인접 감소·캐릭터 정확도와 합산 후 상한 0.7을 적용해 `SpreadAngle × (1 − 합)` 1회 (위 `최종 스탯`) |
 
 - 세 필드는 모든 무기 SO에 있고 기본값(0 / 1 / 0)이면 효과가 없다. `WeaponType`으로 분기하지 않는다.
+- `ApplyStats(level, damage, fireInterval, spreadAngle, randomSpread, gunCount, knockbackStrength, projectilesPerShot)` : Issue #40에서 마지막 인자 `projectilesPerShot`이 추가되었다. 호출부는 `InventoryWeaponSync.SyncWeapons`(`WeaponStats.ProjectilesPerShot` 전달)와 테스트다. 남은 쿨다운·잔탄·재장전은 유지한다 (요약 주석).
 - `ApplyStats`는 `gunCount`가 1 미만이면 경고 로그(`[WeaponInstance] GunCount {0}는 1 미만이라 1로 보정`)를 남기고 1로 보정한다.
 
 ### 무기 외형 (`WeaponViewController`)
@@ -222,7 +238,7 @@ Animator Controller (`Assets/Animations/Player/`)
     1. 총구→표적 `AimPoint`의 XZ 정규화 방향을 쓴다.
     2. 1이 영벡터(총구와 표적의 XZ 위치가 겹침)이면 플레이어 루트→표적 방향을 쓴다.
     3. 2도 영벡터이면 영벡터를 반환한다. 이 방향으로 만든 탄은 모두 `Projectile.Launch`에서 취소된다 (아래 `투사체 적중·반환` 참고).
-- 탄 방향 : 자루마다 `ProjectilesPerShot`(SO 값)발을 만든다. 인스턴스의 `RandomSpread`가 true면 탄마다 `GetRandomSpreadDirection(중심 방향, SpreadAngle, Random.value)`, false면 `GetSpreadDirection(중심 방향, SpreadAngle, ProjectilesPerShot, 순번)`으로 방향을 정한다. `SpreadAngle`·`RandomSpread`는 SO 값이 아닌 인스턴스 값(최종 스탯)이다.
+- 탄 방향 : 자루마다 `weapon.ProjectilesPerShot`(인스턴스 값 = SO 값 + 특성 총알, Issue #40 이전에는 SO 값)발을 만든다. 인스턴스의 `RandomSpread`가 true면 탄마다 `GetRandomSpreadDirection(중심 방향, SpreadAngle, Random.value)`, false면 `GetSpreadDirection(중심 방향, SpreadAngle, ProjectilesPerShot, 순번)`으로 방향을 정한다. `SpreadAngle`·`RandomSpread`는 SO 값이 아닌 인스턴스 값(최종 스탯)이다.
     - 균등 (`GetSpreadDirection`) : 각도는 `-SpreadAngle/2`부터 `+SpreadAngle/2`까지 양 끝을 포함한 균등 간격이다 (Y축 회전). 1발이면 중심 방향 그대로다.
     - 랜덤 (`GetRandomSpreadDirection`) : `randomRatio` 0 = `-SpreadAngle/2`, 1 = `+SpreadAngle/2` 사이를 `Mathf.Lerp`로 보간한 각도다 (범위 밖 비율은 끝으로 고정). 탄 수가 1발이어도 랜덤 각도가 적용된다.
     - `SpreadAngle`이 0이면 두 방식 모두 모든 탄이 중심 방향이다.
@@ -304,12 +320,13 @@ for 장착 무기마다
   ├─ weapon.CurrentTarget = 탐색 결과
   ├─ while (표적 있음 && 재장전 중 아님 && 쿨다운 <= 0)
   │    ├─ overshoot = -쿨다운
+  │    ├─ projectileCount = weapon.ProjectilesPerShot   인스턴스 값 (Issue #40)
   │    ├─ for gunIndex = 0 .. weapon.GunCount - 1
   │    │    ├─ 총구 = _views.GetMuzzle(weapon, gunIndex)   주무기 gun 0 = 손 무기 총구, 그 외 = 부유 총기 총구
   │    │    ├─ 중심 방향 = GetFireDirection(총구.position, 플레이어 루트, 표적 AimPoint)
-  │    │    └─ for j = 0 .. ProjectilesPerShot - 1
+  │    │    └─ for j = 0 .. projectileCount - 1
   │    │         ├─ 방향 = weapon.RandomSpread ? GetRandomSpreadDirection(중심 방향, weapon.SpreadAngle, Random.value)
-  │    │         │                            : GetSpreadDirection(중심 방향, weapon.SpreadAngle, ProjectilesPerShot, j)
+  │    │         │                            : GetSpreadDirection(중심 방향, weapon.SpreadAngle, projectileCount, j)
   │    │         ├─ 생성 위치 = 총구 + 방향 × ProjectileSpeed × overshoot
   │    │         └─ ProjectilePool.Fire(ProjectilePrefab, SpawnContext(…, 피해 = GetRolledDamage(weapon.Damage, DamageVariance, Random.value),
   │    │                                                               한도 = PierceCount, 넉백 = weapon.KnockbackStrength))
@@ -620,6 +637,7 @@ PFB_Floating…                 (FloatingWeaponView, _muzzle = MuzzlePoint)
 - 렌더 확인 (W07, 메인 세션) : 부유 총기 3종이 +Z 정면을 향하고 총구가 총신 끝에 있음, `MiniGunAnimator` 정지 자세에서 두 손 파지. 달리기 자세의 파지는 미검증이다.
 - W07 미검증 : 주의사항 z3(꺼진 동안 장착 변경), z5(LateUpdate 순서로 인한 1프레임 지연), z6(연결 누락 시 예외)은 Play 모드로 재현하지 않았다.
 - Play 모드 (Issue #10) : 사용자가 Play 모드로 확인한 뒤 검수를 승인했다 (임시 구현 상태로 확정). 캐릭터별 확인 항목의 세부 목록은 이 문서 작성 입력에 포함되지 않았다. 주의사항 z11(연결 누락 시 예외)은 재현하지 않았다 (미검증).
+- Issue #40 (캐릭터 특성·고유 아이템 효과) : `WeaponInstance.ApplyStats`에 마지막 인자 `projectilesPerShot`이 추가되어 `ProjectilesPerShot`을 갱신하고(생성 시 Definition 값), `WeaponAttackController`는 `weapon.ProjectilesPerShot`으로 발사당 탄 수를 정한다. 관련 테스트 : `WeaponInstanceTests.ApplyStats_KeepsCooldownAndAmmo_NextShotUsesNewInterval`(새 인자 1 전달), `UniqueItemEffectTests.Survivor_Trait_ShotgunDamageAndExtraProjectile`(겁쟁이 샷건 `ProjectilesPerShot` = Definition 값 + 1). 결과 : EditMode 전체 356개 중 355개 통과, 실패 1개는 무관한 `ResultPanelTests` (메인 세션이 Unity에서 직접 실행한 결과 기준). 겁쟁이 샷건이 실제로 펠릿을 1발 더 쏘는지의 Play 확인 결과는 이 문서 작성 입력에 없다 (미검증).
 
 ## 관련 Issue/PR
 
@@ -629,3 +647,4 @@ PFB_Floating…                 (FloatingWeaponView, _muzzle = MuzzlePoint)
 - Issue #8 (몬스터 프로토타입. 표적 후보를 `Enemy`로 교체, `_orbitHeight` 조정, 플레이어 애니메이션 PA. `Docs/TechDocs/Enemy.md`, `Docs/TechDocs/GameFlow.md`). PR : 미정
 - Issue #19 (몬스터 최종 M06~M12. 보스 탄이 `Projectile`·`ProjectilePool`을 재사용. `Docs/TechDocs/Enemy.md`). PR : 미정
 - 이슈 미등록 (브랜치 `art/fix-inven-ui`. 인벤토리 기반 장착·최종 스탯, Lv.3 효과 3종, 공격력 범위, 관통 수 데이터화, 재장전 진행률). PR : 미정
+- Issue #40 (브랜치 `feat/character-trait-essential-effect`. 캐릭터 특성·고유 아이템 두 층 무기 스탯, 인스턴스별 발사당 탄 수). PR : 미정

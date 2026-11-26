@@ -392,7 +392,7 @@ public class InventoryTests
         Assert.AreEqual(ItemLocation.Temporary, _shotgun.Location);
         Assert.AreEqual(_temporaryPosition, _shotgun.TemporaryPosition);
         Assert.AreEqual(1, _inventory.TemporaryCount);
-        Assert.AreEqual(Inventory.STORAGE_CAPACITY, _inventory.StorageCount);
+        Assert.AreEqual(_inventory.StorageCapacity, _inventory.StorageCount);
     }
 
     [Test]
@@ -1055,7 +1055,7 @@ public class InventoryTests
 
     private void FillStorage()
     {
-        for (int i = 0; i < Inventory.STORAGE_CAPACITY; i++)
+        for (int i = 0; i < _inventory.StorageCapacity; i++)
         {
             Assert.IsTrue(_inventory.TryStore(new Inventory.ItemInstance(_probeData)));
         }
@@ -1192,6 +1192,7 @@ public class InventoryTests
     [Test]
     public void CountExpansionCandidates_InitialGrid_Is16()
     {
+        // 캐릭터 없음: 조끼 전용 칸 예약이 없어 외곽 16칸 모두 후보
         Assert.AreEqual(16, _inventory.CountExpansionCandidates());
     }
 
@@ -1203,7 +1204,7 @@ public class InventoryTests
         Assert.IsTrue(_inventory.TryUnlockCell(cell));
         Assert.IsTrue(_inventory.IsCellAvailable(cell));
         Assert.IsTrue(_inventory.IsExpansionCandidate(new Vector2Int(1, 1))); // 새 외곽 칸
-        Assert.AreEqual(17, _inventory.CountExpansionCandidates()); // -1(해제) +2((1,1),(2,0))
+        Assert.AreEqual(17, _inventory.CountExpansionCandidates()); // 16 -1(해제) +2((1,1),(2,0))
         Assert.IsTrue(_inventory.CanPlace(_probe, cell, 0));
     }
 

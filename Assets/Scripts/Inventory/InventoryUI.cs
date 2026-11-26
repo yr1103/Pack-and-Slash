@@ -18,7 +18,7 @@ public class InventoryUI : MonoBehaviour, IPointerClickHandler
 
     [SerializeField] private RectTransform _temporaryArea; // LevelUpPanel 하단 자유 배치 영역
     [SerializeField] private RectTransform _storagePanel;
-    [SerializeField] private RectTransform[] _storageSlots; // 인덱스 = Inventory 보관함 슬롯 인덱스
+    [SerializeField] private RectTransform[] _storageSlots; // 인덱스 = Inventory 보관함 슬롯 인덱스 (기본 5 + 확장 2)
     [SerializeField] private RectTransform _sellArea; // 드롭 시 판매 확인 팝업 표시
     [SerializeField] private InputActionReference _rotateAction; // 아이템 UI 전체가 공유하는 회전 액션
 
@@ -60,13 +60,27 @@ public class InventoryUI : MonoBehaviour, IPointerClickHandler
             _rotateAction.action.Enable();
 
         _inventory.Changed += RefreshCellColors;
+        _inventory.Changed += RefreshStorageSlots;
         RefreshCellColors();
+        RefreshStorageSlots();
     }
 
     private void OnDisable()
     {
         _rotateAction.action.Disable();
         _inventory.Changed -= RefreshCellColors;
+        _inventory.Changed -= RefreshStorageSlots;
+    }
+
+    // 현재 보관함 한도 이상 인덱스 슬롯은 숨김 (고유 아이템 탈착으로 한도가 바뀜)
+    private void RefreshStorageSlots()
+    {
+        int capacity = _inventory.StorageCapacity;
+
+        for (int i = 0; i < _storageSlots.Length; i++)
+        {
+            _storageSlots[i].gameObject.SetActive(i < capacity);
+        }
     }
 
     // 확장 모드의 후보 칸 클릭만 통지 (Slot 셀이 레이캐스트를 받아 부모인 이 컴포넌트로 클릭이 버블링됨)

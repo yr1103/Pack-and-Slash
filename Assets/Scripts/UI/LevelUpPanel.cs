@@ -9,7 +9,7 @@ using UnityEngine.UI;
 /// </summary>
 public class LevelUpPanel : MonoBehaviour
 {
-    private const string STORAGE_COUNT_FORMAT = "보관함 {0}/{1}"; // {0} 보관 수, {1} 보관함 용량
+    private const string STORAGE_COUNT_FORMAT = "보관함 {0}/{1}"; // {0} 보관 수, {1} 현재 보관함 한도
     private const string CURRENCY_FORMAT = "보유 {0}"; // {0} 특수 재화 잔액
     private const string SELECTION_COUNT_FORMAT = "선택 {0}/{1}"; // {0} 선택 수, {1} 필요 선택 수
     private const string SELECTION_GUIDE_FORMAT = "보상을 선택하세요! {0}개 중 {1}개를 클릭해 선택하세요."; // {0} 후보 카드 수, {1} 필요 선택 수
@@ -81,7 +81,7 @@ public class LevelUpPanel : MonoBehaviour
         _confirmButton.onClick.AddListener(HandleConfirmClicked);
         _rerollButton.onClick.AddListener(HandleRerollClicked);
         _inventory.TemporaryCountChanged += RefreshCompleteButton;
-        _inventory.StorageCountChanged += RefreshStorageCount;
+        _inventory.Changed += RefreshStorageCount; // 보관 수와 함께 고유 아이템 탈착에 따른 한도 변경도 반영
         _currency.Changed += RefreshCurrency;
         _inventoryUI.ExpansionCellClicked += HandleExpansionCellClicked;
 
@@ -98,7 +98,7 @@ public class LevelUpPanel : MonoBehaviour
         _confirmButton.onClick.RemoveListener(HandleConfirmClicked);
         _rerollButton.onClick.RemoveListener(HandleRerollClicked);
         _inventory.TemporaryCountChanged -= RefreshCompleteButton;
-        _inventory.StorageCountChanged -= RefreshStorageCount;
+        _inventory.Changed -= RefreshStorageCount;
         _currency.Changed -= RefreshCurrency;
         _inventoryUI.ExpansionCellClicked -= HandleExpansionCellClicked;
 
@@ -372,7 +372,7 @@ public class LevelUpPanel : MonoBehaviour
 
     private void RefreshStorageCount()
     {
-        _storageCountText.text = string.Format(STORAGE_COUNT_FORMAT, _inventory.StorageCount, Inventory.STORAGE_CAPACITY);
+        _storageCountText.text = string.Format(STORAGE_COUNT_FORMAT, _inventory.StorageCount, _inventory.StorageCapacity);
     }
 
     private void RefreshCurrency(int balance)
