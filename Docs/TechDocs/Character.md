@@ -7,7 +7,7 @@
 ## 목적 / 기능 범위
 
 - `TitleScene`에서 시작 버튼을 누르면 캐릭터 선택 패널을 연다.
-- 캐릭터 3종 중 하나를 고르면 초상·이름·시작 무기 이름·설명을 표시하고, 선택한 뒤에만 게임 시작 버튼이 눌린다.
+- 캐릭터 3종 중 하나를 고르면 초상·이름·시작 무기·고유 아이템·특성·설명을 표시하고, 선택한 뒤에만 게임 시작 버튼이 눌린다.
 - 게임 시작 시 선택 캐릭터를 static 값으로 저장하고 `GameScene`을 로드한다. `GameScene`의 `WeaponLoadout`이 그 캐릭터의 시작 무기를 장착하고, `WeaponViewController`가 그 캐릭터의 생김새(Body·Head)를 켠다.
 - 타이틀을 거치지 않고 `GameScene`을 단독 실행하면 `WeaponLoadout._defaultCharacter`(카우보이)를 쓴다.
 
@@ -15,13 +15,14 @@
 |---|---|
 | 포함 | Issue #10 : 캐릭터 SO, 선택 결과 전달(static), 타이틀·캐릭터 선택 UI, 캐릭터 기준 시작 무기·생김새, Build Settings |
 | 포함 | Issue #13 : 타이틀 메뉴(`TitleMenu`, 설정·게임 종료 버튼, 종료 확인창), 1920×1080 고정 해상도 |
-| 제외 (후속) | 캐릭터 필수(고정) 아이템, 고유 특성 (추후 이슈), 한글 TMP 폰트, 패널 닫기·타이틀 복귀 |
+| 포함 | Issue #40 : `CharacterDefinition` 효과 필드를 캐릭터 특성(항상 적용)·고유 아이템 장착 효과·해제 효과 세 묶음으로 재구성, 선택 화면 특성 표시(`_traitDescription`, `CharacterSelectUI._traitText`, `DetailPanel/TraitText`). 효과 적용은 `Docs/TechDocs/GameFlow.md`·`Docs/TechDocs/Weapon.md` |
+| 제외 (후속) | 한글 TMP 폰트, 패널 닫기·타이틀 복귀 |
 
 ## 주요 클래스와 역할
 
 | 클래스 | 책임 | 의존성 |
 |---|---|---|
-| `CharacterDefinition` (ScriptableObject) | 캐릭터별 선택 화면 표시 정보와 시작 무기. 필드 `_displayName`, `_description`(TextArea), `_portrait`(Sprite), `_startWeaponName`(선택 화면 표시용 문자열), `_startWeapon`(시작 시 장착하는 고유 무기). 읽기 전용 프로퍼티 `DisplayName`, `Description`, `Portrait`, `StartWeaponName`, `StartWeapon`만 노출. 생성 메뉴 `Data/Character Definition` | `WeaponDefinition` |
+| `CharacterDefinition` (ScriptableObject) | 캐릭터별 선택 화면 표시 정보, 시작 무기 데이터, 캐릭터 특성·고유 아이템 장착·해제 효과 수치. 필드 구성은 아래 `캐릭터 데이터`의 `필드 구성`. 모든 필드는 같은 이름의 읽기 전용 프로퍼티(`_` 제거, 첫 글자 대문자. 예 : `_traitDamageBonus` → `TraitDamageBonus`)로만 노출. 생성 메뉴 `Data/Character Definition` | `WeaponDefinition`, `InventoryData`, `WeaponType` |
 | `CharacterSelection` (static) | 타이틀에서 고른 캐릭터를 `GameScene`으로 전달. static 프로퍼티 `Selected` (미선택이면 `null`) | `CharacterDefinition` |
 | `CharacterSelectUI` (MonoBehaviour) | 캐릭터 선택 패널. 슬롯 클릭 시 선택 표시·상세 텍스트 갱신, 선택 후에만 시작 버튼 활성, 시작 시 `CharacterSelection.Selected` 저장 후 `"GameScene"` 로드 | `CharacterDefinition`, `CharacterSelection`, `UnityEngine.UI`(`Button`, `Image`, `Text`), `SceneManager` |
 | `CharacterSelectUI.CharacterSlot` (private, Serializable) | 슬롯 하나의 `_character`, `_button`, `_portrait`(Image), `_selectionMark`(GameObject) | `CharacterDefinition` |
@@ -54,14 +55,15 @@
 | `Awake` | 슬롯 수만큼 클릭 핸들러(`() => Select(slotIndex)`)를 만들어 배열에 보관한다. 람다 리스너를 `OnDisable`에서 같은 참조로 해제하기 위해서다 |
 | `OnEnable` | 슬롯 버튼마다 보관한 핸들러를, 시작 버튼에 `StartGame`을 `onClick.AddListener`로 구독한다 |
 | `OnDisable` | 같은 핸들러·`StartGame`을 `RemoveListener`로 해제한다 |
-| `Start` | 슬롯마다 `Portrait.sprite = Character.Portrait`, 선택 표시(`SelectionMark`) 끔. 이름·시작 무기·고유 아이템·설명 텍스트를 빈 문자열로, 시작 버튼 `interactable = false` |
+| `Start` | 슬롯마다 `Portrait.sprite = Character.Portrait`, 선택 표시(`SelectionMark`) 끔. 이름·시작 무기·고유 아이템·특성·설명 텍스트를 빈 문자열로, 시작 버튼 `interactable = false` |
 | `Select(slotIndex)` | 해당 슬롯의 선택 표시만 켜고 나머지는 끔. `_selected`에 슬롯 캐릭터 저장, 텍스트 표시(아래), 시작 버튼 `interactable = true` |
 | `StartGame` | `CharacterSelection.Selected = _selected` 후 `"GameScene"` 로드 (`GAME_SCENE_NAME` 상수) |
 
 - `Select`의 텍스트 (Issue #39)
     - `_nameText` : `DisplayName`.
     - `_weaponText` : 시작 무기 아이템(`StartWeaponItem`)을 `"{이름} ({N}칸)"`으로. N은 `ItemShape.Length`(실제 점유 칸 수). 도형이 없으면 이름만, 아이템이 없으면 빈 문자열.
-    - `_uniqueItemText` : 고유 아이템(`UniqueItem`)이 있으면 `"고유 아이템: {이름} ({N}칸)"`과 `EquippedEffect`를 줄바꿈으로 연결(빈 줄 생략). 해제 효과는 선택 화면에 표시하지 않고 아이템 툴팁에서만 안내한다 (코드 주석).
+    - `_uniqueItemText` : 고유 아이템(`UniqueItem`)이 있으면 `"고유 아이템: {이름} ({N}칸)"`과 `EquippedEffect`를 줄바꿈으로 연결(빈 줄 생략). 특성은 `_traitText`에 따로 표시하고, 해제 효과는 선택 화면에 표시하지 않고 아이템 툴팁에서만 안내한다 (코드 주석).
+    - `_traitText` (Issue #40) : `"특성: {TraitDescription}"` (`TRAIT_FORMAT`). `TraitDescription`이 비어 있어도 `"특성: "`이 표시된다 (빈 값 분기 없음).
     - `_descriptionText` : `Description`.
 - `CharacterSelectPanel`은 Scene에 비활성으로 저장되어 있다. 첫 활성화 때 `Awake` → `OnEnable` → `Start` 순으로 실행된다 (같은 컴포넌트 안의 Unity 생명주기 순서).
 - 시작 버튼은 Scene에 `m_Interactable: 1`로 저장되어 있지만 `Start`에서 `false`로 바뀐다. 슬롯을 고르기 전에는 `StartGame`이 호출되지 않으므로 `_selected`가 `null`인 채 저장되는 경로는 없다.
@@ -98,6 +100,42 @@
 - 표시 문자열은 에셋의 유니코드 이스케이프를 풀어 옮긴 값이다.
 - `_startWeapon`·`_portrait`는 에셋의 GUID를 각 `.meta`와 대조해 확인했다.
 - 생김새(Body·Head) 대응은 `PFB_Player`의 `WeaponViewController._appearances`가 정한다 (`SO_Cowboy` = `Body10`·`Head10`, `SO_Survivor` = `Body06`·`Head06`, `SO_HeavyGunner` = `Body08`·`Head08`, `Docs/TechDocs/Weapon.md` 참고).
+
+#### 필드 구성 (`CharacterDefinition`, Issue #40)
+
+| 묶음 | 필드 (타입) | 내용 |
+|---|---|---|
+| 표시·시작 | `_displayName`, `_description`(TextArea), `_traitDescription`(TextArea), `_portrait`(Sprite), `_startWeaponName`(string) | 선택 화면 표시용. `_traitDescription`은 특성 문구 |
+| 표시·시작 | `_startWeapon`(`WeaponDefinition`) | 고유 무기 (주무기 재선정 우선순위 기준) |
+| 표시·시작 | `_startWeaponItem` / `_uniqueItem`(`InventoryData`) | 시작 시 Inventory에 지급하는 무기 아이템(`_startWeapon`과 같은 무기) / 고유 아이템 |
+| 대상 | `_uniqueWeaponType`(`WeaponType`) | 특성·고유 아이템 무기 효과의 공통 대상 무기 종류 |
+| 특성 (항상 적용) | `_traitDamageBonus`(float), `_traitAccuracyBonus`(float), `_traitProjectileBonus`(int, `Min(0)`), `_traitMoveSpeedBonus`(float) | 공격력 / 정확도(탄퍼짐 감소율) / 발사당 총알 추가 수 / 이동속도(전역, 음수 = 감소). 고유 아이템 탈착과 무관 |
+| 장착 효과 (장착 중만) | `_equippedAccuracyBonus`(float), `_equippedUnlocksVestCells`(bool), `_equippedStorageBonus`(int, `Min(0)`) | 정확도 / 조끼 전용 칸 해제 / 보관함 한도 추가 수 |
+| 해제 효과 (해제 중만) | `_unequippedAttackSpeedBonus`(float), `_unequippedSpreadAngle`(float, `Min(0)`, 도), `_unequippedMoveSpeedBonus`(float), `_unequippedMaxHealthBonus`(float) | 공격속도 / 전체 확산각(랜덤 탄퍼짐, 0이면 미적용) / 이동속도 / 최대 체력(음수 = 감소) |
+
+- 비율은 0.1 = 10%이며, 무기 효과(공격력·정확도·총알·공격속도·확산각)는 `_uniqueWeaponType` 무기에만 적용한다 (필드 주석).
+- Issue #40에서 `_equippedDamageBonus`, `_baseMoveSpeedBonus`, `_baseAccuracyBonus`, `_unequippedAccuracyBonus` 필드는 삭제되었다. 장착 판정·효과 적용 규칙은 `Docs/TechDocs/GameFlow.md`의 `캐릭터 특성·고유 아이템 장착/해제 효과`, 무기 스탯 계산은 `Docs/TechDocs/Weapon.md`의 `최종 스탯`.
+
+#### 캐릭터별 수치 (`Assets/Data/Character/`)
+
+| 필드 | `SO_Cowboy` | `SO_Survivor` | `SO_HeavyGunner` |
+|---|---|---|---|
+| `_traitDescription` | 권총 공격력 +10% | 샷건 공격력 +5%, 샷건 발사 시 총알 +1 | 미니건 정확도 +10%, 이동속도 -10% |
+| `_uniqueWeaponType` | Pistol (0) | Shotgun (1) | Minigun (2) |
+| `_traitDamageBonus` | 0.1 | 0.05 | 0 |
+| `_traitAccuracyBonus` | 0 | 0 | 0.1 |
+| `_traitProjectileBonus` | 0 | 1 | 0 |
+| `_traitMoveSpeedBonus` | 0 | 0 | −0.1 |
+| `_equippedAccuracyBonus` | 0 | 0 | 0.1 |
+| `_equippedUnlocksVestCells` | false | true | false |
+| `_equippedStorageBonus` | 0 | 2 | 0 |
+| `_unequippedAttackSpeedBonus` | 0.6 | 0 | 0 |
+| `_unequippedSpreadAngle` | 70 | 0 | 0 |
+| `_unequippedMoveSpeedBonus` | 0 | 0.1 | −0.2 |
+| `_unequippedMaxHealthBonus` | 0 | −0.6 | 0 |
+
+- `_traitDescription`은 에셋의 유니코드 이스케이프를 풀어 옮긴 값이다. `_uniqueWeaponType`의 이름은 에셋 정수값을 `WeaponType` 선언 순서(`Pistol`, `Shotgun`, `Minigun`)에 대응한 것이다.
+- 수치는 `Docs/Spec/Inventory/ItemDescriptions.md`의 확정 수치와 같다. 플레이 테스트 후 조절할 수 있다.
 
 ### 초상 이미지 (`Assets/Sprites/Character/SPR_Cowboy|Survivor|HeavyGunner.png`)
 
@@ -163,7 +201,8 @@ UI
 │  │  │  ├─ NameText             (Text)
 │  │  │  ├─ WeaponLabel          (Text "시작 무기")
 │  │  │  ├─ WeaponText           (Text)
-│  │  │  ├─ UniqueItemText       (Text)
+│  │  │  ├─ UniqueItemText       (Text, 중앙 기준 (0, -185) · 460×210)
+│  │  │  ├─ TraitText            (Text, 중앙 기준 (0, -40) · 460×70, Issue #40 추가)
 │  │  │  └─ DescriptionText      (Text)
 │  │  └─ GameStartButton         (Button, OnClick 영구 리스너 없음)
 │  │     └─ Label                (Text "게임 시작")
@@ -178,6 +217,7 @@ UI
 └─ EventSystem                   (EventSystem, InputSystemUIInputModule)
 ```
 
+- `DetailPanel` 자식 중 마지막 세 개의 Transform 순서는 `DescriptionText` → `TraitText` → `UniqueItemText`다 (Scene 파일의 `m_Children`과 `CharacterSelectUI` 필드 fileID로 확인, 위 트리는 Transform 순서가 아니다). Issue #40에서 `UniqueItemText` 높이를 280에서 210으로 줄이고 `TraitText`를 추가했다 (변경 전 높이는 메인 세션 전달 기준). 실제 화면에서 텍스트가 겹치지 않는지는 확인하지 않았다 (미검증).
 - 모든 Text는 레거시 `UnityEngine.UI.Text`다. UI 폰트는 Issue #39에서 `Assets/Fonts/Bithumb Gothic Basic.ttf`로 바뀌었다 (메인 세션 변경 요약 기준, Text별 폰트 참조는 Scene 파일로 대조하지 않음, 미검증).
 - `StartButton`·`SettingsButton`·`QuitButton`은 화면 중앙 기준 왼쪽 절반(x -480)에 위에서 아래로 놓이며 크기는 모두 400×110이다. `TitleCanvas` 자식 순서는 `TitleText` → `StartButton` → `SettingsButton` → `QuitButton` → `CharacterSelectPanel` → `PFB_SettingsPanel` → `QuitDialog`다 (Transform 순서로 확인).
 - `TitleScene`의 `PFB_SettingsPanel` 인스턴스에는 추가 오브젝트가 없다. 타이틀 복귀 버튼(`ReturnTitleButton`)은 `GameScene` 인스턴스에만 있다.
@@ -192,7 +232,8 @@ UI
 | `_slots[2]` | `_character` = `SO_HeavyGunner`, `_button` = `Slot_03`, `_portrait` = `Slot_03/Portrait`, `_selectionMark` = `Slot_03/SelectionMark` |
 | `_nameText` | `DetailPanel/NameText` |
 | `_weaponText` | `DetailPanel/WeaponText` |
-| `_uniqueItemText` | `DetailPanel/UniqueItemText` (미검증 : Scene의 fileID 연결은 대조하지 않음) |
+| `_uniqueItemText` | `DetailPanel/UniqueItemText` (Scene fileID `987342143`) |
+| `_traitText` | `DetailPanel/TraitText` (Scene fileID `2077288001`, Issue #40) |
 | `_descriptionText` | `DetailPanel/DescriptionText` |
 | `_startButton` | `GameStartButton` |
 
@@ -253,8 +294,8 @@ UI
 | b | `CharacterSelection.Selected`는 static이라 값이 비워지는 시점이 에디터의 Domain Reload 설정에 달려 있다. 현재 `EditorSettings`는 `m_EnterPlayModeOptionsEnabled: 1`, `m_EnterPlayModeOptions: 0`(비활성화 옵션 없음)이라 Play 모드 진입 시 Domain Reload를 수행한다. 이 설정으로 보아 타이틀을 거친 뒤 `GameScene`을 단독 실행해도 이전 선택이 남지 않을 것으로 추정한다 (설정 기반 추론, Play로 확인하지 않음, 미검증). Domain Reload를 끄면 이전 Play의 선택이 남아 `_defaultCharacter` 대신 쓰인다 | Enter Play Mode 설정 변경 시 |
 | c | 생존자 초상(`SPR_Survivor`)은 Pistol Animator 자세로 캡처되었다 (메인 세션 보고 기준). 생존자의 시작 무기는 샷건이다 | 정식 초상 교체 시 |
 | d | `Start`는 첫 활성화 때만 실행된다. 패널을 껐다 다시 켜면 초기화하지 않아 이전 선택·텍스트·시작 버튼 상태가 유지된다. 현재 패널을 닫는 경로는 없다 | 닫기·뒤로 가기 추가 시 |
-| e | 캐릭터 필수(고정) 아이템과 고유 특성은 범위 밖이다. `CharacterDefinition`에 해당 필드가 없다 | 추후 이슈 |
-| f | 현재 캐릭터(`Character`)를 `WeaponLoadout`이 소유한다. 필수 아이템·특성이 추가되면 캐릭터 정보를 읽는 곳이 무기 밖으로 늘어나므로 별도 컴포넌트로 분리할 후보다 | 필수 아이템·특성 추가 시 |
+| e | (해결) 캐릭터 고유 아이템·특성 필드가 없던 문제. `CharacterDefinition`에 시작 아이템(`_startWeaponItem`·`_uniqueItem`)과 특성·장착 효과·해제 효과 필드가 있고 Issue #40에서 세 묶음으로 정리됐다 (위 `필드 구성`) | 해결 (#40) |
+| f | (유지) 현재 캐릭터(`Character`)의 출처는 여전히 `WeaponLoadout`(`Selected` 또는 `_defaultCharacter`)이다. Issue #40으로 후속 시점(필수 아이템·특성 추가)이 도래해 캐릭터 정보를 읽는 곳이 무기 밖으로 늘어났다 : `InventoryWeaponSync.Start`가 `_loadout.Character`를 읽어 `Inventory.Character`에 설정하고, `Inventory`(특성·고유 아이템 효과 계산)와 `PlayerStatSync`(이동속도·최대 체력)가 `Inventory.Character`를 읽는다. 별도 컴포넌트로의 분리는 하지 않았으므로 분리 후보로 남는다 | 캐릭터 정보를 읽는 곳이 더 늘어나거나 캐릭터 재설정 경로 추가 시 |
 | g | `WeaponLoadout._defaultCharacter`가 비어 있고 `Selected`도 `null`이면 `Character`가 `null`이라 `WeaponLoadout.Awake`의 `SignatureWeapon` 접근에서 `NullReferenceException`이 난다 (`Docs/TechDocs/Weapon.md` 주의사항 z11) | `PFB_Player` 연결 필수 |
 
 ### 검증 방법
@@ -262,8 +303,10 @@ UI
 - EditMode 테스트 : 캐릭터 선택 전용 테스트는 없다. `WeaponLoadoutTests`·`WeaponInstanceTests`가 `_defaultCharacter`에 임시 `CharacterDefinition`을 주입해 기존 주무기 테스트를 유지한다 (`Docs/TechDocs/Weapon.md`의 `검증 방법`). 결과는 EditMode 104/104 통과 (메인 세션 확인 기준).
 - 컴파일 오류 0건 (메인 세션 확인 기준).
 - Play 모드 : 사용자가 Play 모드로 확인한 뒤 검수를 승인했다 (임시 구현 상태로 확정). 확인한 세부 항목은 이 문서 작성 입력에 포함되지 않았다. 주의사항 d(패널 재활성화), g(연결 누락)는 재현하지 않았다 (미검증).
+- Issue #40 : 선택 화면 특성 표시를 검증하는 EditMode 테스트는 없다. EditMode 전체 356개 중 355개 통과, 실패 1개는 무관한 `ResultPanelTests` (메인 세션이 Unity에서 직접 실행한 결과 기준). 선택 화면의 `TraitText` 표시는 Play로 확인한 결과가 이 문서 작성 입력에 없다 (미검증).
 
 ## 관련 Issue/PR
 
 - Issue #10 (TitleScene·캐릭터 선택 구현)
 - Issue #13 (타이틀 메뉴·설정·일시정지. 설정·일시정지는 `Docs/TechDocs/GameFlow.md`)
+- Issue #40 (캐릭터 특성·고유 아이템 효과 구조 정리, 브랜치 `feat/character-trait-essential-effect`). PR : 미정

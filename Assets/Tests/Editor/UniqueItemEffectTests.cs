@@ -6,8 +6,8 @@ using UnityEngine;
 using Object = UnityEngine.Object;
 
 /// <summary>
-/// 캐릭터 고유 아이템 장착·해제 무기 스탯(대상 무기만·현재 캐릭터만·반복 토글 누적 없음), 패시브 Lv.3 효과 합산,
-/// PlayerStatSync 이동속도 상한·최대 체력 정책·경험치 소수 누적·수집 반경 배율 검증
+/// 캐릭터 특성·고유 아이템 장착·해제 무기 스탯(대상 무기만·현재 캐릭터만·반복 토글 누적 없음), 조끼 전용 칸·보관함 한도·해제 거부,
+/// 패시브 Lv.3 효과 합산, PlayerStatSync 이동속도 상한·최대 체력 정책·경험치 소수 누적·수집 반경 배율 검증
 /// </summary>
 public class UniqueItemEffectTests
 {
@@ -25,6 +25,13 @@ public class UniqueItemEffectTests
     private static readonly Vector2Int _weaponCell = new Vector2Int(4, 2);
     private static readonly Vector2Int _uniqueCell = new Vector2Int(6, 4);
     private static readonly Vector2Int _adjacentCell = new Vector2Int(4, 1);
+    private static readonly Vector2Int _otherAdjacentCell = new Vector2Int(5, 2);
+
+    // 조끼 장착 중에만 열리는 전용 칸 (Inventory._vestCells와 같은 좌표)
+    private static readonly Vector2Int[] _vestCells =
+    {
+        new Vector2Int(4, 5), new Vector2Int(5, 5),
+    };
 
     // 무기·고유 아이템 칸과 겹치지 않는 패시브 배치 칸
     private static readonly Vector2Int[] _passiveCells =
@@ -37,6 +44,7 @@ public class UniqueItemEffectTests
     private Inventory _inventory;
     private InventoryData _pistolData;
     private InventoryData _minigunData;
+    private InventoryData _shotgunData;
     private InventoryData _hatData;
     private InventoryData _shakeData;
     private InventoryData _vestData;
@@ -49,17 +57,19 @@ public class UniqueItemEffectTests
     {
         _pistolData = CreateWeaponData(1, WeaponType.Pistol);
         _minigunData = CreateWeaponData(2, WeaponType.Minigun);
+        _shotgunData = CreateWeaponData(3, WeaponType.Shotgun);
         _hatData = CreateItemData(10, ItemType.Essential);
         _shakeData = CreateItemData(11, ItemType.Essential);
         _vestData = CreateItemData(12, ItemType.Essential);
 
         _cowboy = CreateCharacter(WeaponType.Pistol, _hatData,
-            ("_equippedDamageBonus", 0.1f), ("_unequippedAttackSpeedBonus", 0.6f), ("_unequippedSpreadAngle", 70f));
+            ("_traitDamageBonus", 0.1f), ("_unequippedAttackSpeedBonus", 0.6f), ("_unequippedSpreadAngle", 70f));
         _heavyGunner = CreateCharacter(WeaponType.Minigun, _shakeData,
-            ("_unequippedMoveSpeedBonus", -0.2f), ("_unequippedAccuracyBonus", 0.1f),
-            ("_baseMoveSpeedBonus", -0.1f), ("_baseAccuracyBonus", 0.2f));
+            ("_traitAccuracyBonus", 0.1f), ("_traitMoveSpeedBonus", -0.1f), ("_equippedAccuracyBonus", 0.1f),
+            ("_unequippedMoveSpeedBonus", -0.2f));
         _survivor = CreateCharacter(WeaponType.Shotgun, _vestData,
-            ("_unequippedMoveSpeedBonus", 0.3f), ("_unequippedMaxHealthBonus", -0.3f));
+            ("_traitDamageBonus", 0.05f), ("_traitProjectileBonus", 1f), ("_equippedUnlocksVestCells", 1f),
+            ("_equippedStorageBonus", 2f), ("_unequippedMoveSpeedBonus", 0.1f), ("_unequippedMaxHealthBonus", -0.6f));
 
         // EditMode에서는 AddComponent 시 Awake가 호출되지 않아 리플렉션으로 초기화
         _inventory = Track(new GameObject()).AddComponent<Inventory>();
@@ -80,7 +90,7 @@ public class UniqueItemEffectTests
     // --- 고유 효과 무기 스탯 ------------------------------------
 
     [Test]
-    public void Cowboy_HatEquipped_PistolDamageBonusOnly()
+    public void Cowboy_HatEquipped_TraitDamageOnly()
     {
         _inventory.Character = _cowboy;
         Place(_hatData, _uniqueCell, 1);
@@ -90,14 +100,15 @@ public class UniqueItemEffectTests
     }
 
     [Test]
-    public void Cowboy_HatUnequipped_AttackSpeedAndRandomSpread()
+    public void Cowboy_HatUnequipped_TraitDamageAttackSpeedAndRandomSpread()
     {
         _inventory.Character = _cowboy;
         Inventory.ItemInstance hat = Place(_hatData, _uniqueCell, 1);
+        Assert.IsTrue(_inventory.CanReleaseUniqueEffect(hat));
         _inventory.TryStore(hat);
 
-        // 간격 1 ÷ 1.6, 확산각 70° 랜덤
-        AssertStats(_inventory.GetWeaponStats(Place(_pistolData, _weaponCell, 1)), BASE_DAMAGE, 0.625f, 70f, true);
+        // 특성 공격력 유지, 간격 1 ÷ 1.6, 확산각 70° 랜덤
+        AssertStats(_inventory.GetWeaponStats(Place(_pistolData, _weaponCell, 1)), 11f, 0.625f, 70f, true);
     }
 
     [Test]
@@ -110,7 +121,7 @@ public class UniqueItemEffectTests
         for (int i = 0; i < 3; i++)
         {
             _inventory.TryStore(hat);
-            AssertStats(_inventory.GetWeaponStats(pistol), BASE_DAMAGE, 0.625f, 70f, true);
+            AssertStats(_inventory.GetWeaponStats(pistol), 11f, 0.625f, 70f, true);
 
             _inventory.TryPlace(hat, _uniqueCell, 0);
             AssertStats(_inventory.GetWeaponStats(pistol), 11f, BASE_FIRE_INTERVAL, BASE_SPREAD_ANGLE, false);
@@ -152,12 +163,12 @@ public class UniqueItemEffectTests
         Inventory.ItemInstance shake = Place(_shakeData, _uniqueCell, 1);
         Inventory.ItemInstance minigun = Place(_minigunData, _weaponCell, 1);
 
-        // 기본 0.2 → 20 × 0.8
+        // 특성 0.1 + 장착 0.1 → 20 × 0.8
         Assert.AreEqual(16f, _inventory.GetWeaponStats(minigun).SpreadAngle, FLOAT_TOLERANCE);
 
-        // 기본 0.2 + 해제 0.1 → 20 × 0.7
+        // 특성 0.1만 → 20 × 0.9
         _inventory.TryStore(shake);
-        Assert.AreEqual(14f, _inventory.GetWeaponStats(minigun).SpreadAngle, FLOAT_TOLERANCE);
+        Assert.AreEqual(18f, _inventory.GetWeaponStats(minigun).SpreadAngle, FLOAT_TOLERANCE);
     }
 
     [Test]
@@ -165,10 +176,159 @@ public class UniqueItemEffectTests
     {
         _inventory.Character = _heavyGunner;
         Inventory.ItemInstance minigun = Place(_minigunData, _weaponCell, 1);
-        Place(CreatePassiveData(AdjacencyEffectType.Spread, Level3EffectType.None, 0f), _adjacentCell, MAX_LEVEL);
+        InventoryData coolerData = CreatePassiveData(AdjacencyEffectType.Spread, Level3EffectType.None, 0f);
+        Place(coolerData, _adjacentCell, MAX_LEVEL);
+        Place(coolerData, _otherAdjacentCell, MAX_LEVEL);
 
-        // 인접 0.5 + 정확도 0.3 = 0.8 → 상한 0.7, 20 × 0.3
+        // 인접 0.5 × 2 + 특성 0.1 = 1.1 → 상한 0.7, 20 × 0.3
         Assert.AreEqual(6f, _inventory.GetWeaponStats(minigun).SpreadAngle, FLOAT_TOLERANCE);
+    }
+
+    // --- 겁쟁이 특성·조끼 ------------------------------------
+
+    [Test]
+    public void Survivor_Trait_ShotgunDamageAndExtraProjectile()
+    {
+        _inventory.Character = _survivor;
+        Inventory.WeaponStats stats = _inventory.GetWeaponStats(Place(_shotgunData, _weaponCell, 1));
+
+        // 조끼 해제 중에도 특성 적용, 10 × 1.05
+        Assert.AreEqual(10.5f, stats.Damage, FLOAT_TOLERANCE);
+        Assert.AreEqual(_shotgunData.WeaponDefinition.ProjectilesPerShot + 1, stats.ProjectilesPerShot);
+    }
+
+    [Test]
+    public void Survivor_VestEquipped_VestCellsOpenStorage7_UnequippedLockedStorage5()
+    {
+        _inventory.Character = _survivor;
+        Inventory.ItemInstance vest = Place(_vestData, _uniqueCell, 1);
+
+        AssertVestCellsAvailable(true);
+        Assert.AreEqual(7, _inventory.StorageCapacity);
+        Assert.IsTrue(_inventory.IsVestCell(new Vector2Int(4, 5)));
+        Assert.IsTrue(_inventory.IsVestCell(new Vector2Int(5, 5)));
+        Assert.IsFalse(_inventory.IsVestCell(_uniqueCell));
+
+        Assert.IsTrue(_inventory.TryStore(vest));
+        AssertVestCellsAvailable(false);
+        Assert.AreEqual(5, _inventory.StorageCapacity);
+    }
+
+    [Test]
+    public void Survivor_VestCellOccupied_ReleaseRejectedNoChange()
+    {
+        _inventory.Character = _survivor;
+        Inventory.ItemInstance vest = Place(_vestData, _uniqueCell, 1);
+        Inventory.ItemInstance pistol = Place(_pistolData, _vestCells[0], 1);
+
+        Assert.IsFalse(_inventory.CanReleaseUniqueEffect(vest));
+        Assert.IsFalse(_inventory.TryStore(vest));
+        Assert.IsFalse(_inventory.RemoveItem(vest));
+        Assert.IsFalse(_inventory.MoveToTemporary(vest, Vector2.zero, 0));
+        Assert.IsFalse(_inventory.TrySell(vest));
+        AssertVestReleaseUnchanged(vest, 0);
+
+        Assert.IsTrue(_inventory.RemoveItem(pistol));
+        Assert.IsTrue(_inventory.CanReleaseUniqueEffect(vest));
+    }
+
+    [Test]
+    public void Survivor_ExtraStorageSlotOccupied_ReleaseRejectedNoChange()
+    {
+        _inventory.Character = _survivor;
+        Inventory.ItemInstance vest = Place(_vestData, _uniqueCell, 1);
+
+        // 6번째 슬롯까지 채움 (기본 한도 5 초과)
+        Inventory.ItemInstance storedPistol = null;
+
+        for (int i = 0; i < 6; i++)
+        {
+            storedPistol = new Inventory.ItemInstance(_pistolData);
+            Assert.IsTrue(_inventory.TryStore(storedPistol));
+        }
+
+        Assert.IsFalse(_inventory.CanReleaseUniqueEffect(vest));
+        Assert.IsFalse(_inventory.TryStore(vest));
+        Assert.IsFalse(_inventory.RemoveItem(vest));
+        Assert.IsFalse(_inventory.TrySell(vest));
+        AssertVestReleaseUnchanged(vest, 6);
+
+        // 6번째 슬롯을 비우면 해제 가능
+        Assert.IsTrue(_inventory.MoveToTemporary(storedPistol, Vector2.zero, 0));
+        Assert.IsTrue(_inventory.CanReleaseUniqueEffect(vest));
+    }
+
+    // 합성 재료로 장착 조끼가 빠져도 다른 해제 경로와 같은 거부 기준
+    [Test]
+    public void Survivor_MergeVestSourceWithVestCellOccupied_Rejected()
+    {
+        _inventory.Character = _survivor;
+        Inventory.ItemInstance vest = Place(_vestData, _uniqueCell, 1);
+        Place(_pistolData, _vestCells[0], 1);
+        Inventory.ItemInstance storedVest = new Inventory.ItemInstance(_vestData);
+        Assert.IsTrue(_inventory.TryStore(storedVest));
+
+        Assert.IsFalse(_inventory.TryMerge(vest, storedVest));
+        Assert.AreEqual(1, storedVest.Level);
+        AssertVestReleaseUnchanged(vest, 1);
+    }
+
+    [Test]
+    public void VestCells_NotExpansionCandidateUntilVestSold()
+    {
+        _inventory.Character = _survivor;
+
+        foreach (Vector2Int cell in _vestCells)
+        {
+            Assert.IsFalse(_inventory.IsExpansionCandidate(cell));
+            Assert.IsFalse(_inventory.TryUnlockCell(cell));
+        }
+
+        // 보관만 하면 예약 유지
+        Inventory.ItemInstance vest = Place(_vestData, _uniqueCell, 1);
+        Assert.IsTrue(_inventory.TryStore(vest));
+
+        foreach (Vector2Int cell in _vestCells)
+        {
+            Assert.IsFalse(_inventory.IsExpansionCandidate(cell));
+        }
+
+        // 장착 상태에서 판매하면 전용 칸은 잠긴 채 확장 후보가 됨
+        Assert.IsTrue(_inventory.TryPlace(vest, _uniqueCell, 0));
+        Assert.IsTrue(_inventory.TrySell(vest));
+        AssertVestCellsAvailable(false);
+
+        foreach (Vector2Int cell in _vestCells)
+        {
+            Assert.IsFalse(_inventory.IsVestCell(cell));
+            Assert.IsTrue(_inventory.IsExpansionCandidate(cell));
+            Assert.IsTrue(_inventory.TryUnlockCell(cell));
+        }
+
+        // 예약 해제 후 다른 조작에도 확장으로 연 칸 유지
+        Place(_pistolData, _weaponCell, 1);
+        AssertVestCellsAvailable(true);
+    }
+
+    // 조끼 캐릭터가 아니면 전용 칸은 일반 칸 (확장 후보, 연 뒤 유지, 점유해도 고유 아이템 해제 가능)
+    [Test]
+    public void NonVestCharacter_VestCellsActAsNormalCells()
+    {
+        _inventory.Character = _cowboy;
+        Inventory.ItemInstance hat = Place(_hatData, _uniqueCell, 1);
+        AssertVestCellsAvailable(false);
+
+        foreach (Vector2Int cell in _vestCells)
+        {
+            Assert.IsFalse(_inventory.IsVestCell(cell));
+            Assert.IsTrue(_inventory.IsExpansionCandidate(cell));
+            Assert.IsTrue(_inventory.TryUnlockCell(cell));
+        }
+
+        Place(_pistolData, _vestCells[0], 1);
+        Assert.IsTrue(_inventory.TryStore(hat));
+        Assert.IsTrue(_inventory.TryPlace(hat, _uniqueCell, 0));
+        AssertVestCellsAvailable(true);
     }
 
     // --- 패시브 Lv.3 효과 ------------------------------------
@@ -208,9 +368,9 @@ public class UniqueItemEffectTests
     {
         PlayerParts player = CreatePlayer();
         _inventory.Character = _survivor;
-        InventoryData beltData = CreatePassiveData(AdjacencyEffectType.None, Level3EffectType.MoveSpeed, 0.1f);
+        InventoryData beltData = CreatePassiveData(AdjacencyEffectType.None, Level3EffectType.MoveSpeed, 0.15f);
 
-        // 벨트 0.1 × 3 + 조끼 해제 0.3 = 0.6 → 상한 0.5
+        // 벨트 0.15 × 3 + 조끼 해제 0.1 = 0.55 → 상한 0.5
         foreach (Vector2Int cell in _passiveCells)
         {
             Place(beltData, cell, 3);
@@ -237,19 +397,19 @@ public class UniqueItemEffectTests
     {
         PlayerParts player = CreatePlayer();
         _inventory.Character = _survivor;
-        Assert.AreEqual(BASE_MAX_HEALTH * 0.7f, player.Health.MaxHealth, FLOAT_TOLERANCE);
-        Assert.AreEqual(BASE_MAX_HEALTH * 0.7f, player.Health.CurrentHealth, FLOAT_TOLERANCE);
+        Assert.AreEqual(BASE_MAX_HEALTH * 0.4f, player.Health.MaxHealth, FLOAT_TOLERANCE);
+        Assert.AreEqual(BASE_MAX_HEALTH * 0.4f, player.Health.CurrentHealth, FLOAT_TOLERANCE);
 
         Inventory.ItemInstance vest = Place(_vestData, _uniqueCell, 1);
 
         for (int i = 0; i < 3; i++)
         {
             Assert.AreEqual(BASE_MAX_HEALTH, player.Health.MaxHealth, FLOAT_TOLERANCE);
-            Assert.AreEqual(BASE_MAX_HEALTH * 0.7f, player.Health.CurrentHealth, FLOAT_TOLERANCE);
+            Assert.AreEqual(BASE_MAX_HEALTH * 0.4f, player.Health.CurrentHealth, FLOAT_TOLERANCE);
 
             _inventory.TryStore(vest);
-            Assert.AreEqual(BASE_MAX_HEALTH * 0.7f, player.Health.MaxHealth, FLOAT_TOLERANCE);
-            Assert.AreEqual(BASE_MAX_HEALTH * 0.7f, player.Health.CurrentHealth, FLOAT_TOLERANCE);
+            Assert.AreEqual(BASE_MAX_HEALTH * 0.4f, player.Health.MaxHealth, FLOAT_TOLERANCE);
+            Assert.AreEqual(BASE_MAX_HEALTH * 0.4f, player.Health.CurrentHealth, FLOAT_TOLERANCE);
 
             _inventory.TryPlace(vest, _uniqueCell, 0);
         }
@@ -387,9 +547,25 @@ public class UniqueItemEffectTests
         serializedCharacter.FindProperty("_uniqueWeaponType").enumValueIndex = (int)weaponType;
         serializedCharacter.FindProperty("_uniqueItem").objectReferenceValue = uniqueItem;
 
+        // int·bool 필드도 같은 목록으로 받기 위해 속성 타입별로 변환 (bool은 0이 아니면 true)
         foreach ((string field, float value) in bonuses)
         {
-            serializedCharacter.FindProperty(field).floatValue = value;
+            SerializedProperty property = serializedCharacter.FindProperty(field);
+
+            switch (property.propertyType)
+            {
+                case SerializedPropertyType.Integer:
+                    property.intValue = (int)value;
+                    break;
+
+                case SerializedPropertyType.Boolean:
+                    property.boolValue = value != 0f;
+                    break;
+
+                default:
+                    property.floatValue = value;
+                    break;
+            }
         }
 
         serializedCharacter.ApplyModifiedPropertiesWithoutUndo();
@@ -401,6 +577,25 @@ public class UniqueItemEffectTests
         Inventory.ItemInstance item = new Inventory.ItemInstance(data) { Level = level };
         Assert.IsTrue(_inventory.PlaceItem(item, cell));
         return item;
+    }
+
+    private void AssertVestCellsAvailable(bool isAvailable)
+    {
+        foreach (Vector2Int cell in _vestCells)
+        {
+            Assert.AreEqual(isAvailable, _inventory.IsCellAvailable(cell));
+        }
+    }
+
+    // 해제 거부 후 조끼 장착·전용 칸·보관함 한도·보관 수가 그대로인지
+    private void AssertVestReleaseUnchanged(Inventory.ItemInstance vest, int storageCount)
+    {
+        Assert.AreEqual(ItemLocation.Inventory, vest.Location);
+        Assert.AreEqual(_uniqueCell, vest.Position);
+        Assert.IsTrue(_inventory.IsUniqueItemEquipped());
+        AssertVestCellsAvailable(true);
+        Assert.AreEqual(7, _inventory.StorageCapacity);
+        Assert.AreEqual(storageCount, _inventory.StorageCount);
     }
 
     private static void AssertStats(Inventory.WeaponStats stats, float damage, float fireInterval, float spreadAngle,

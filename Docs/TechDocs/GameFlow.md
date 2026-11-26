@@ -30,7 +30,9 @@
 | 포함 | 이슈 미등록 (브랜치 `art/fix-inven-ui`) : 아이템 합성(`Inventory.CanMerge`/`TryMerge`), 무기 레벨 성장·패시브 인접 효과(`GetAdjacencyBonus`/`GetEffectiveAdjacencyBonus`), 패시브 Lv.3 효과(`GetLevel3Bonus`), 캐릭터 고유 아이템 장착/해제 효과(`CharacterDefinition` 고유 효과 필드, `Inventory.Character`), 시작 아이템 지급(`InventoryWeaponSync`), 플레이어 스탯 반영(`PlayerStatSync`, `PlayerMovement`/`PlayerHealth`/`PlayerExperience` 배율), 툴팁 스탯 표시(레벨 보너스·인접·고유 효과·최종 공격력 범위·Lv.3 활성), 재장전 게이지(`WeaponReloadGauge`), 플레이어 피격 반경·젬 획득 반경 조정 |
 | 포함 | Issue #23 : 보물 상자 회차의 인벤토리 4칸 확장 선택(`LevelUpPanel.BeginExpansion`, `Inventory.IsCellAvailable`/`IsExpansionCandidate`/`CountExpansionCandidates`/`TryUnlockCell`, `InventoryUI` 칸 색 표시·`SetExpansionMode`·`ExpansionCellClicked`, 안내 문구 `ExpansionGuideText`), 보상 선택(`Selecting`) 중 아이템 hover 툴팁 표시(`InventoryItemUI.IsDragEnabled`로 드래그만 차단), 레벨업 인벤토리 UI에 `InventoryUI_casual` 스프라이트 적용 |
 | 포함 | Issue #25 : 소비 아이템 2종(구급 상자 `SO_Inventory_HealthPack` 회복 20, 확장권 `SO_Inventory_ExpansionTicket` 1칸 확장) 효과 적용(`InventoryData.ExpendableEffectType`/`ExpendableEffectValue`, `LevelUpPanel.ApplyExpendable`, `PlayerHealth.Heal`/`Healed`, `Health.Heal`), 확장 후보가 없을 때 확장권 후보 제외, 보상 카드 레벨 표기 생략(`MaxLevel` 1) |
-| 제외 (후속) | 인벤토리 전체 기술 문서(별도 작업), 판매 외 재화 획득, 다시하기, 전투 조끼 +2칸 확장·회수, 무기별 재장전 게이지 |
+| 포함 | Issue #40 : 캐릭터 특성(항상 적용)과 고유 아이템 장착/해제 효과의 두 층 구조(`CharacterDefinition` 필드 재구성, `Inventory.GetTraitDamageBonus`/`GetTraitProjectileBonus`/`GetCharacterAccuracyBonus`, `PlayerStatSync` 이동속도 공식), 고유 아이템 장착 시 보관함 한도 확장(`Inventory.StorageCapacity`, `InventoryUI.RefreshStorageSlots`, 보관함 슬롯 7개), 조끼 전용 칸 (4,5)·(5,5) 예약·열림·잠김·해제 거부, `LevelUpPanel` 보관함 표시 갱신 경로(`Changed`), 툴팁 특성 줄 |
+| 포함 | Issue #51 : 조끼 회수 거부 안내(`Inventory.CanReleaseUniqueEffect` public 전환, `Inventory.IsVestCell`, `InventoryUI.ShowNotice`·`NoticeText`, `InventoryItemUI.OnEndDrag` 거부 시 안내), 조끼로 확장된 칸 주황색 표시(`InventoryUI._vestCellColor`, `StorageSlot_06`·`07` Image 색) |
+| 제외 (후속) | 인벤토리 전체 기술 문서(별도 작업), 판매 외 재화 획득, 다시하기, 무기별 재장전 게이지 |
 
 ## 주요 클래스와 역할
 
@@ -39,16 +41,16 @@
 | `GameSession` (MonoBehaviour) | 상태 `SessionState`(`Playing`·`Cleared`·`GameOver`), `ElapsedTime`, `KillCount` 소유. 생존 시간이 `_clearTime` 이상이거나 `ClearsSessionOnDeath`인 Enemy(최종 보스)가 죽으면 클리어, 플레이어 사망 시 게임 오버. 종료 후 `_endFreezeDelay`초 뒤 `Time.timeScale = 0`과 `Ended(bool)` 발생. 일시정지 `Pause`·재개 `Resume`(진행 중일 때만). `Time.timeScale`을 바꾸는 유일한 클래스. 판정·표시 함수 `IsCleared`, `FormatTime`(static) | `PlayerHealth`(`Died`), `Enemy`(`Died`, static) |
 | `PlayerHealth` (MonoBehaviour) | `IDamageable` 구현. `Health`·`DamageGate` 소유. 매 프레임 `Physics.OverlapSphereNonAlloc`으로 Enemy 접촉 판정 후 피해 (`Time.timeScale` 0이면 생략). 이벤트 `Damaged`, `Healed`, `Died`. 사망 시 `_disableOnDeath` 컴포넌트를 끔. `MaxHealth`(배율 적용), `CurrentHealth`, `IsDead`, `IsAlive` 노출. 최대 체력 배율 `SetMaxHealthMultiplier`, 회복 `Heal` | `Health`, `DamageGate`, `Enemy`(`ContactDamage`, `IsAlive`), `Physics` |
 | `PlayerExperience` (MonoBehaviour) | 누적 경험치 `Experience`, `Level`, 현재 레벨 경험치 `CurrentLevelExperience`, 요구치 `RequiredExperience`, 젬 수집 반경 `CollectRadius`(배율 적용). `AddExperience`로 증가(배율 적용·소수 누적)·다중 레벨업·이월. 배율 설정 `SetExperienceMultiplier`, `SetCollectRadiusMultiplier`. 이벤트 `LevelChanged`, `ExperienceGained`. 요구치 함수 `GetRequiredExperience`(static, 임시 곡선) | 없음 |
-| `PlayerStatSync` (MonoBehaviour) | `Inventory.Changed`마다(`Start`에서 1회 포함) 캐릭터 고유 아이템 장착/해제·패시브 Lv.3 효과로 플레이어 이동속도·최대 체력·경험치·젬 수집 반경 배율을 기본값 기준으로 다시 계산해 적용 (`ApplyStats`) | `Inventory`(`Character`, `IsUniqueItemEquipped`, `GetLevel3Bonus`, `Changed`), `PlayerMovement`, `PlayerHealth`, `PlayerExperience`, `CharacterDefinition` |
+| `PlayerStatSync` (MonoBehaviour) | `Inventory.Changed`마다(`Start`에서 1회 포함) 캐릭터 특성·고유 아이템 장착/해제·패시브 Lv.3 효과로 플레이어 이동속도·최대 체력·경험치·젬 수집 반경 배율을 기본값 기준으로 다시 계산해 적용 (`ApplyStats`) | `Inventory`(`Character`, `IsUniqueItemEquipped`, `GetLevel3Bonus`, `Changed`), `PlayerMovement`, `PlayerHealth`, `PlayerExperience`, `CharacterDefinition` |
 | `WeaponReloadGauge` (MonoBehaviour) | `HealthBarCanvas` 자식의 World Space 세로 재장전 게이지. 매 `LateUpdate`에 장착 무기 중 첫 재장전 중 무기를 찾아 `_visualRoot`를 켜고 `fillAmount = ReloadProgress`, 없으면 끈다. 빌보드는 부모 `HealthBarCanvas`(`PlayerHealthBar`)가 처리 | `WeaponLoadout`(`Weapons`), `WeaponInstance`(`IsReloading`, `ReloadProgress`), `Image` |
 | `GameHUD` (MonoBehaviour) | 생존 시간·처치 수는 매 프레임 폴링해 값이 바뀔 때만 텍스트 갱신. 경험치 바·레벨은 `ExperienceGained` 구독으로 갱신. 재화는 `Start`에서 현재 잔액을 표시하고 `Currency.Changed` 구독으로 갱신 | `GameSession`, `PlayerExperience`, `Currency`(`Balance`, `Changed`), TMP(`TMP_Text`), `Image` |
 | `PlayerHealthBar` (MonoBehaviour) | 플레이어 머리 위 World Space 체력바. `PlayerHealth.Damaged`·`Healed`로 채움 비율 갱신, `LateUpdate`에서 카메라와 같은 회전(빌보드) | `PlayerHealth`, `Image`, `Camera` |
 | `HelpHoverUI` (MonoBehaviour, Issue #39) | `?` 버튼(`GameScene`의 `HelpButton`, `InventoryFrame` 우상단)에 마우스를 올리면 `_helpPanel`(`TooltipLayer`의 `HelpPanel`)을 켜고, 벗어나면 끈다. `Awake`·`OnDisable`에서도 끈다(상위 패널이 닫히면 Exit가 오지 않으므로, 코드 주석). `GameScene`에는 회전 안내 `RotateHint`(R키·우클릭 아이콘, `Assets/Sprites/UI/InputPrompts`)도 추가됐다. Scene 배치 세부값은 메인 세션 변경 요약 기준이며 대조하지 않았다 (미검증) | `IPointerEnterHandler`, `IPointerExitHandler` |
 | `ResultPanel` (MonoBehaviour) | `GameSession.Ended` 구독. 결과 문구(`CLEAR`/`GAME OVER`)와 통계(생존 시간·레벨·무기 목록·처치 수·진화 무기 수)를 한글 항목명으로 표시. 타이틀 버튼으로 `TitleScene` 로드. 문자열 함수 `BuildWeaponList`, `CountEvolved`(static) | `GameSession`, `PlayerExperience`, `WeaponLoadout`, `SceneManager`, TMP, `Button` |
 | `PauseMenu` (MonoBehaviour) | ESC(`UI/Cancel`) 입력으로 일시정지하며 설정 판넬을 열고, 닫으며 재개. 설정 판넬의 타이틀 복귀 버튼·확인창(예/아니오) 처리. 입력 액션을 직접 `Enable`/`Disable`. 레벨업 화면이 열려 있으면 ESC 무시 | `GameSession`(`IsPlaying`, `Pause`, `Resume`), `LevelUpPanel`(`IsOpen`), `Button`, `InputActionReference`, `SceneManager` |
-| `LevelUpPanel` (MonoBehaviour) | `PlayerExperience.LevelChanged`마다 레벨업 대기 횟수를, `RequestChestReward()`마다 보물 상자 대기 횟수를 1 늘리고, 화면이 닫혀 있으면 `GameSession.Pause()` 후 화면을 연다. 회차 종류는 레벨업 우선이며 종류에 따라 카드 수(3/5)·선택 수(2/3)를 정한다. 회차 단계 `RewardPhase`(`Selecting` → `Organizing`)를 소유한다. `Selecting`에서 후보 생성·카드 선택·리롤·확정, 확정 시 선택 아이템을 Temporary 영역에 생성하고 `Organizing`으로 전환. Temporary가 비면 완료 버튼으로 표시 중인 종류의 대기 횟수를 1 줄이고, 둘 다 0이면 화면을 닫고 `Resume()`. 표시 여부 `IsOpen` 노출. `RewardPhase` enum도 같은 파일에 선언 | `GameSession`(`Pause`, `Resume`), `PlayerExperience`(`LevelChanged`), `PlayerHealth`(`Heal`), `Currency`(`Balance`, `TrySpend`, `Changed`), `Inventory`(`TemporaryCount`, `StorageCount`, `MoveToTemporary`, `GetRotatedShape`, 이벤트 2개), `InventoryUI`(`GetItemSize`, `ClampToTemporary`, `SetRotateEnabled`), `InventoryItemUI`(프리팹 생성·`Initialize`), `SellConfirmPopup`·`ItemTooltipUI`(`_tooltip`, 아이템 UI에 전달), `RewardCardUI`, `RewardCandidateGenerator`, `Button`, `Text`, `CanvasGroup`. 호출자 `TreasureChest`(`Docs/TechDocs/Enemy.md`) |
+| `LevelUpPanel` (MonoBehaviour) | `PlayerExperience.LevelChanged`마다 레벨업 대기 횟수를, `RequestChestReward()`마다 보물 상자 대기 횟수를 1 늘리고, 화면이 닫혀 있으면 `GameSession.Pause()` 후 화면을 연다. 회차 종류는 레벨업 우선이며 종류에 따라 카드 수(3/5)·선택 수(2/3)를 정한다. 회차 단계 `RewardPhase`(`Selecting` → `Organizing`)를 소유한다. `Selecting`에서 후보 생성·카드 선택·리롤·확정, 확정 시 선택 아이템을 Temporary 영역에 생성하고 `Organizing`으로 전환. Temporary가 비면 완료 버튼으로 표시 중인 종류의 대기 횟수를 1 줄이고, 둘 다 0이면 화면을 닫고 `Resume()`. 표시 여부 `IsOpen` 노출. `RewardPhase` enum도 같은 파일에 선언 | `GameSession`(`Pause`, `Resume`), `PlayerExperience`(`LevelChanged`), `PlayerHealth`(`Heal`), `Currency`(`Balance`, `TrySpend`, `Changed`), `Inventory`(`TemporaryCount`, `StorageCount`, `StorageCapacity`, `MoveToTemporary`, `GetRotatedShape`, 이벤트 `TemporaryCountChanged`·`Changed`), `InventoryUI`(`GetItemSize`, `ClampToTemporary`, `SetRotateEnabled`), `InventoryItemUI`(프리팹 생성·`Initialize`), `SellConfirmPopup`·`ItemTooltipUI`(`_tooltip`, 아이템 UI에 전달), `RewardCardUI`, `RewardCandidateGenerator`, `Button`, `Text`, `CanvasGroup`. 호출자 `TreasureChest`(`Docs/TechDocs/Enemy.md`) |
 | `RewardCardUI` (MonoBehaviour) | 보상 후보 카드 1장 표시. `Bind(InventoryData)`로 데이터를 `_data`에 보관하고 아이콘·이름(`MaxLevel` > 1이면 `"{이름} Lv.1"`, 아니면 이름만. `ItemTooltipUI` 레벨 표기와 같은 기준, 코드 주석)·설명 표시, `SetSelected(bool)`로 배경 색(`_normalColor`/`_selectedColor`) 변경. 카드 버튼 클릭 시 `Clicked(this)` 발생. 선택 판정은 하지 않는다. 마우스를 올리면(`IPointerEnterHandler`) `_tooltip.Show(_data, this)`, 벗어나거나(`IPointerExitHandler`) 비활성화되면 `_tooltip.Hide(this)`. `_tooltip`이 비어 있으면 툴팁 없음 | `Button`, `Image`, `Text`, `InventoryData`(`Icon`, `ItemName`, `Description`), `ItemTooltipUI` |
-| `ItemTooltipUI` (MonoBehaviour) | 보유 아이템·보상 후보 공통 툴팁 하나를 커서 옆에 표시. `Show(Inventory.ItemInstance, source)`(현재 레벨·판매가) / `Show(InventoryData, source)`(Lv.1·미배치 기준) / `Hide(source)`(마지막으로 `Show`한 `source`만 숨김). 무기·패시브는 스탯 줄(레벨 보너스·인접·고유 효과·최종 공격력 범위·Lv.3 활성 여부)을 표시. 표시 중에는 `LateUpdate`마다 커서 위치로 갱신 | `Inventory`(`GetSellPrice` 두 오버로드, `GetWeaponLevelMultiplier`, `GetEffectiveAdjacencyBonus`, `GetPassiveAdjacencyBonus`, `GetUnique*`, `GetCharacterAccuracyBonus`, `GetWeaponStats`, `IsLevel3EffectActive`), `InventoryData`(`Icon`, `ItemName`, `ItemType`, `Description`, `MaxLevel`, `WeaponDefinition`, `AdjacencyEffectType`, `IsSellable`, `EquippedEffect`, `UnequippedBuff`, `UnequippedDebuff`), `WeaponDefinition`(`ProjectileDamage`, `DamageVariance`, `GetRolledDamage`), `Mouse`(Input System), `LayoutRebuilder`, `Image`, `Text`. 호출자 `RewardCardUI`, `InventoryItemUI` |
+| `ItemTooltipUI` (MonoBehaviour) | 보유 아이템·보상 후보 공통 툴팁 하나를 커서 옆에 표시. `Show(Inventory.ItemInstance, source)`(현재 레벨·판매가) / `Show(InventoryData, source)`(Lv.1·미배치 기준) / `Hide(source)`(마지막으로 `Show`한 `source`만 숨김). 무기·패시브는 스탯 줄(레벨 보너스·인접·특성·정확도·해제 효과·최종 공격력 범위·Lv.3 활성 여부)을 표시. 표시 중에는 `LateUpdate`마다 커서 위치로 갱신 | `Inventory`(`GetSellPrice` 두 오버로드, `GetWeaponLevelMultiplier`, `GetEffectiveAdjacencyBonus`, `GetPassiveAdjacencyBonus`, `GetTraitDamageBonus`, `GetTraitProjectileBonus`, `GetCharacterAccuracyBonus`, `GetUniqueAttackSpeedBonus`, `GetUniqueSpreadAngle`, `GetWeaponStats`, `IsLevel3EffectActive`), `InventoryData`(`Icon`, `ItemName`, `ItemType`, `Description`, `MaxLevel`, `WeaponDefinition`, `AdjacencyEffectType`, `IsSellable`, `EquippedEffect`, `UnequippedBuff`, `UnequippedDebuff`), `WeaponDefinition`(`ProjectileDamage`, `DamageVariance`, `GetRolledDamage`), `Mouse`(Input System), `LayoutRebuilder`, `Image`, `Text`. 호출자 `RewardCardUI`, `InventoryItemUI` |
 | `RewardCandidateGenerator` (static class) | 후보 풀에서 서로 다른 아이템을 최대 `count`개 추첨 (`Generate`). 종류별 가중치로 종류를 고른 뒤 종류 안에서 균등 추첨, 직전 후보에 없는 아이템 우선 | `InventoryData`(`ItemType`, `IsSellable`, `Id`), `System.Random` |
 | `SettingsPanel` (MonoBehaviour) | 설정 판넬 UI(볼륨 슬라이더, 피격 효과·데미지 숫자 토글)와 `GameSettings` 동기화. 켜질 때 현재 값 표시, 변경 즉시 반영, 꺼질 때 저장. 열고 닫기는 메뉴 스크립트(`PauseMenu`, `TitleMenu`)가 담당 | `GameSettings`, `Slider`, `Toggle` |
 | `GameSettings` (static class) | 설정 값 `Volume`(0~1), `HitFlashEnabled`, `DamageNumberEnabled`를 static 필드에 캐시하고 `PlayerPrefs`에 기록. `Save`로 디스크 기록. 첫 Scene 로드 전 자동 로드 | `PlayerPrefs`, `AudioListener` |
@@ -71,10 +73,10 @@
 | `RewardCardUI.Clicked` | `RewardCardUI` | 클릭한 카드(`RewardCardUI`) | 카드 루트 Button 클릭마다 | `LevelUpPanel.HandleCardClicked` |
 | `Currency.Changed` | `Currency` | 새 잔액(`int`) | `Add`(양수)·`TrySpend`(성공) 후 잔액이 바뀔 때만 | `GameHUD.RefreshCurrency`, `LevelUpPanel.RefreshCurrency` |
 | `Inventory.TemporaryCountChanged` | `Inventory` | 없음 | 아이템이 Temporary 영역에 들어오거나 나갈 때 (Temporary 안 좌표 이동은 제외) | `LevelUpPanel.RefreshCompleteButton` |
-| `Inventory.StorageCountChanged` | `Inventory` | 없음 | 아이템이 보관함에 들어오거나 나갈 때 | `LevelUpPanel.RefreshStorageCount` |
-| `Inventory.Changed` | `Inventory` | 없음 | 공개 조작(배치·이동·회전·제거·보관·Temporary 이동·판매·합성·`Character` 설정)이 성공해 상태가 확정된 뒤 1회. 실패·조회 시 없음 | `PlayerStatSync.ApplyStats`, `InventoryWeaponSync.SyncWeapons`(`Docs/TechDocs/Weapon.md`) |
+| `Inventory.StorageCountChanged` | `Inventory` | 없음 | 아이템이 보관함에 들어오거나 나갈 때 | 없음 (Issue #40에서 `LevelUpPanel`이 `Changed` 구독으로 바뀜, `Assets/Scripts` 안 구독자 없음) |
+| `Inventory.Changed` | `Inventory` | 없음 | 공개 조작(배치·이동·회전·제거·보관·Temporary 이동·판매·합성·`Character` 설정·칸 해제(`TryUnlockCell`))이 성공해 상태가 확정된 뒤 1회. 실패·조회 시 없음. 조끼 전용 칸 갱신(`RefreshVestCells`)은 이 통지보다 먼저 끝난다 | `PlayerStatSync.ApplyStats`, `InventoryWeaponSync.SyncWeapons`(`Docs/TechDocs/Weapon.md`), `LevelUpPanel.RefreshStorageCount`, `InventoryUI.RefreshCellColors`·`RefreshStorageSlots` |
 
-- 구독 위치 : `GameSession`(`Enemy.Died`, `PlayerHealth.Died`), `GameHUD`(`ExperienceGained`, `Currency.Changed`), `PlayerHealthBar`, `ResultPanel`, `LevelUpPanel`(`LevelChanged`, `Currency.Changed`, `Inventory` 이벤트 2개, `InventoryUI.ExpansionCellClicked`, 카드마다 `RewardCardUI.Clicked`), `InventoryUI`(`Inventory.Changed`), `PlayerStatSync`(`Inventory.Changed`) 모두 `OnEnable` 구독, `OnDisable` 해제.
+- 구독 위치 : `GameSession`(`Enemy.Died`, `PlayerHealth.Died`), `GameHUD`(`ExperienceGained`, `Currency.Changed`), `PlayerHealthBar`, `ResultPanel`, `LevelUpPanel`(`LevelChanged`, `Currency.Changed`, `Inventory.TemporaryCountChanged`·`Inventory.Changed`, `InventoryUI.ExpansionCellClicked`, 카드마다 `RewardCardUI.Clicked`), `InventoryUI`(`Inventory.Changed`), `PlayerStatSync`(`Inventory.Changed`) 모두 `OnEnable` 구독, `OnDisable` 해제.
 - `Currency`·`Inventory`는 이 문서의 클래스가 아니다. 위 표에는 이 문서 클래스가 구독하는 경우만 적는다.
 
 ### `GameSession`
@@ -121,12 +123,13 @@
 
 | 대상 | 배율 |
 |---|---|
-| 이동속도 (`PlayerMovement.SetMoveSpeedMultiplier`) | `Max(0, 1 + Min(보너스 합, 0.5))`. 보너스 합 = 패시브 Lv.3 `MoveSpeed` 합 + 캐릭터 `BaseMoveSpeedBonus` + (고유 아이템 해제 중이면 `UnequippedMoveSpeedBonus`). 상한 `MAX_MOVE_SPEED_BONUS` 0.5(테스트 상한), 하한 없음 |
-| 최대 체력 (`PlayerHealth.SetMaxHealthMultiplier`) | `1 + (고유 아이템 해제 중이면 UnequippedMaxHealthBonus, 아니면 0)` |
+| 이동속도 (`PlayerMovement.SetMoveSpeedMultiplier`) | `Max(0, 1 + Min(보너스 합, 0.5))`. 보너스 합 = 패시브 Lv.3 `MoveSpeed` 합 + 캐릭터 특성 `TraitMoveSpeedBonus`(항상) + (고유 아이템 해제 중이면 `UnequippedMoveSpeedBonus`). 상한 `MAX_MOVE_SPEED_BONUS` 0.5(테스트 상한), 하한 없음 |
+| 최대 체력 (`PlayerHealth.SetMaxHealthMultiplier`) | `1 + (고유 아이템 해제 중이면 UnequippedMaxHealthBonus, 아니면 0)`. 장착 중이거나 특성에는 최대 체력 효과가 없다 |
 | 경험치 (`PlayerExperience.SetExperienceMultiplier`) | `1 + 패시브 Lv.3 Experience 합` |
 | 젬 수집 반경 (`PlayerExperience.SetCollectRadiusMultiplier`) | `1 + 패시브 Lv.3 CollectRadius 합` |
 
-- `Inventory.Character`가 `null`이면 고유 효과 없이 Lv.3 효과만 적용한다.
+- `Inventory.Character`가 `null`이면 특성·고유 효과 없이 Lv.3 효과만 적용한다.
+- 예 (헤비거너, Lv.3 패시브 없음) : 셰이크 장착 중 보너스 합 −0.1(특성) → 배율 0.9, 해제 중 −0.1 + −0.2 = −0.3 → 배율 0.7.
 - `PlayerMovement.MoveSpeed` = `_moveSpeed`(Prefab 5) × 배율. 이동은 `SimpleMove(입력 방향 × MoveSpeed)`.
 
 ### `WeaponReloadGauge`
@@ -214,9 +217,9 @@
 
 - Issue #17의 `_previewCardCount` 필드와 그 `shortcut` 주석(3/5 레이아웃 확인용 임시 값)은 Issue #19에서 제거되고 위 카드 수 필드로 바뀌었다.
 - `Awake`에서 `_panelRoot.SetActive(false)`.
-- 구독 (`OnEnable`) : `LevelChanged` → `HandleLevelChanged`, 완료 버튼 → `HandleCompleteClicked`, 선택 완료 버튼 → `HandleConfirmClicked`, 리롤 버튼 → `HandleRerollClicked`, `Inventory.TemporaryCountChanged` → `RefreshCompleteButton`, `Inventory.StorageCountChanged` → `RefreshStorageCount`, `Currency.Changed` → `RefreshCurrency`, `InventoryUI.ExpansionCellClicked` → `HandleExpansionCellClicked`, 각 카드의 `RewardCardUI.Clicked` → `HandleCardClicked`. `OnDisable`에서 모두 해제.
+- 구독 (`OnEnable`) : `LevelChanged` → `HandleLevelChanged`, 완료 버튼 → `HandleCompleteClicked`, 선택 완료 버튼 → `HandleConfirmClicked`, 리롤 버튼 → `HandleRerollClicked`, `Inventory.TemporaryCountChanged` → `RefreshCompleteButton`, `Inventory.Changed` → `RefreshStorageCount`(Issue #40에서 `StorageCountChanged` 대신. 보관 수와 함께 고유 아이템 탈착에 따른 한도 변경도 반영, 코드 주석), `Currency.Changed` → `RefreshCurrency`, `InventoryUI.ExpansionCellClicked` → `HandleExpansionCellClicked`, 각 카드의 `RewardCardUI.Clicked` → `HandleCardClicked`. `OnDisable`에서 모두 해제.
 - `HandleLevelChanged(level)` : `_pendingCount++`. 화면이 닫혀 있을 때만 `Open`. 한 번에 여러 레벨이 올라 이벤트가 연속 발생해도 횟수만 쌓고 화면은 한 번만 연다 (코드 주석). 인자 `level`은 쓰지 않는다.
-- `Open` : `_gameSession.Pause()` → `StartRound()` → `RefreshStorageCount()`(`"보관함 {보관 수}/{Inventory.STORAGE_CAPACITY}"`) → `_panelRoot.SetActive(true)`.
+- `Open` : `_gameSession.Pause()` → `StartRound()` → `RefreshStorageCount()`(`"보관함 {Inventory.StorageCount}/{Inventory.StorageCapacity}"`, `STORAGE_COUNT_FORMAT`) → `_panelRoot.SetActive(true)`.
 
 #### 회차 시작 (`StartRound`)
 
@@ -333,7 +336,8 @@
 
 - 줄을 끄는 것은 레이아웃 공간을 없애기 위해서다 (코드 주석). 루트를 켠 뒤 `LayoutRebuilder.ForceRebuildLayoutImmediate(_tooltipRect)`로 크기를 즉시 반영하고 위치를 계산한다 (줄 활성 상태가 바뀐 직후 크기를 반영해야 위치 보정이 맞음, 코드 주석).
 - 스탯 줄 (`GetStatText`, 줄바꿈으로 연결)
-    - 무기 : `"기본 공격력 {ProjectileDamage}"` → `"레벨 보너스 +{(레벨 배율 − 1) × 100:0}%"` → 인접 효과 공격력·발사 간격·탄퍼짐(`GetEffectiveAdjacencyBonus`, 상한 적용 값, 0이면 줄 생략) → 고유 효과 공격력·공격속도·확산각(°)·무기 정확도(`GetCharacterAccuracyBonus`)(0 이하이면 줄 생략) → `"최종 공격력 {최소:0}~{최대:0}"` → Lv.3 줄.
+    - 무기 : `"기본 공격력 {ProjectileDamage}"` → `"레벨 보너스 +{(레벨 배율 − 1) × 100:0}%"` → 인접 효과 공격력·발사 간격·탄퍼짐(`GetEffectiveAdjacencyBonus`, 상한 적용 값, 0이면 줄 생략) → 특성·고유 효과 줄 (Issue #40, 0 이하이면 줄 생략, `AddUniqueLine`) : `"특성 공격력 +{GetTraitDamageBonus × 100:0}%"` → `"특성 총알 +{GetTraitProjectileBonus:0}"` → `"무기 정확도 +{GetCharacterAccuracyBonus × 100:0}%"`(특성 + 장착 중 장착 정확도 합계, 상한 미적용) → `"해제 효과 공격속도 +{GetUniqueAttackSpeedBonus × 100:0}%"` → `"해제 효과 확산각 {GetUniqueSpreadAngle:0}°"` → `"최종 공격력 {최소:0}~{최대:0}"` → Lv.3 줄.
+    - 해제 효과 두 줄은 고유 아이템 해제 중에만 값이 있어 표시된다. 대상 외 무기(`UniqueWeaponType`이 다름)는 특성·고유 효과 줄이 모두 생략된다.
     - 최종 공격력 범위 = `GetRolledDamage(GetWeaponStats(item).Damage, DamageVariance, 0)` ~ `GetRolledDamage(…, 1)`, 반올림 정수 표기. 전투의 탄별 피해와 같은 함수·같은 최종 공격력을 쓴다 (`Docs/TechDocs/Weapon.md`).
     - 패시브 : `AdjacencyEffectType`이 None이 아니면 인접 효과 줄(`GetPassiveAdjacencyBonus(레벨)`, 패시브 1개가 주는 수치) → Lv.3 줄.
     - Lv.3 줄 : `IsLevel3EffectActive(item)`이 false면 `"Lv.3 효과 비활성"`. 활성이면 `InventoryData.Level3EffectName`(`_level3EffectName`)이 있을 때 `"Lv.3 활성: {효과명}"`, 비어 있으면 `"Lv.3 효과 활성"`.
@@ -370,7 +374,7 @@
 | `_unequippedDebuff` (`UnequippedDebuff`) | 해제 시 디버프 텍스트. `[TextArea]` |
 
 - 텍스트 필드 3개는 툴팁 표시 전용이며 전투 수치와 연결하지 않는다 (필드 주석, 주의사항 af).
-- 값 : `Assets/Data/Weapon/Inventory/SO_Inventory_*.asset` 12개 모두 `_description`이 입력되어 있고, 텍스트 필드 3개는 `CowboyHat`·`CombatVest`·`ProteinShake` 3개에만 입력되어 있다. 출처는 `Docs/Spec/Inventory/ItemDescriptions.md`(고유 아이템은 하단 요약 표 기준)다 (브리핑 기준, 문구 대조는 하지 않았다).
+- 값 : `Assets/Data/Weapon/Inventory/SO_Inventory_*.asset` 14개(소모품 `ExpansionTicket`·`HealthPack` 포함) 모두 `_description`이 입력되어 있고, 텍스트 필드 3개는 `CowboyHat`·`CombatVest`·`ProteinShake` 3개에만 입력되어 있다. 소모품 2종을 제외한 12종의 출처는 `Docs/Spec/Inventory/ItemDescriptions.md`다. 고유 아이템 3종의 텍스트 필드는 하단 `캐릭터별 특성·고유 아이템 효과 요약` 표의 장착 효과·해제 버프·해제 디버프 열과 문구를 대조해 수치가 일치함을 확인했다 (이슈 #40). 예외 : 모자 `_equippedEffect`는 요약 표의 "없음" 대신 같은 문서 §1 `장착 효과`의 툴팁 문구("[장착 효과: 없음] 대신 거울을 볼 때마다 …")이고, 셰이크 `_unequippedBuff`는 빈 문자열(요약 표 "없음")이며, 조끼 `_equippedEffect`는 "가방 +2칸, 보관함 한도 +2개"(요약 표는 "보관함 +2개", 상단 표 ID 11은 "보관함 한도 +2개")다. 14개 `_description` 문구는 대조하지 않았다 (미검증).
 
 ### 인벤토리 API (변경분 누적 : `art/fix-inven-ui`, Issue #23)
 
@@ -383,21 +387,62 @@
 | `InventoryUI.GetItemSize(Vector2Int[] shape)` | 회전 0 정규화 Shape의 바운딩 칸 수로 이미지 크기 계산 : `칸 수 × cellSize + (칸 수 − 1) × spacing` (`GameScene` 값 cellSize 72, spacing 4) |
 | `InventoryItemUI.OnPointerEnter` / `OnPointerExit` | `IPointerEnterHandler`·`IPointerExitHandler` 구현. 툴팁 표시·숨김 (위 `ItemTooltipUI`의 `호출 측 규칙`) |
 | `Inventory.IsCellAvailable(Vector2Int)` | 사용 가능(잠금 해제) 칸인지. 범위 밖이면 false (Issue #23) |
-| `Inventory.IsExpansionCandidate(Vector2Int)` | 확장 후보인지. 범위 안이고 잠긴 칸이며 상하좌우에 사용 가능한 칸이 있으면 true (Issue #23) |
+| `Inventory.IsExpansionCandidate(Vector2Int)` | 확장 후보인지. 범위 안이고 잠긴 칸이며 예약 중인 조끼 전용 칸(`IsVestCell` true)이 아니고 상하좌우에 사용 가능한 칸이 있으면 true (Issue #23) |
+| `Inventory.IsVestCell(Vector2Int)` | 조끼 전용 칸으로 예약된 칸인지. 조끼 예약 중(`IsVestReservationActive`)이고 좌표가 `(4,5)`·`(5,5)`이면 true. 장착 상태와 무관해 조끼를 보관해 칸이 잠긴 동안에도 true이며, 열림 여부는 `IsCellAvailable`로 판단한다 (요약 주석). 예약 해제(조끼 판매) 뒤와 조끼 캐릭터가 아니면 false. `IsExpansionCandidate`의 전용 칸 제외와 `InventoryUI` 칸 색이 이 메서드를 쓴다 (Issue #51) |
 | `Inventory.CountExpansionCandidates()` | 현재 확장 후보 칸 수 (10×6 전체 순회, Issue #23) |
 | `Inventory.TryUnlockCell(Vector2Int)` | 후보일 때만 칸을 사용 가능으로 바꾸고 `Changed` 1회 발생 후 true. 후보가 아니면 상태 변화 없이 false (Issue #23) |
 | `InventoryUI.SetExpansionMode(bool)` | 확장 후보 강조·클릭 통지 여부. 활성 중이면 즉시 칸 색 갱신, 비활성 중이면 다음 `OnEnable`의 갱신으로 반영 (코드 주석, Issue #23) |
 | `InventoryUI.ExpansionCellClicked` (`Action<Vector2Int>`) | 확장 모드에서 확장 후보 칸을 클릭하면 셀 좌표로 발생. `InventoryUI`가 `IPointerClickHandler`를 구현하며, Grid의 Slot 셀이 레이캐스트를 받아 부모 `InventoryUI`로 클릭이 버블링된다 (코드 주석). 확장 모드가 아니거나 후보 칸이 아니면 발생하지 않는다 (Issue #23) |
-| `InventoryUI` 칸 색 표시 | `Awake`에서 `gridRect`의 자식 60개(기존 Slot, 인덱스 `y × 10 + x`, 좌상단부터 행 우선)의 `Image`를 모아 두고, `OnEnable`·`Inventory.Changed`·`SetExpansionMode`마다 색을 갱신한다. 사용 가능 `_availableCellColor`(흰색) / 확장 모드의 후보 `_candidateCellColor`(노란색 (1, 0.85, 0.2)) / 그 외 잠김 `_lockedCellColor`(회청색 (0.45, 0.5, 0.58)). 자식 수가 60이 아니면 `LogError` 후 수집을 중단한다. `_inventory`(Inspector) 필드 필요 (Issue #23) |
+| `InventoryUI` 칸 색 표시 | `Awake`에서 `gridRect`의 자식 60개(기존 Slot, 인덱스 `y × 10 + x`, 좌상단부터 행 우선)의 `Image`를 모아 두고, `OnEnable`·`Inventory.Changed`·`SetExpansionMode`마다 색을 갱신한다. 사용 가능 `_availableCellColor`(흰색), 단 사용 가능 칸 중 `Inventory.IsVestCell`이면 `_vestCellColor`(주황색 (1, 0.6, 0.25), 조끼로 확장된 칸, Issue #51) / 확장 모드의 후보 `_candidateCellColor`(노란색 (1, 0.85, 0.2)) / 그 외 잠김 `_lockedCellColor`(회청색 (0.45, 0.5, 0.58)). 자식 수가 60이 아니면 `LogError` 후 수집을 중단한다. `_inventory`(Inspector) 필드 필요 (Issue #23) |
+| `InventoryUI.ShowNotice(string)` | 이동·판매 거부 안내 문구 표시 (Issue #51). `_noticeText`(Inspector, `Text`)에 문구를 넣고 `Text.enabled = true`, 숨길 시각을 `Time.unscaledTime + _noticeDuration`(Inspector, `Min(0)`, 기본값·`GameScene` 값 3초)으로 정한다. 표시 중 다시 호출하면 문구·시간만 갱신한다. `Update`에서 실제 시간이 숨길 시각에 도달하면 `Text.enabled = false`. 레벨업 정리 화면이 일시정지(`timeScale` 0) 중일 수 있어 실제 시간 기준이며, 재호출 시 시간만 갱신하면 되므로 Coroutine 대신 `Update`를 쓴다 (코드 주석). `Awake`에서 숨기고, `OnDisable`(패널 닫힘)에서 남은 시간과 무관하게 즉시 숨긴다. GameObject가 아닌 `Text` 컴포넌트의 `enabled`로 표시를 제어한다. `_noticeText`는 `null` 검사가 없어 비어 있으면 `Awake`에서 예외가 난다 (코드 기준) |
 | `InventoryItemUI.IsDragEnabled` (`static bool`, 기본 true) | 아이템 드래그 허용 여부. 전체 아이템 UI가 공유하며 `LevelUpPanel.ApplyPhase`·`HandleCompleteClicked`가 바꾼다 (Issue #23) |
 | `Inventory.GetSellPrice(InventoryData data, int level)` | 보유하지 않은 아이템(보상 후보 등)의 판매가 `level × SELL_PRICE_PER_LEVEL`(1). `data`가 null이면 0. 기존 `GetSellPrice(ItemInstance)`는 null이면 0, 아니면 `GetSellPrice(item.Data, item.Level)`에 위임한다 |
 
 #### 영역·임시 배치·판매
 
-- 아이템 영역 `ItemLocation` : `None`(생성 후 어디에도 없음·판매·합성 재료 소비), `Inventory`(그리드 셀 점유, `IsPlaced`), `Storage`(보관함 5칸, Shape 무관 1칸 = 1개), `Temporary`(셀 점유 없음, `TemporaryPosition` 로컬 좌표).
-- `TryPlace(item, position, rotation)` : 출발 영역과 무관하게 지정 회전으로 그리드 배치. 실패 시 원래 영역·위치·회전 유지. `TryStore(item)` : 첫 빈 보관함 슬롯에 넣고 회전 0. `MoveToTemporary(item, 위치, rotation)` : Temporary로 이동(이미 Temporary면 좌표·회전만 갱신, 충돌 검사 없음). `RotateItem` : Inventory는 충돌 검사 후 회전, Temporary는 검사 없이 회전.
-- 판매 : `CanSell`(`IsSellable`이고 `Location != None`) → `TrySell`(출발 영역 해제, `Location = None`, 재화 지급은 호출부). `InventoryItemUI`가 판매 영역(`IsOverSellArea`)에 드롭하면 `CanSell`일 때만 `SellConfirmPopup.Open`을 띄우고 아이템은 원위치로 돌아간다. 확인 버튼에서 상태 변경 전에 `GetSellPrice`로 가격을 확정한 뒤 `TrySell` 성공 시 `Currency.Add(가격)`·아이템 UI `SetActive(false)`. 팝업이 열린 동안 회전 입력을 무시한다.
-- 이벤트 순서 : 출발 영역 해제(`ReleaseLocation`) → 도착 영역 기록 → `TemporaryCountChanged`/`StorageCountChanged`(출발·도착 중 한쪽만 해당 영역일 때) → `Changed`.
+- 아이템 영역 `ItemLocation` : `None`(생성 후 어디에도 없음·판매·합성 재료 소비), `Inventory`(그리드 셀 점유, `IsPlaced`), `Storage`(보관함, Shape 무관 1칸 = 1개. 한도는 아래 `보관함 한도`), `Temporary`(셀 점유 없음, `TemporaryPosition` 로컬 좌표).
+- `TryPlace(item, position, rotation)` : 출발 영역과 무관하게 지정 회전으로 그리드 배치. 실패 시 원래 영역·위치·회전 유지. `TryStore(item)` : 현재 한도 안의 첫 빈 보관함 슬롯에 넣고 회전 0. 이미 보관함에 있으면 변화 없이 true. 고유 아이템 자신을 넣어 장착이 풀리는 경우에는 줄어든 한도(5) 안의 슬롯만 쓴다 (코드 주석). `MoveToTemporary(item, 위치, rotation)` : Temporary로 이동(이미 Temporary면 좌표·회전만 갱신, 충돌 검사 없음). `RotateItem` : Inventory는 충돌 검사 후 회전, Temporary는 검사 없이 회전.
+- 반환값 (Issue #40) : `RemoveItem`·`MoveToTemporary`는 `bool`을 반환한다. `RemoveItem`은 `item`이 null·미배치·고유 아이템 해제 거부이면 false, `MoveToTemporary`는 `item`이 null·고유 아이템 해제 거부이면 false이며 둘 다 실패 시 상태 변화가 없다.
+- 판매 : `CanSell`(`IsSellable`이고 `Location != None`) → `TrySell`(출발 영역 해제, `Location = None`, 재화 지급은 호출부). `InventoryItemUI`가 판매 영역(`IsOverSellArea`)에 드롭하면 `CanSell`이고 `CanReleaseUniqueEffect`도 true일 때만 `SellConfirmPopup.Open`을 띄우고(해제 거부면 팝업 대신 `InventoryUI.ShowNotice` 안내, 아래 `고유 아이템 해제 거부`) 아이템은 원위치로 돌아간다. 확인 버튼에서 상태 변경 전에 `GetSellPrice`로 가격을 확정한 뒤 `TrySell` 성공 시 `Currency.Add(가격)`·아이템 UI `SetActive(false)`. 팝업이 열린 동안 회전 입력을 무시한다.
+- 이벤트 순서 : 출발 영역 해제(`ReleaseLocation`) → 도착 영역 기록 → 조끼 전용 칸 갱신(`RefreshVestCells`) → `TemporaryCountChanged`/`StorageCountChanged`(출발·도착 중 한쪽만 해당 영역일 때) → `Changed`. `RefreshVestCells`는 상태 확정 후 모든 통지보다 먼저 호출해 구독자가 중간 상태를 보지 않게 한다 (코드 주석). 호출 위치는 `Character` setter, `PlaceItem`, `RemoveItem`, `TryPlace`, `TryStore`, `MoveToTemporary`, `TrySell`, `TryMerge`다 (`MoveItem`·`RotateItem`은 장착 상태가 바뀌지 않아 호출하지 않음).
+
+#### 보관함 한도 (Issue #40)
+
+| 멤버 | 내용 |
+|---|---|
+| `BASE_STORAGE_CAPACITY` (private const) | 5. 기본 보관함 한도 |
+| `MAX_STORAGE_CAPACITY` (private const) | 7. 보관함 슬롯 배열 크기 (기본 + 고유 아이템 장착 확장 최대) |
+| `StorageCapacity` | 현재 보관함 한도 = `Min(5 + (고유 아이템 장착 중이면 Character.EquippedStorageBonus, 아니면 0), 7)`. 겁쟁이(`SO_Survivor`, 보너스 2)는 조끼 장착 중 7, 해제 중 5 |
+| `StorageCount` | 슬롯 배열(7칸)에서 비어 있지 않은 슬롯 수 |
+| `GetStorageItem(index)` / `GetStorageIndex(item)` | 슬롯 배열 기준 (인덱스 0~6) |
+
+- 이전 public 상수 `STORAGE_CAPACITY`(5)는 삭제되었다.
+- `InventoryUI.RefreshStorageSlots` : `OnEnable`과 `Inventory.Changed`마다 `_storageSlots[i]`를 `i < StorageCapacity`일 때만 켜고 나머지(한도 밖 슬롯)는 숨긴다. `_storageSlots`는 인덱스 = Inventory 보관함 슬롯 인덱스이며 7개(기본 5 + 확장 2)를 연결한다 (필드 주석).
+
+#### 조끼 전용 칸 (Issue #40)
+
+- 전용 칸 좌표는 `(4, 5)`, `(5, 5)`로 고정이다 (`_vestCells`). 초기 활성 영역(x 3~6, y 1~4)에 맞닿은 y = 5 행의 가운데 두 칸이다.
+- 예약 (`IsVestReservationActive`) : `Character.EquippedUnlocksVestCells`가 true인 캐릭터(겁쟁이 `SO_Survivor`)이고 아직 예약 해제 전일 때만 예약 중이다. 그 외 캐릭터에게 두 칸은 일반 칸이다.
+- 예약 중 (`RefreshVestCells`) : 두 칸의 사용 가능 여부를 고유 아이템 장착 상태와 같게 맞춘다. 장착 중이면 열림, 해제 중이면 잠김. 예약 중인 두 칸은 확장 후보에서 제외된다 (`IsExpansionCandidate`). 예약이 없으면 `RefreshVestCells`는 아무것도 하지 않아, 확장으로 연 칸의 상태가 유지된다.
+- 예약 해제 (`TrySell`) : 조끼 캐릭터(`EquippedUnlocksVestCells`)이고 판매 대상이 현재 캐릭터의 고유 아이템이며, 판매 뒤 같은 데이터의 고유 아이템이 그리드·보관함에 남아 있지 않으면(`HasUniqueItemInstance`가 false) `_isVestReservationReleased = true`. 판매 처리에서 먼저 `RefreshVestCells`로 칸을 잠근 뒤 해제하므로, 두 칸은 잠긴 채 일반 확장 후보로 남는다 (코드 주석). 이후 다시 고유 아이템을 얻어도 예약은 돌아오지 않는다 (재설정 경로는 `Character` setter뿐). 합성은 같은 Id의 target이 남으므로 예약 해제 대상이 아니다 (코드 주석).
+- 보스·레벨업 확장(`TryUnlockCell`)으로 연 다른 칸은 장착 상태와 무관하게 유지된다. 예약 중에는 전용 칸을 확장으로 열 수 없으므로, 전용 칸이 확장으로 열리는 것은 예약 해제 뒤뿐이다.
+
+#### 고유 아이템 해제 거부 (`CanReleaseUniqueEffect`, Issue #40, #51)
+
+- 계약 : `public bool CanReleaseUniqueEffect(ItemInstance item)` (Issue #51에서 private → public). `item`을 Inventory 밖으로 옮겨도 되는지 조회만 하고 상태를 바꾸지 않는다. `RemoveItem`·`TryStore`·`MoveToTemporary`·`TrySell`·`TryMerge`가 함께 쓰는 해제 거부 기준이며, UI(`InventoryItemUI`)도 거부 안내 여부를 정할 때 조회한다 (요약 주석). `item` `null` 검사가 없어 `null`을 넘기면 예외가 난다. 위 5개 메서드는 `null`·`CanSell`/`CanMerge` 실패를 먼저 걸러 낸 뒤 호출한다 (코드 기준).
+- 대상 : Inventory에 배치된 아이템이 그리드를 떠나 고유 아이템 장착이 풀리는 경우만 검사한다. `item`이 미배치이거나, 현재 장착 중이 아니거나, `item`을 빼도 다른 고유 아이템 인스턴스로 장착이 유지되면 항상 허용한다.
+- 거부 조건 (하나라도 해당하면 거부)
+    1. 조끼 예약 중이고 전용 칸 `(4,5)`·`(5,5)`에 `item` 외의 아이템이 있다.
+    2. 보관함 6·7번째 슬롯(인덱스 5·6, 한도가 줄면 숨겨질 슬롯)에 아이템이 있다. 예약 여부와 무관하다.
+- 거부 시 `RemoveItem`·`TryStore`·`MoveToTemporary`·`TrySell`·`TryMerge`(재료 `source` 기준)가 false를 반환하고 상태·이벤트 변화가 없다. 그리드에 놓는 조작(`PlaceItem`·`TryPlace`·`MoveItem`·`RotateItem`)은 그리드를 떠나지 않으므로 검사하지 않는다.
+- `Inventory`는 거부 이유를 안내하지 않는다. 안내는 드롭 처리(`InventoryItemUI.OnEndDrag`)가 `InventoryUI.ShowNotice`로 표시한다 (Issue #51).
+    - 안내 문구 : `InventoryItemUI.VEST_RELEASE_REJECTED_NOTICE` (private const) = `"조끼를 벗으려면 조끼로 확장된 칸(주황색)을 비워 주세요."`
+    - 원위치 : 합성(`TryMerge`) 실패 시 영역별 처리로 진행하고, 결과와 무관하게 마지막에 `RefreshPosition()`을 호출한다. 거부되면 데이터가 원래 영역·위치·회전 그대로이므로 원위치·원회전으로 돌아간다 (코드 주석).
+    - 판매 영역 : `CanSell`이 false면 아무것도 하지 않는다. `CanSell`이 true이고 `CanReleaseUniqueEffect`가 true면 `SellConfirmPopup.Open`, false면 팝업 대신 안내 문구를 표시한다. 거부면 확인 후에도 `TrySell`이 실패하기 때문이다 (코드 주석).
+    - 보관함 : `TryStore`가 실패하고 `CanReleaseUniqueEffect`도 false일 때만 안내한다. 보관함 가득 참 등 일반 실패는 안내하지 않는다 (코드 주석).
+    - Temporary : `MoveToTemporary`가 실패하고 `CanReleaseUniqueEffect`도 false일 때만 안내한다.
+    - 그리드 안 드롭(`TryPlace`)과 합성 거부는 별도 안내가 없다. 합성 거부 뒤의 안내는 이어지는 영역별 처리(판매 영역·보관함·Temporary)를 따른다.
+    - 화면에서 원위치 복귀·안내 표시가 실제로 보이는지는 아래 `검증 방법`의 Issue #51 항목 참고.
 
 #### 합성 (`CanMerge` / `TryMerge`)
 
@@ -408,36 +453,45 @@
 
 #### 레벨 성장·인접 효과·패시브 Lv.3
 
-| 항목 | 규칙 (상수는 `Inventory.cs`, 모두 임시값) |
+| 항목 | 규칙 (상수는 `Inventory.cs`, 탄띠 Lv.3 이동속도 0.05(Issue #40 확정값)를 제외하고 모두 임시값) |
 |---|---|
 | 무기 레벨 공격력 배율 | `GetWeaponLevelMultiplier(level)` = `1 + (level − 1) × 0.1` (복리 아님) |
 | 패시브 인접 효과 | `GetPassiveAdjacencyBonus(level)` = `level × 0.1`. Inventory에 배치된 무기 셀과 상하좌우로 맞닿은 패시브만 적용(대각선 제외, 회전 반영, `GetAdjacentItems`). 같은 패시브가 여러 셀로 닿아도 1회. 패시브 여러 개는 합산 (`GetAdjacencyBonus`, 상한 미적용) |
 | 인접 효과 상한 | `GetEffectiveAdjacencyBonus` : 발사 간격 0.5, 탄퍼짐 0.7, 공격력 상한 없음. 무기 최종 스탯 계산은 `Docs/TechDocs/Weapon.md` |
 | 인접 효과 종류 (SO 값) | `SO_Inventory_AmmoBelt` 공격력, `SO_Inventory_GunStock` 발사 간격, `SO_Inventory_GunCooler` 탄퍼짐 |
 | Lv.3 활성 (`IsLevel3EffectActive`) | 무기 : 레벨 3 이상. 패시브 : 레벨 3 이상이면서 Inventory에 배치. 그 밖(Storage·Temporary 패시브, 고유·소비 아이템)은 비활성 |
-| 패시브 Lv.3 효과 (`GetLevel3Bonus(type)`) | Lv.3 활성 패시브 중 `Level3EffectType`이 같은 것의 `Level3EffectValue` 합 (인접 무관, 상한 미적용, Lv.3~5 같은 값). SO 값 : `AmmoBelt` 이동속도 0.1, `GunStock` 경험치 0.1, `GunCooler` 젬 수집 반경 0.15 |
+| 패시브 Lv.3 효과 (`GetLevel3Bonus(type)`) | Lv.3 활성 패시브 중 `Level3EffectType`이 같은 것의 `Level3EffectValue` 합 (인접 무관, 상한 미적용, Lv.3~5 같은 값). SO 값 : `AmmoBelt` 이동속도 0.05(Issue #40에서 0.1 → 0.05), `GunStock` 경험치 0.1, `GunCooler` 젬 수집 반경 0.15 |
 
 - 고유(`Essential`) 아이템은 인접 효과를 주지도 받지도 않는다 (`InventoryTests.GetAdjacencyBonus_EssentialItem_NeitherGivesNorReceives`).
 - enum `AdjacencyEffectType`(`None`, `Damage`, `FireInterval`, `Spread`)·`Level3EffectType`(`None`, `Experience`, `MoveSpeed`, `CollectRadius`)·`ItemType`(`Essential` 추가)은 SO 직렬화 정수값 보존을 위해 끝에만 추가한다 (코드 주석).
 
-#### 캐릭터 고유 아이템 장착/해제 효과
+#### 캐릭터 특성·고유 아이템 장착/해제 효과
 
+- 두 층 구조 (Issue #40) : 캐릭터 특성은 고유 아이템 탈착과 무관하게 항상 적용하고, 그 위에 고유 아이템 장착 효과(장착 중) 또는 해제 효과(해제 중) 중 하나만 더한다.
 - 장착 판정 `IsUniqueItemEquipped()` : `Inventory.Character.UniqueItem`과 같은 데이터의 아이템이 그리드에 배치되어 있으면 장착. Storage·Temporary·판매·미지급은 해제다. `Character` 또는 `UniqueItem`이 null이면 false.
-- `Inventory.Character`는 `InventoryWeaponSync.Start`가 시작 아이템 2개 배치 후 설정한다 (`Docs/TechDocs/Weapon.md`). 설정 시 `Changed` 1회.
+- `Inventory.Character`는 `InventoryWeaponSync.Start`가 시작 아이템 2개 배치 후 설정한다 (`Docs/TechDocs/Weapon.md`). setter는 조끼 예약을 초기화(`_isVestReservationReleased = false`)하고 `RefreshVestCells` 후 `Changed` 1회를 발생시킨다.
+- 계약 : `Character`는 게임 시작 시 1회만 설정한다는 전제다. 다시 설정하면 상태가 맞지 않을 수 있다. 예 : 새 캐릭터가 조끼 캐릭터가 아니면 `RefreshVestCells`가 아무것도 하지 않아 전용 칸이 이전 상태(열림·잠김)로 남고, 조끼 캐릭터면 판매로 해제됐던 예약이 다시 살아난다 (코드 기준 추론, reviewer 권고, 미반영, 주의사항 as).
 - 무기 효과는 `Character.UniqueWeaponType`과 같은 종류 무기에만 적용한다 (다른 캐릭터의 고유 효과가 섞이지 않도록, 코드 주석).
 
-| 효과 (`CharacterDefinition` 필드) | 적용 조건 | 반영 위치 | `SO_Cowboy` | `SO_Survivor` | `SO_HeavyGunner` |
+| 효과 (`CharacterDefinition` 필드) | 층 | 반영 위치 | `SO_Cowboy` | `SO_Survivor` | `SO_HeavyGunner` |
 |---|---|---|---|---|---|
 | 대상 무기 `_uniqueWeaponType` | — | — | Pistol | Shotgun | Minigun |
-| 공격력 `_equippedDamageBonus` | 장착 중 | 무기 공격력 `× (1 + 값)` | 0.1 | 0 | 0 |
-| 공격속도 `_unequippedAttackSpeedBonus` | 해제 중 | 무기 발사 간격 `/ (1 + 값)` | 0.6 | 0 | 0 |
-| 확산각 `_unequippedSpreadAngle` (도) | 해제 중, 0보다 클 때 | 무기 기준 각도를 이 값으로 대체·랜덤 탄퍼짐 | 70 | 0 | 0 |
-| 정확도 `_baseAccuracyBonus` + `_unequippedAccuracyBonus` | 기본 항상 + 해제 중 | 무기 탄퍼짐 감소율에 합산 (상한 0.7) | 0 / 0 | 0 / 0 | 0.2 / 0.1 |
-| 이동속도 `_baseMoveSpeedBonus` + `_unequippedMoveSpeedBonus` | 기본 항상 + 해제 중 | `PlayerStatSync` 이동속도 (상한 +0.5) | 0 / 0 | 0 / 0.3 | −0.1 / −0.2 |
-| 최대 체력 `_unequippedMaxHealthBonus` | 해제 중 | `PlayerStatSync` 최대 체력 | 0 | −0.3 | 0 |
+| 공격력 `_traitDamageBonus` | 특성 (항상) | 무기 공격력 `× (1 + 값)` (`GetTraitDamageBonus`) | 0.1 | 0.05 | 0 |
+| 발사당 총알 `_traitProjectileBonus` | 특성 (항상) | 무기 `ProjectilesPerShot`에 더함 (`GetTraitProjectileBonus`) | 0 | 1 | 0 |
+| 정확도 `_traitAccuracyBonus` | 특성 (항상) | 무기 탄퍼짐 감소율에 합산 (`GetCharacterAccuracyBonus`, 상한 0.7은 합산 후) | 0 | 0 | 0.1 |
+| 이동속도 `_traitMoveSpeedBonus` | 특성 (항상) | `PlayerStatSync` 이동속도 (상한 +0.5) | 0 | 0 | −0.1 |
+| 정확도 `_equippedAccuracyBonus` | 장착 중 | 특성 정확도와 합산 (`GetCharacterAccuracyBonus`) | 0 | 0 | 0.1 |
+| 조끼 전용 칸 `_equippedUnlocksVestCells` | 장착 중 | 위 `조끼 전용 칸` | false | true | false |
+| 보관함 한도 `_equippedStorageBonus` | 장착 중 | 위 `보관함 한도` (`StorageCapacity`) | 0 | 2 | 0 |
+| 공격속도 `_unequippedAttackSpeedBonus` | 해제 중 | 무기 발사 간격 `/ (1 + 값)` (`GetUniqueAttackSpeedBonus`) | 0.6 | 0 | 0 |
+| 확산각 `_unequippedSpreadAngle` (도) | 해제 중, 0보다 클 때 | 무기 기준 각도를 이 값으로 대체·랜덤 탄퍼짐 (`GetUniqueSpreadAngle`) | 70 | 0 | 0 |
+| 이동속도 `_unequippedMoveSpeedBonus` | 해제 중 | `PlayerStatSync` 이동속도 (상한 +0.5) | 0 | 0.1 | −0.2 |
+| 최대 체력 `_unequippedMaxHealthBonus` | 해제 중 | `PlayerStatSync` 최대 체력 | 0 | −0.6 | 0 |
 
-- 위 SO 값은 모두 임시값이다. 비율은 0.1 = 10%다.
-- `InventoryData`의 장착 효과·해제 버프·해제 디버프 텍스트는 여전히 표시 전용이며, 위 효과 수치와 연결되어 있지 않다 (문구와 수치가 맞는지 대조하지 않았다).
+- 위 SO 값은 확정 수치(`Docs/Spec/Inventory/ItemDescriptions.md`)이며 플레이 테스트 후 조절할 수 있다. 비율은 0.1 = 10%다.
+- Issue #40에서 `_equippedDamageBonus`(장착 중 공격력), `_baseMoveSpeedBonus`, `_baseAccuracyBonus`, `_unequippedAccuracyBonus`는 삭제되었다. 카우보이 공격력은 특성으로 옮겨 모자 탈착과 무관하게 적용되고, 헤비거너는 해제 효과로 추가되는 정확도가 없다(특성 정확도 +10%는 해제 중에도 유지).
+- `HasUniqueItemInstance` (private) : 고유 아이템 인스턴스가 남아 있는지 그리드(`IsUniqueItemEquipped`)와 보관함만 확인하고 Temporary는 확인하지 않는다 (코드의 `shortcut` 주석 : Temporary 아이템 목록이 없음, 고유 아이템은 보상 후보에서 제외되어 1개뿐이라 충분). 고유 아이템이 2개 이상 존재할 수 있게 되면 판매 시 예약 해제 판정이 틀릴 수 있다 (reviewer 권고, 미반영, 주의사항 as).
+- `InventoryData`의 장착 효과·해제 버프·해제 디버프 텍스트는 여전히 표시 전용이며, 위 효과 수치와 연결되어 있지 않다. 고유 아이템 3종 문구의 수치는 위 SO 값과 일치함을 대조했다 (위 `InventoryData` 텍스트 필드 항목). 값이 바뀌면 문구를 따로 고쳐야 한다.
 
 ### `SettingsPanel`
 
@@ -514,8 +568,9 @@ StartRound : _isShowingChest = (_pendingCount == 0) → Phase = Selecting
   → 남은 수 0이면 SetExpansionMode(false) → RefreshExpansionGuide (0이면 문구 숨김) → RefreshCompleteButton
 [아이템 정리] 드래그로 인벤토리·저장고·판매 → Inventory.TemporaryCountChanged → RefreshCompleteButton (0개면 완료 버튼 켬, 경고 끔)
   드롭 시 포인터 아래 다른 아이템 → TryMerge (성공 : 재료 None·대상 Level+1·재료 UI 끔) / 실패 → 영역별 처리
-  판매 영역 드롭 → CanSell이면 SellConfirmPopup.Open → 확인 : 가격 확정 → TrySell → Currency.Add → 아이템 UI 끔
+  판매 영역 드롭 → CanSell·CanReleaseUniqueEffect이면 SellConfirmPopup.Open (해제 거부면 InventoryUI.ShowNotice 안내) → 확인 : 가격 확정 → TrySell → Currency.Add → 아이템 UI 끔
   조작 성공마다 Inventory.Changed → InventoryWeaponSync.SyncWeapons (무기 장착·해제·스탯, Weapon.md) · PlayerStatSync.ApplyStats
+    · LevelUpPanel.RefreshStorageCount (보관 수·한도 문구) · InventoryUI.RefreshCellColors · InventoryUI.RefreshStorageSlots (한도 밖 슬롯 숨김)
 [툴팁 Hover]
   카드 Enter (Selecting) → RewardCardUI.OnPointerEnter → ItemTooltipUI.Show(data, 카드) → Display(Lv.1, GetSellPrice(data, 1)) → 루트 켬 → 레이아웃 재계산 → UpdatePosition
   아이템 Enter (Selecting·Organizing, 드래그 중 아님) → InventoryItemUI.OnPointerEnter → ItemTooltipUI.Show(item, 아이템) → Display(item.Level, GetSellPrice(item)) → (위와 같음)
@@ -603,8 +658,14 @@ UI
 │  │  └─ CurrencyIcon         (SPR_SphereGem)
 │  ├─ PFB_LevelUpPanel        (PFB_LevelUpPanel 인스턴스, Scene 저장 시 비활성, LevelUpPanel._panelRoot, InventoryUI 추가, 구성은 아래 `PFB_LevelUpPanel` + 아래 추가 오브젝트)
 │  │  ├─ (Prefab 자식. RewardCards는 위치 오버라이드 (128, -215))
+│  │  ├─ StoragePanel/StorageSlot_01 ~ 07 (인스턴스의 Prefab 자식 StoragePanel 아래에 Scene에서 추가, 각 280×95, 중앙 기준 x 0 · y 315부터 105 간격으로 아래로(07 = -315),
+│  │  │                        InventoryUI._storageSlots[0] ~ [6] 순서대로 연결. 06·07은 Issue #40 추가,
+│  │  │                        06·07 Image 색 주황 (1, 0.6, 0.25, 1) = 조끼 장착 시에만 보이는 슬롯, Issue #51)
 │  │  ├─ ExpansionGuideText   (인스턴스에 추가 · Prefab 자식 InventoryFrame 다음 형제, Layer 0 Default, Scene 저장 시 비활성, 중앙 기준 (129, 440) · 700×56 = 프레임 상단 중앙,
 │  │  │                        Text 노란색 (1, 0.85, 0.2) · 굵게 · 크기 40 · 가운데 정렬 · Raycast Target 꺼짐, Outline 검정 (1, -1), LevelUpPanel._expansionGuideText)
+│  │  ├─ NoticeText           (Issue #51, 인스턴스에 추가 · ExpansionGuideText 다음 형제, Layer 0 Default, 중앙 기준 (129, 495) · 1100×50,
+│  │  │                        Text 노란색 (1, 0.85, 0.2) · 굵게 · 크기 32 · 가운데 정렬 · Raycast Target 꺼짐 · 저장 값 빈 문자열, Outline 검정 (1, -1),
+│  │  │                        GameObject는 활성 · Text 컴포넌트는 Scene 저장 시 비활성, InventoryUI._noticeText)
 │  │  ├─ SelectingGroup       (인스턴스에 추가, 중앙 기준 (120, -315) · 1150×400, LevelUpPanel._selectingGroup)
 │  │  │  ├─ RerollButton      ((-300, -110) · 170×56, Button, Image RewardCard, LevelUpPanel._rerollButton)
 │  │  │  │  ├─ RerollIcon     (Image F_UI_MenuIcons_Tile Map 16x16_11)
@@ -713,7 +774,7 @@ UI
 - `ItemTooltipUI`는 툴팁 루트(`ItemTooltip`)가 아닌 항상 활성인 별도 오브젝트(`TooltipLayer`)에 둔다. 같은 오브젝트에 두면 첫 표시 때 루트가 처음 켜지며 `Awake`가 실행되어 루트를 다시 끈다 (주의사항 ah).
 - `TooltipLayer`는 `PFB_LevelUpPanel` 인스턴스 루트에 Scene에서 추가한 오브젝트 중 마지막(`m_AddedGameObjects` 순서)이라 패널의 다른 요소·아이템 위에 그려진다. `TooltipLayer`에는 Graphic이 없고 `ItemTooltip`은 Image의 Raycast Target 꺼짐·CanvasGroup `blocksRaycasts` false라 툴팁이 아래 카드·아이템의 포인터 이벤트를 가리지 않는다.
 - `ItemTooltip`은 Scene 저장 시 활성이며, 패널이 처음 열릴 때 `ItemTooltipUI.Awake`가 끈다. 폭은 320 고정이고 높이는 `ContentSizeFitter`가 정한다.
-- `InventoryUI`는 `PFB_LevelUpPanel` 원본이 아니라 Scene에서 인스턴스 루트에 추가한 컴포넌트다. Issue #23에서 `GameScene`을 포함한 Scene 4개의 `InventoryUI`에 칸 색(`_availableCellColor`·`_lockedCellColor`·`_candidateCellColor`)과 `_inventory`(Scene의 `Inventory`)를 연결했다 (작업 시 Unity에서 직접 설정·확인). 나머지 테스트 Scene 3개에는 `ExpansionGuideText`가 없다 (`_expansionGuideText` `null` 허용, 주의사항 ar).
+- `InventoryUI`는 `PFB_LevelUpPanel` 원본이 아니라 Scene에서 인스턴스 루트에 추가한 컴포넌트다. Issue #23에서 `GameScene`의 `InventoryUI`에 칸 색(`_availableCellColor`·`_lockedCellColor`·`_candidateCellColor`)과 `_inventory`(Scene의 `Inventory`)를 연결했다 (작업 시 Unity에서 직접 설정·확인). 현재 `InventoryUI` 스크립트(GUID)를 참조하는 Scene은 `GameScene` 하나뿐이다 (주의사항 ar).
 - `ItemLayer`의 CanvasGroup은 남아 있으나 `blocksRaycasts` true이며 코드에서 쓰지 않는다. 보상 선택 중 드래그 차단은 `InventoryItemUI.IsDragEnabled`가 맡는다.
 - `ItemLayer`의 테스트 아이템 13개는 `_tooltip`이 비어 있어 툴팁이 뜨지 않는다 (`null`이면 툴팁 없음, 필드 주석).
 
@@ -869,7 +930,7 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 | o | `PFB_LevelUpPanel` 인스턴스의 비활성 상태를 Scene 저장(`m_IsActive` 0)과 `LevelUpPanel.Awake`의 `_panelRoot.SetActive(false)` 두 곳이 정한다 (이중 책임, reviewer 권고, 미반영). `ResultPanel`도 같은 구조다 | 참고 |
 | p | 카드 5장(보물 상자 회차, `_chestCardCount` 5)이면 `HorizontalLayoutGroup`이 카드 폭을 약 184px((1135 − 54 × 4) / 5)로 줄여 이름·설명 텍스트가 세로로 깨진다. 기본 크기 342×158은 3장 기준이다. Issue #19 이후 5장 표시의 실제 화면은 이 문서 작성 시 확인하지 않았다 (미검증) | 카드 레이아웃 보정 시 |
 | q | 레벨업 화면 배경이 반투명(α 0.6)이라 아래 HUD가 보이고, 타이머가 `InventoryFrame` 상단에 겹친다 (1920×1080 렌더 캡처 기준) | 레이아웃 보정 시 |
-| r | (해결) 완료 버튼은 `Organizing`이고 Temporary가 비었을 때만 회차를 넘긴다 (버튼 `interactable`과 `HandleCompleteClicked` 양쪽에서 확인). 리롤은 패널의 리롤 버튼 1개로 동작한다. 저장고 표시("Storage N/5")는 `Inventory.StorageCountChanged`로 갱신된다 | 해결 (이슈 미등록, `art/fix-inven-ui`) |
+| r | (해결) 완료 버튼은 `Organizing`이고 Temporary가 비었을 때만 회차를 넘긴다 (버튼 `interactable`과 `HandleCompleteClicked` 양쪽에서 확인). 리롤은 패널의 리롤 버튼 1개로 동작한다. 저장고 표시는 Issue #40부터 `"보관함 {보관 수}/{StorageCapacity}"`이며 `Inventory.Changed`로 갱신된다 (이전 : "Storage N/5", `StorageCountChanged`) | 해결 (이슈 미등록, `art/fix-inven-ui`) |
 | s | (일부 해결) 연속 레벨업 시 다음 회차는 `StartRound`로 새 후보·선택 상태·단계 UI를 다시 만든다. 레벨업 효과음은 여전히 없다. `Docs/Spec/GameFlow.md`의 `연속 레벨업`(회차마다 효과음·UI·후보 재생성) 중 효과음만 충족하지 않는다. 마지막 회차 전 재개하지 않는 조건은 충족한다 | 효과음 구현 시 |
 | t | `Docs/Spec/GameFlow.md`의 `게임 상태`는 "레벨업·인벤토리 정리"를 별도 상태로 구분하도록 요구하지만, 현재 구현은 `SessionState`를 바꾸지 않고 `Time.timeScale`과 `LevelUpPanel.IsOpen`으로만 표현한다. 별도 상태 도입 여부는 추후 확정 필요 | 레벨업 보상·보물상자 구현 시 확정 |
 | u | 후보 풀에서 뽑을 수 있는 아이템 수가 카드 수 이하이면 리롤해도 같은 아이템 조합(순서만 다를 수 있음)이 나오지만 재화는 차감된다. 새 후보가 0개일 때만 차감하지 않는다 | 풀 확장 또는 리롤 차단 조건 검토 시 |
@@ -883,17 +944,20 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 | ac | (해결) `Selecting` 단계에서 아이템 툴팁이 뜨지 않던 문제. Issue #23에서 `_itemLayerGroup`을 제거하고 드래그만 `InventoryItemUI.IsDragEnabled`로 막아 선택 중에도 아이템 hover 툴팁이 뜬다 | 해결 (#23) |
 | ad | (해결) 툴팁의 무기 공격력이 레벨 계산 없는 기본값이던 문제. 레벨 보너스 줄과 `GetWeaponStats` 기준 최종 공격력 범위를 표시한다. 기본 공격력 줄은 여전히 `ProjectileDamage` 원본이다 | 해결 (`art/fix-inven-ui`) |
 | ae | 해제 버프와 해제 디버프가 같은 접두어 `"해제 시:"`(`UNEQUIPPED_FORMAT`)를 쓰고 텍스트 색(`GameScene` 값 초록/빨강)으로만 구분한다. 종류 표시는 `ItemType`이 무기·패시브·소비가 아니면 모두 `"고유"`(`default`)다. 보상 Lv.1 규칙이 `ItemTooltipUI.REWARD_LEVEL`과 `RewardCardUI.NAME_FORMAT` 두 곳에 있다 (reviewer 권고, 미반영). Issue #25에서 레벨 표기 생략 기준은 두 곳 모두 `MaxLevel > 1`로 맞췄지만 규칙은 여전히 두 곳에 있다 | 툴팁 문구·보상 레벨 규칙 정리 시 |
-| af | 장착 효과·해제 버프·해제 디버프 텍스트는 표시 전용이다. 실제 효과는 `CharacterDefinition` 고유 효과 필드로 구현되었으나 텍스트와 수치는 서로 연결되지 않아 따로 맞춰야 한다. 전투 조끼 +2칸 확장·회수는 구현되지 않았다 | 아이템 효과 문구 정리 시 |
+| af | 장착 효과·해제 버프·해제 디버프 텍스트는 표시 전용이다. 실제 효과는 `CharacterDefinition` 특성·고유 효과 필드로 구현되었으나 텍스트와 수치는 서로 연결되지 않아 따로 맞춰야 한다. 전투 조끼 +2칸 확장·회수는 Issue #40에서 구현되었다 (위 `조끼 전용 칸`) | 아이템 효과 문구 정리 시 |
 | ai | `PlayerHealthBar`는 `Damaged`·`Healed`와 `Start`에서만 갱신한다. 고유 아이템 탈착으로 최대 체력만 바뀌면 다음 피격·회복 전까지 체력바 비율이 갱신되지 않는다 (코드 기준, Play 미검증) | 체력바 갱신 경로 정리 시 |
 | aj | 최대 체력 배율이 다시 1로 돌아와도(고유 아이템 재장착) 현재 체력은 회복되지 않는다 (`Health.SetMaxHealth`가 증가 시 유지) | 기획 확정 시 |
 | ak | `PlayerHealth._contactRadius`(0.45)·`PlayerExperience._collectRadius`(0.8)의 필드 주석은 이전 값(0.6·0.4)의 근거를 설명한다. Prefab 값만 바뀌어 주석과 값이 다르다 | 주석 정리 시 |
 | al | `WeaponReloadGauge`는 재장전 중인 첫 무기만 표시한다 (코드의 `shortcut` 주석). 미니건 2개를 장착해 동시에 재장전하면 목록 앞 무기의 진행률만 보인다 | 무기별 게이지가 필요해지면 |
-| am | 이동속도 보너스 상한 0.5는 코드 주석상 테스트 상한이며 하한은 없다(`Max(0, …)`로 배율 0 미만만 막음). 패시브 Lv.3 수치·캐릭터 효과 수치·인접·레벨 상수는 모두 임시값이다 | 밸런스 확정 시 |
+| am | 이동속도 보너스 상한 0.5는 코드 주석상 테스트 상한이며 하한은 없다(`Max(0, …)`로 배율 0 미만만 막음). 패시브 Lv.3 수치(탄띠 이동속도 0.05는 Issue #40 확정값으로 제외)·인접·레벨 상수는 모두 임시값이다. 캐릭터 특성·고유 효과 수치는 Issue #40에서 확정 수치로 맞췄으며 플레이 테스트 후 조절할 수 있다 | 밸런스 확정 시 |
 | an | 툴팁의 인접 탄퍼짐 줄은 인접 효과만(상한 0.7 적용) 표시하고, 무기 Lv.3 탄퍼짐 감소는 별도 줄이 없다. 실제 적용 감소율(합산 후 상한)과 표시가 다를 수 있다 | 툴팁 문구 정리 시 |
 | ao | 확장 안내 문구(`ExpansionGuideText`, 프레임 상단 중앙)가 HUD 타이머와 겹친다 (주의사항 q와 같은 위치) | 레이아웃 조정 시 |
 | ap | `InventoryItemUI.IsDragEnabled`는 `static`이다. Domain Reload를 끈 Play 모드에서 보상 선택 중 Play를 멈추면 false가 다음 Play에 남을 수 있다 (코드 기준 추정, 미검증) | Domain Reload 설정 변경 시 |
 | aq | `InventoryUI`는 `gridRect` 자식이 정확히 60개(10×6 Slot)라는 전제로 칸 Image를 모은다. 60개가 아니면 `Awake`에서 `LogError` 후 수집을 건너뛰고, 곧이은 첫 `OnEnable`의 칸 색 갱신부터 예외가 난다 (코드 기준) | Grid 구조 변경 시 |
-| ar | `GameScene` 외 테스트 Scene 3개에는 `ExpansionGuideText`가 배치되지 않았다. `_expansionGuideText`가 `null`이면 안내 없이 확장만 동작한다 | 테스트 Scene 정리 시 |
+| ar | `InventoryUI`가 있는 Scene은 `GameScene` 하나뿐이다. `_expansionGuideText`가 `null`이면 안내 없이 확장만 동작한다. 테스트 Scene에 `InventoryUI`를 다시 붙이면 `_noticeText` 미연결 시 `Awake`에서 예외가 난다 (`null` 검사 없음) | 테스트 Scene 정리 시 |
+| as | `Inventory`의 두 전제 (Issue #40, reviewer 권고, 미반영). (1) `Character` setter는 게임 시작 시 1회 설정 전제다. 재설정 시 조끼 전용 칸 상태가 맞지 않을 수 있다. (2) `HasUniqueItemInstance`는 Temporary를 확인하지 않는 `shortcut`이며 고유 아이템이 1개뿐이라는 전제다 (위 `캐릭터 특성·고유 아이템 장착/해제 효과`) | 캐릭터 재설정 경로 추가 시 / Temporary 아이템 목록이 생기거나 고유 아이템이 2개 이상 가능해질 때 |
+| at | (해결) 보관함 6·7번째 슬롯이나 예약 중 조끼 전용 칸에 아이템이 있으면 고유 아이템을 그리드 밖으로 옮기거나 판매·합성할 수 없다. 거부 이유 안내가 없던 문제는 Issue #51에서 드롭 시 판매 영역·보관함·Temporary 거부에 안내 문구를 표시해 해결됐다. 그리드 안 드롭과 합성 거부 자체에는 별도 안내가 없다 (위 `고유 아이템 해제 거부`) | 해결 (#51) |
+| au | 안내 문구의 "주황색"은 세 곳이 따로 정한다 : 문구 상수 `InventoryItemUI.VEST_RELEASE_REJECTED_NOTICE`, 그리드 칸 색 `InventoryUI._vestCellColor`(`GameScene` 값 (1, 0.6, 0.25, 1)), `GameScene`의 `StorageSlot_06`·`07` Image 색. 색을 바꾸려면 세 곳을 함께 고쳐야 한다 | 색·문구 변경 시 |
 | ag | `ItemTooltipUI`에는 Inspector 참조 `null` 방어가 없다. `_inventory`·`_tooltipRect`·텍스트·이미지 참조가 비면 `Awake`·`Show`에서 `NullReferenceException`이 난다. 호출 측(`RewardCardUI`·`InventoryItemUI`)은 `_tooltip`이 비면 툴팁만 생략한다 | Scene 구성 시 연결 필수 |
 | ah | `ItemTooltipUI`를 툴팁 루트(`_tooltipRect`)와 같은 오브젝트에 두면, 루트가 비활성인 채 첫 `Show`가 루트를 켤 때 `Awake`가 처음 실행되어 루트를 다시 끈다. 항상 활성인 별도 오브젝트(`TooltipLayer`)에 두어야 한다. `_tooltipRect`의 필드 주석("자신과 같아도 됨")과 `OnDisable`의 같은 오브젝트 분기는 이 배치를 허용하는 것처럼 쓰여 있다 (코드 기준 추정, 같은 오브젝트 배치는 실행 확인하지 않음) | 필드 주석 정리 시 |
 
@@ -931,6 +995,15 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
     - EditMode 테스트 (`InventoryTests`, 3개 추가) : `CountExpansionCandidates_InitialGrid_Is16`, `TryUnlockCell_Candidate_UnlocksAndRecalculates`(해제 후 새 외곽 후보·해제 칸 배치), `TryUnlockCell_NotCandidate_Fails`. 칸 클릭·안내 문구·완료 버튼 흐름은 자동 테스트가 없고 Play로만 확인한다.
     - 테스트 실행 결과 : 컴파일 에러 없음, EditMode 349/349 통과.
     - Play 모드 : AI agent가 `GameScene`에서 위 절차대로 검증 완료 (포인터 이벤트를 코드로 전송, 아이템 배치·보관은 `TryPlace`·`TryStore` 직접 호출). 보상 선택 중 툴팁 표시·드래그 취소, 후보가 아닌 칸·4칸 이후 클릭 무시도 확인. 테스트 Scene 3개의 `InventoryUI` 연결은 작업 시 Unity에서 직접 설정·확인했다.
+- Issue #40 (캐릭터 특성·고유 아이템 효과 구조 정리)
+    - EditMode 테스트 : `InventoryTests`, `UniqueItemEffectTests`, `WeaponInstanceTests`가 변경되었다. 개별 테스트 항목은 이 문서 작성 시 대조하지 않았다.
+    - 테스트 실행 결과 : EditMode 356개 중 355개 통과. 실패 1개는 이번 변경과 무관한 `ResultPanelTests` (reviewer 보고 기준).
+    - Play 모드 확인 항목(보관함 슬롯 표시·숨김, 조끼 전용 칸 열림·잠김, 해제 거부 시 UI 동작, 툴팁 특성 줄)은 이 문서 작성 입력에 없다 (미검증).
+- Issue #51 (조끼 회수 거부 안내)
+    - EditMode 테스트 (`UniqueItemEffectTests`에 단언 추가) : `CanReleaseUniqueEffect` — 카우보이 모자 해제 가능(`Cowboy_HatUnequipped_TraitDamageAttackSpeedAndRandomSpread`), 조끼 전용 칸 점유 시 false·비우면 true(`Survivor_VestCellOccupied_ReleaseRejectedNoChange`), 보관함 6번째 슬롯 점유 시 false·비우면 true(`Survivor_ExtraStorageSlotOccupied_ReleaseRejectedNoChange`). `IsVestCell` — 조끼 장착 중 `(4,5)`·`(5,5)` true·다른 칸 false(`Survivor_VestEquipped_VestCellsOpenStorage7_UnequippedLockedStorage5`), 조끼 판매 뒤 false(`VestCells_NotExpansionCandidateUntilVestSold`), 조끼 캐릭터가 아니면 false(`NonVestCharacter_VestCellsActAsNormalCells`). 안내 표시·칸 색은 자동 테스트가 없다.
+    - 테스트 실행 결과 : EditMode 356개 중 355개 통과. 실패 1개는 이번 변경과 무관한 `ResultPanelTests` (메인 세션이 Unity에서 직접 실행).
+    - Play 확인 절차 : 겁쟁이(`SO_Survivor`)로 시작 → 레벨업 화면 `Organizing`에서 조끼 장착 중 `(4,5)`·`(5,5)` 칸과 보관함 6·7번째 슬롯이 주황색인지 확인 → 전용 칸(또는 보관함 6·7번째 슬롯)에 아이템을 둔 채 조끼를 판매 영역·보관함·Temporary로 각각 드래그 → 조끼가 원위치로 돌아가고 판매 팝업이 열리지 않으며 안내 문구가 약 3초 표시된 뒤 사라지는지 확인 → 칸을 비운 뒤 같은 조작이 정상 처리(판매 팝업·보관·Temporary 이동)되는지 확인 → 조끼가 아닌 아이템을 가득 찬 보관함에 드롭하는 일반 실패에는 안내가 없는지 확인.
+    - Play 모드 확인 결과 : 사용자 Play 확인 완료(사용자 검수 승인).
 
 ## 관련 Issue/PR
 
@@ -942,3 +1015,5 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 - Issue #19 (몬스터 최종 M06~M12. 보물 상자 보상 요청, 회차 종류별 카드 수, 최종 보스 처치 클리어. `Docs/TechDocs/Enemy.md`). PR : 미정
 - 이슈 미등록 (브랜치 `art/fix-inven-ui`. 레벨업·보물 상자 보상 선택·리롤·Temporary 정리, 툴팁, 합성·레벨 성장·인접 효과·패시브 Lv.3·고유 아이템 효과, `PlayerStatSync`, 재장전 게이지, 피격·젬 획득 반경 조정). PR : 미정
 - Issue #23 (브랜치 `feat/boss-inventory-expansion`. 보물 상자 보상 인벤토리 4칸 확장, 보상 선택 중 툴팁, `InventoryUI_casual` 스프라이트). PR : 미정
+- Issue #40 (브랜치 `feat/character-trait-essential-effect`. 캐릭터 특성·고유 아이템 효과 두 층 구조, 보관함 한도 확장, 조끼 전용 칸, 해제 거부). PR : 미정
+- Issue #51 (브랜치 `feat/vest-release-notice`. 조끼 회수 거부 안내 표시, 조끼로 확장된 칸 주황색 표시). PR : 미정

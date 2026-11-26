@@ -14,12 +14,14 @@ public class CharacterSelectUI : MonoBehaviour
     private const string GAME_SCENE_NAME = "GameScene";
     private const string START_WEAPON_FORMAT = "{0} ({1}칸)"; // "시작 무기" 라벨이 따로 있음, {0} 이름, {1} 점유 칸 수
     private const string UNIQUE_ITEM_FORMAT = "고유 아이템: {0} ({1}칸)";
+    private const string TRAIT_FORMAT = "특성: {0}"; // {0} 캐릭터 특성 문구
     private const string LINE_SEPARATOR = "\n";
 
     [SerializeField] private CharacterSlot[] _slots;
     [SerializeField] private Text _nameText;
     [SerializeField] private Text _weaponText;
     [SerializeField] private Text _uniqueItemText;
+    [SerializeField] private Text _traitText;
     [SerializeField] private Text _descriptionText;
     [SerializeField] private Button _startButton;
 
@@ -69,6 +71,7 @@ public class CharacterSelectUI : MonoBehaviour
         _nameText.text = string.Empty;
         _weaponText.text = string.Empty;
         _uniqueItemText.text = string.Empty;
+        _traitText.text = string.Empty;
         _descriptionText.text = string.Empty;
         _startButton.interactable = false;
     }
@@ -84,6 +87,7 @@ public class CharacterSelectUI : MonoBehaviour
         _nameText.text = _selected.DisplayName;
         _weaponText.text = GetItemLine(START_WEAPON_FORMAT, _selected.StartWeaponItem) ?? string.Empty;
         _uniqueItemText.text = GetUniqueItemText(_selected);
+        _traitText.text = string.Format(TRAIT_FORMAT, _selected.TraitDescription);
         _descriptionText.text = _selected.Description;
         _startButton.interactable = true;
     }
@@ -97,7 +101,7 @@ public class CharacterSelectUI : MonoBehaviour
         if (item != null)
         {
             lines.Add(GetItemLine(UNIQUE_ITEM_FORMAT, item));
-            // 해제 효과는 Tooltip에서만 안내, 선택 화면은 장착 효과를 기본 패시브처럼 표시
+            // 특성은 _traitText에 따로 표시, 고유 아이템 줄은 장착 효과만 (해제 효과는 Tooltip에서만 안내)
             lines.Add(item.EquippedEffect);
         }
 

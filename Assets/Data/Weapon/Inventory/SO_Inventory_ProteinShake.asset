@@ -32,6 +32,6 @@ MonoBehaviour:
   _expendableEffectType: 0
   _expendableEffectValue: 0
   _weaponDefinition: {fileID: 0}
-  _equippedEffect: "\uC774\uB3D9\uC18D\uB3C4 -10%, \uC815\uD655\uB3C4 +20%"
-  _unequippedBuff: "\uC815\uD655\uB3C4 +10%"
-  _unequippedDebuff: "\uC774\uB3D9\uC18D\uB3C4 -20%"
+  _equippedEffect: "\uBBF8\uB2C8\uAC74 \uC815\uD655\uB3C4 +10%"
+  _unequippedBuff:
+  _unequippedDebuff: "\uADFC\uC190\uC2E4\uB85C \uC774\uB3D9\uC18D\uB3C4 -20%"

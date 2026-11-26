@@ -7,8 +7,9 @@ public class Inventory : MonoBehaviour
     private const int Width = 10;
     private const int Height = 6;
 
-    /// <summary>보관함 슬롯 수 (슬롯 1칸 = 아이템 1개, Shape 무관)</summary>
-    public const int STORAGE_CAPACITY = 5;
+    // 보관함 슬롯 1칸 = 아이템 1개 (Shape 무관)
+    private const int BASE_STORAGE_CAPACITY = 5; // 기본 보관함 한도
+    private const int MAX_STORAGE_CAPACITY = 7; // 슬롯 배열 크기 (기본 + 고유 아이템 장착 확장 최대)
 
     private const int SELL_PRICE_PER_LEVEL = 1; // 판매가 = 레벨 × 이 값 (특수 재화)
 
@@ -24,9 +25,16 @@ public class Inventory : MonoBehaviour
         Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right,
     };
 
+    // 조끼 전용 칸 (EquippedUnlocksVestCells 캐릭터만 예약: 고유 아이템 장착 중에만 열리고 예약 해제 전까지 확장 후보 제외, 그 외 캐릭터는 일반 칸)
+    private static readonly Vector2Int[] _vestCells =
+    {
+        new Vector2Int(4, 5), new Vector2Int(5, 5),
+    };
+
     private InventoryCell[,] cells = new InventoryCell[Width, Height];
-    private ItemInstance[] _storageSlots = new ItemInstance[STORAGE_CAPACITY];
+    private ItemInstance[] _storageSlots = new ItemInstance[MAX_STORAGE_CAPACITY];
     private CharacterDefinition _character;
+    private bool _isVestReservationReleased; // 조끼 판매로 전용 칸 예약 해제 (이후 일반 확장 칸으로 취급)
 
     /// <summary>Temporary 영역에 있는 아이템 수 (1 이상이면 레벨업 완료 차단)</summary>
     public int TemporaryCount { get; private set; }
@@ -47,16 +55,21 @@ public class Inventory : MonoBehaviour
         }
     }
 
+    /// <summary>현재 보관함 한도 (기본 5 + 고유 아이템 장착 중 캐릭터 보관함 보너스, 슬롯 배열 크기 이하)</summary>
+    public int StorageCapacity => GetStorageCapacity(IsUniqueItemEquipped());
+
     public int GridWidth => Width; // 잠금 칸 포함
     public int GridHeight => Height;
 
-    /// <summary>고유 효과 기준 캐릭터 (null이면 고유 효과 없음), 설정 시 스탯이 바뀌므로 Changed 1회 발생</summary>
+    /// <summary>특성·고유 효과 기준 캐릭터 (null이면 효과 없음), 설정 시 스탯·조끼 전용 칸(예약 초기화)이 바뀌므로 Changed 1회 발생</summary>
     public CharacterDefinition Character
     {
         get => _character;
         set
         {
             _character = value;
+            _isVestReservationReleased = false;
+            RefreshVestCells();
             Changed?.Invoke();
         }
     }
@@ -109,9 +122,10 @@ public class Inventory : MonoBehaviour
         public bool RandomSpread { get; } // true면 확산각 안 무작위 방향, false면 균등 분배
         public int GunCount { get; } // 이 인스턴스의 총기 자루 수 (발사 1회에 자루마다 동시 발사)
         public float KnockbackStrength { get; } // 탄 적중 시 넉백 속도, 0 = 넉백 없음
+        public int ProjectilesPerShot { get; } // 자루 하나가 발사 1회에 쏘는 탄 수
 
         public WeaponStats(float damage, float fireInterval, float spreadAngle, bool randomSpread, int gunCount,
-            float knockbackStrength)
+            float knockbackStrength, int projectilesPerShot)
         {
             Damage = damage;
             FireInterval = fireInterval;
@@ -119,6 +133,7 @@ public class Inventory : MonoBehaviour
             RandomSpread = randomSpread;
             GunCount = gunCount;
             KnockbackStrength = knockbackStrength;
+            ProjectilesPerShot = projectilesPerShot;
         }
     }
 
@@ -229,7 +244,8 @@ public class Inventory : MonoBehaviour
         }
     }
 
-    // 아이템 최초 배치
+    /// <summary>어느 영역에도 없는(None) 아이템을 Inventory에 최초 배치, 고유 아이템 장착 상태에 맞춰 조끼 전용 칸 갱신</summary>
+    /// <returns>item이 null·None이 아님·배치 불가 시 false, 상태 변화 없음</returns>
     public bool PlaceItem(ItemInstance item, Vector2Int position)
     {
         // Storage·Temporary 아이템은 출발 영역 해제가 필요하므로 TryPlace 사용
@@ -243,19 +259,23 @@ public class Inventory : MonoBehaviour
         item.Location = ItemLocation.Inventory;
 
         FillCells(item);
+        RefreshVestCells();
         Changed?.Invoke();
         return true;
     }
 
-    // 기존 점유 셀 해제
-    public void RemoveItem(ItemInstance item)
+    /// <summary>Inventory에 배치된 아이템의 점유 셀을 해제하고 Location을 None으로 전환, 조끼 전용 칸 갱신</summary>
+    /// <returns>item이 null·미배치·고유 아이템 해제 거부 시 false, 상태 변화 없음</returns>
+    public bool RemoveItem(ItemInstance item)
     {
-        if (item == null || !item.IsPlaced)
-            return;
+        if (item == null || !item.IsPlaced || !CanReleaseUniqueEffect(item))
+            return false;
 
         ClearCells(item);
         item.Location = ItemLocation.None;
+        RefreshVestCells();
         Changed?.Invoke();
+        return true;
     }
 
     // 내부 조작용 셀 해제, 중간 상태에서 Changed가 발생하지 않도록 RemoveItem과 분리
@@ -342,13 +362,14 @@ public class Inventory : MonoBehaviour
         item.Rotation = rotation;
         item.Location = ItemLocation.Inventory;
         FillCells(item);
+        RefreshVestCells();
 
         NotifyLocationChanged(previousLocation, ItemLocation.Inventory);
         Changed?.Invoke();
         return true;
     }
 
-    /// <summary>첫 빈 보관함 슬롯에 넣고 회전 0으로 초기화, 빈 슬롯이 없으면 원래 영역 상태 유지</summary>
+    /// <summary>현재 한도 안의 첫 빈 보관함 슬롯에 넣고 회전 0으로 초기화, 빈 슬롯이 없거나 고유 아이템 해제 거부 시 원래 영역 상태 유지</summary>
     /// <returns>이미 보관함에 있으면 변화 없이 true</returns>
     public bool TryStore(ItemInstance item)
     {
@@ -358,7 +379,12 @@ public class Inventory : MonoBehaviour
         if (item.Location == ItemLocation.Storage)
             return true;
 
-        int slotIndex = Array.IndexOf(_storageSlots, null);
+        if (!CanReleaseUniqueEffect(item))
+            return false;
+
+        // 고유 아이템 자신을 넣어 장착이 풀리면 줄어든 한도 안의 슬롯만 사용
+        int capacity = GetStorageCapacity(IsUniqueItemEquippedExcept(item));
+        int slotIndex = Array.IndexOf(_storageSlots, null, 0, capacity);
 
         if (slotIndex < 0)
             return false;
@@ -369,6 +395,7 @@ public class Inventory : MonoBehaviour
         _storageSlots[slotIndex] = item;
         item.Rotation = 0;
         item.Location = ItemLocation.Storage;
+        RefreshVestCells();
 
         NotifyLocationChanged(previousLocation, ItemLocation.Storage);
         Changed?.Invoke();
@@ -378,10 +405,11 @@ public class Inventory : MonoBehaviour
     /// <summary>Temporary 영역으로 이동하며 회전 저장, 이미 Temporary면 좌표·회전만 갱신</summary>
     /// <param name="temporaryPosition">Temporary 영역 기준 로컬 좌표</param>
     /// <param name="rotation">Temporary 표시 회전 (셀을 점유하지 않아 충돌 검사 없음)</param>
-    public void MoveToTemporary(ItemInstance item, Vector2 temporaryPosition, int rotation)
+    /// <returns>item이 null이거나 고유 아이템 해제 거부 시 false, 상태 변화 없음</returns>
+    public bool MoveToTemporary(ItemInstance item, Vector2 temporaryPosition, int rotation)
     {
-        if (item == null)
-            return;
+        if (item == null || !CanReleaseUniqueEffect(item))
+            return false;
 
         ItemLocation previousLocation = item.Location;
 
@@ -395,9 +423,11 @@ public class Inventory : MonoBehaviour
 
         item.TemporaryPosition = temporaryPosition;
         item.Rotation = rotation;
+        RefreshVestCells();
 
         NotifyLocationChanged(previousLocation, ItemLocation.Temporary);
         Changed?.Invoke();
+        return true;
     }
 
     /// <summary>판매 시 지급할 특수 재화 (레벨 × 레벨당 판매가)</summary>
@@ -429,15 +459,21 @@ public class Inventory : MonoBehaviour
         return item.Data.IsSellable && item.Location != ItemLocation.None;
     }
 
-    /// <summary>출발 영역을 해제하고 Location을 None으로 전환, 재화 지급은 호출부 담당 (GetSellPrice 사용)</summary>
-    /// <returns>CanSell 실패 시 false, 상태 변화 없음</returns>
+    /// <summary>출발 영역을 해제하고 Location을 None으로 전환, 재화 지급은 호출부 담당 (GetSellPrice 사용), 조끼를 팔면 전용 칸 예약 해제</summary>
+    /// <returns>CanSell 실패·고유 아이템 해제 거부 시 false, 상태 변화 없음</returns>
     public bool TrySell(ItemInstance item)
     {
-        if (!CanSell(item))
+        if (!CanSell(item) || !CanReleaseUniqueEffect(item))
             return false;
 
         ItemLocation previousLocation = item.Location;
         ReleaseLocation(item);
+        RefreshVestCells();
+
+        // 잠금 반영 후 해제해야 전용 칸이 잠긴 채 확장 후보로 남음, 합성은 같은 Id의 target이 남아 해제 대상 아님
+        if (_character != null && _character.EquippedUnlocksVestCells && item.Data == _character.UniqueItem &&
+            !HasUniqueItemInstance())
+            _isVestReservationReleased = true;
 
         NotifyLocationChanged(previousLocation, ItemLocation.None);
         Changed?.Invoke();
@@ -457,15 +493,16 @@ public class Inventory : MonoBehaviour
     }
 
     /// <summary>source를 소비(Location None)하고 target Level +1, target의 영역·위치·회전은 유지</summary>
-    /// <returns>CanMerge 실패 시 false, 상태 변화 없음</returns>
+    /// <returns>CanMerge 실패·source의 고유 아이템 해제 거부 시 false, 상태 변화 없음</returns>
     public bool TryMerge(ItemInstance source, ItemInstance target)
     {
-        if (!CanMerge(source, target))
+        if (!CanMerge(source, target) || !CanReleaseUniqueEffect(source))
             return false;
 
         ItemLocation previousLocation = source.Location;
         ReleaseLocation(source);
         target.Level++;
+        RefreshVestCells();
 
         NotifyLocationChanged(previousLocation, ItemLocation.None);
         Changed?.Invoke();
@@ -558,7 +595,7 @@ public class Inventory : MonoBehaviour
         }
     }
 
-    /// <summary>레벨·인접 효과(상한 적용)·캐릭터 고유 효과를 반영한 최종 무기 스탯, 툴팁·전투 공통 계산 경로 (미배치 아이템은 인접 효과 0)</summary>
+    /// <summary>레벨·인접 효과(상한 적용)·캐릭터 특성·고유 아이템 효과를 반영한 최종 무기 스탯, 툴팁·전투 공통 계산 경로 (미배치 아이템은 인접 효과 0)</summary>
     /// <returns>weapon·Data·WeaponDefinition 중 하나라도 null이면 모든 값 0</returns>
     public WeaponStats GetWeaponStats(ItemInstance weapon)
     {
@@ -568,7 +605,7 @@ public class Inventory : MonoBehaviour
         WeaponDefinition definition = weapon.Data.WeaponDefinition;
         float damage = definition.ProjectileDamage * GetWeaponLevelMultiplier(weapon.Level) *
                        (1f + GetEffectiveAdjacencyBonus(weapon, AdjacencyEffectType.Damage)) *
-                       (1f + GetUniqueDamageBonus(weapon));
+                       (1f + GetTraitDamageBonus(weapon));
         float fireInterval = definition.FireInterval *
                              (1f - GetEffectiveAdjacencyBonus(weapon, AdjacencyEffectType.FireInterval)) /
                              (1f + GetUniqueAttackSpeedBonus(weapon));
@@ -585,30 +622,44 @@ public class Inventory : MonoBehaviour
 
         int gunCount = IsLevel3EffectActive(weapon) ? definition.Level3GunCount : 1;
         float knockbackStrength = IsLevel3EffectActive(weapon) ? definition.Level3KnockbackStrength : 0f;
+        int projectilesPerShot = definition.ProjectilesPerShot + GetTraitProjectileBonus(weapon);
 
-        return new WeaponStats(damage, fireInterval, spreadAngle, randomSpread, gunCount, knockbackStrength);
+        return new WeaponStats(damage, fireInterval, spreadAngle, randomSpread, gunCount, knockbackStrength,
+            projectilesPerShot);
     }
 
     /// <summary>현재 캐릭터의 고유 아이템과 같은 데이터의 아이템이 Inventory에 배치되어 있는지 (Storage·Temporary는 해제)</summary>
     /// <returns>Character 또는 UniqueItem이 null이면 false</returns>
     public bool IsUniqueItemEquipped()
     {
+        return IsUniqueItemEquippedExcept(null);
+    }
+
+    // excluded를 뺀 배치 아이템으로 판정, 아이템이 Inventory를 떠난 뒤의 장착 상태를 미리 확인할 때 사용
+    private bool IsUniqueItemEquippedExcept(ItemInstance excluded)
+    {
         if (_character == null || _character.UniqueItem == null)
             return false;
 
         foreach (ItemInstance item in GetPlacedItems())
         {
-            if (item.Data == _character.UniqueItem)
+            if (item != excluded && item.Data == _character.UniqueItem)
                 return true;
         }
 
         return false;
     }
 
-    /// <summary>고유 아이템 장착 중 대상 무기 공격력 보너스 (적용 중이 아니면 0)</summary>
-    public float GetUniqueDamageBonus(ItemInstance weapon)
+    /// <summary>대상 무기 캐릭터 특성 공격력 보너스 (고유 아이템 탈착 무관, 대상 외 무기는 0)</summary>
+    public float GetTraitDamageBonus(ItemInstance weapon)
     {
-        return IsUniqueTargetWeapon(weapon) && IsUniqueItemEquipped() ? _character.EquippedDamageBonus : 0f;
+        return IsUniqueTargetWeapon(weapon) ? _character.TraitDamageBonus : 0f;
+    }
+
+    /// <summary>대상 무기 캐릭터 특성 발사당 총알 추가 수 (고유 아이템 탈착 무관, 대상 외 무기는 0)</summary>
+    public int GetTraitProjectileBonus(ItemInstance weapon)
+    {
+        return IsUniqueTargetWeapon(weapon) ? _character.TraitProjectileBonus : 0;
     }
 
     /// <summary>고유 아이템 해제 중 대상 무기 공격속도 보너스 (적용 중이 아니면 0)</summary>
@@ -623,16 +674,16 @@ public class Inventory : MonoBehaviour
         return IsUniqueTargetWeapon(weapon) && !IsUniqueItemEquipped() ? _character.UnequippedSpreadAngle : 0f;
     }
 
-    /// <summary>대상 무기 정확도(탄퍼짐 감소율) 합 = 기본 특성 + 해제 중 해제 보너스 (상한 미적용, 대상 외 무기는 0)</summary>
+    /// <summary>대상 무기 정확도(탄퍼짐 감소율) 합 = 특성 + 장착 중 장착 보너스 (상한 미적용, 대상 외 무기는 0)</summary>
     public float GetCharacterAccuracyBonus(ItemInstance weapon)
     {
         if (!IsUniqueTargetWeapon(weapon))
             return 0f;
 
-        float bonus = _character.BaseAccuracyBonus;
+        float bonus = _character.TraitAccuracyBonus;
 
-        if (!IsUniqueItemEquipped())
-            bonus += _character.UnequippedAccuracyBonus;
+        if (IsUniqueItemEquipped())
+            bonus += _character.EquippedAccuracyBonus;
 
         return bonus;
     }
@@ -690,10 +741,13 @@ public class Inventory : MonoBehaviour
         return IsInGrid(cell) && cells[cell.x, cell.y].IsAvailable;
     }
 
-    /// <summary>확장 후보 칸인지 (잠긴 칸 중 상하좌우에 사용 가능한 칸이 있음)</summary>
+    /// <summary>확장 후보 칸인지 (잠긴 칸 중 상하좌우에 사용 가능한 칸이 있음, 조끼 전용 칸은 예약 중이면 제외)</summary>
     public bool IsExpansionCandidate(Vector2Int cell)
     {
         if (!IsInGrid(cell) || cells[cell.x, cell.y].IsAvailable)
+            return false;
+
+        if (IsVestCell(cell))
             return false;
 
         foreach (Vector2Int direction in _adjacentDirections)
@@ -703,6 +757,12 @@ public class Inventory : MonoBehaviour
         }
 
         return false;
+    }
+
+    /// <summary>조끼 전용 칸으로 예약된 칸인지 (EquippedUnlocksVestCells 캐릭터이고 조끼 판매로 예약 해제 전이면 조끼 보관으로 잠긴 동안에도 true, 열림 여부는 IsCellAvailable로 판단)</summary>
+    public bool IsVestCell(Vector2Int cell)
+    {
+        return IsVestReservationActive() && Array.IndexOf(_vestCells, cell) >= 0;
     }
 
     /// <summary>현재 확장 후보 칸 수</summary>
@@ -749,6 +809,75 @@ public class Inventory : MonoBehaviour
     public int GetStorageIndex(ItemInstance item)
     {
         return Array.IndexOf(_storageSlots, item);
+    }
+
+    private int GetStorageCapacity(bool isUniqueItemEquipped)
+    {
+        int bonus = isUniqueItemEquipped ? _character.EquippedStorageBonus : 0;
+        return Mathf.Min(BASE_STORAGE_CAPACITY + bonus, MAX_STORAGE_CAPACITY);
+    }
+
+    /// <summary>item을 Inventory 밖으로 옮겨도 되는지 조회, 상태 변경 없음 (RemoveItem·TryStore·MoveToTemporary·TrySell·TryMerge 공통 해제 거부 기준, UI 거부 안내도 조회)</summary>
+    /// <returns>장착 효과가 풀릴 때 잠길 조끼 전용 칸(item 자신 외)·보관함 확장 슬롯에 아이템이 있으면 false</returns>
+    public bool CanReleaseUniqueEffect(ItemInstance item)
+    {
+        if (!item.IsPlaced || !IsUniqueItemEquipped() || IsUniqueItemEquippedExcept(item))
+            return true;
+
+        // 예약이 없으면 전용 칸은 잠기지 않는 일반 칸
+        if (IsVestReservationActive())
+        {
+            foreach (Vector2Int cell in _vestCells)
+            {
+                ItemInstance occupant = cells[cell.x, cell.y].hasEquipped;
+
+                if (occupant != null && occupant != item)
+                    return false;
+            }
+        }
+
+        for (int i = BASE_STORAGE_CAPACITY; i < _storageSlots.Length; i++)
+        {
+            if (_storageSlots[i] != null)
+                return false;
+        }
+
+        return true;
+    }
+
+    // shortcut: Temporary 아이템은 목록이 없어 미확인, 고유 아이템은 보상 후보 제외로 1개뿐이라 충분 (Temporary 목록이 생기면 포함)
+    private bool HasUniqueItemInstance()
+    {
+        if (IsUniqueItemEquipped())
+            return true;
+
+        foreach (ItemInstance storedItem in _storageSlots)
+        {
+            if (storedItem != null && storedItem.Data == _character.UniqueItem)
+                return true;
+        }
+
+        return false;
+    }
+
+    // 조끼 전용 칸 예약 중인지 (조끼 캐릭터이고 조끼 판매 전)
+    private bool IsVestReservationActive()
+    {
+        return _character != null && _character.EquippedUnlocksVestCells && !_isVestReservationReleased;
+    }
+
+    // 예약 중이면 조끼 전용 칸을 현재 장착 상태에 맞춤 (예약이 없으면 확장으로 연 상태 유지), 상태 확정 후 모든 통지(NotifyLocationChanged·Changed)보다 먼저 호출해 중간 상태를 통지하지 않음
+    private void RefreshVestCells()
+    {
+        if (!IsVestReservationActive())
+            return;
+
+        bool isUnlocked = IsUniqueItemEquipped();
+
+        foreach (Vector2Int cell in _vestCells)
+        {
+            cells[cell.x, cell.y].IsAvailable = isUnlocked;
+        }
     }
 
     // 도착 영역 기록 전 출발 영역 점유 해제 (구독자가 전환 중간 상태를 보지 않도록 이벤트는 NotifyLocationChanged에서 발생)
