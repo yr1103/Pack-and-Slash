@@ -30,7 +30,7 @@ MonoBehaviour:
   _isSellable: 1
   _adjacencyEffectType: 1
   _level3EffectType: 2
-  _level3EffectValue: 0.1
+  _level3EffectValue: 0.05
   _level3EffectName: "\uC774\uB3D9\uC18D\uB3C4 \uC99D\uAC00"
   _expendableEffectType: 0
   _expendableEffectValue: 0

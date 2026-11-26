@@ -31,7 +31,7 @@ public class WeaponAttackController : MonoBehaviour
             while (target != null && !weapon.IsReloading && weapon.ShotCooldown <= 0f)
             {
                 float overshoot = -weapon.ShotCooldown; // 발사 예정 시각을 넘긴 시간(초)
-                int projectileCount = definition.ProjectilesPerShot;
+                int projectileCount = weapon.ProjectilesPerShot;
                 // 발사 1회에 모든 자루가 같은 표적을 향해 동시 발사, 방향은 자루마다 자기 총구 기준
                 for (int gunIndex = 0; gunIndex < weapon.GunCount; gunIndex++)
                 {

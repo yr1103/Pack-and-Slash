@@ -61,7 +61,7 @@ public class InventoryWeaponSync : MonoBehaviour
             Inventory.WeaponStats stats = _inventory.GetWeaponStats(item);
             int previousGunCount = weapon.GunCount;
             weapon.ApplyStats(item.Level, stats.Damage, stats.FireInterval, stats.SpreadAngle, stats.RandomSpread,
-                stats.GunCount, stats.KnockbackStrength);
+                stats.GunCount, stats.KnockbackStrength, stats.ProjectilesPerShot);
             isGunCountChanged |= weapon.GunCount != previousGunCount;
         }
 

@@ -15,17 +15,21 @@ MonoBehaviour:
   _displayName: "\uD5E4\uBE44\uAC70\uB108"
   _description: "\uAC15\uB825\uD55C \uC5F0\uC0AC\uB825\uC73C\uB85C \uC801\uC744 \uC81C\uC555\uD558\uB294
     \uCE90\uB9AD\uD130"
+  _traitDescription: "\uBBF8\uB2C8\uAC74 \uC815\uD655\uB3C4 +10%, \uC774\uB3D9\uC18D\uB3C4 -10%"
   _portrait: {fileID: 21300000, guid: 41f554c2e58cab447986913eb5b92489, type: 3}
   _startWeaponName: "\uBBF8\uB2C8\uAC74"
   _startWeapon: {fileID: 11400000, guid: a69205e25301dde4f9879a8219f2abb9, type: 2}
   _startWeaponItem: {fileID: 11400000, guid: 1096b1f86a29e2446818180457353a45, type: 2}
   _uniqueItem: {fileID: 11400000, guid: 68bab949396421244b0010c410f8d20c, type: 2}
   _uniqueWeaponType: 2
-  _equippedDamageBonus: 0
+  _traitDamageBonus: 0
+  _traitAccuracyBonus: 0.1
+  _traitProjectileBonus: 0
+  _traitMoveSpeedBonus: -0.1
+  _equippedAccuracyBonus: 0.1
+  _equippedUnlocksVestCells: 0
+  _equippedStorageBonus: 0
   _unequippedAttackSpeedBonus: 0
   _unequippedSpreadAngle: 0
   _unequippedMoveSpeedBonus: -0.2
   _unequippedMaxHealthBonus: 0
-  _unequippedAccuracyBonus: 0.1
-  _baseMoveSpeedBonus: -0.1
-  _baseAccuracyBonus: 0.2

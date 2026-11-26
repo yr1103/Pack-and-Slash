@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// Inventory 상태(캐릭터 고유 아이템 장착·해제, 패시브 Lv.3 효과)로 플레이어 이동속도·최대 체력·경험치·젬 수집 반경 배율을 갱신
+/// Inventory 상태(캐릭터 특성, 고유 아이템 장착·해제, 패시브 Lv.3 효과)로 플레이어 이동속도·최대 체력·경험치·젬 수집 반경 배율을 갱신
 /// </summary>
 public class PlayerStatSync : MonoBehaviour
 {
@@ -28,7 +28,7 @@ public class PlayerStatSync : MonoBehaviour
         ApplyStats();
     }
 
-    /// <summary>모든 배율을 기본값 기준으로 재계산해 적용 (누적 없음, Character가 null이면 고유 효과 없이 Lv.3 효과만)</summary>
+    /// <summary>모든 배율을 기본값 기준으로 재계산해 적용 (누적 없음, Character가 null이면 특성·고유 효과 없이 Lv.3 효과만)</summary>
     public void ApplyStats()
     {
         CharacterDefinition character = _inventory.Character;
@@ -37,7 +37,7 @@ public class PlayerStatSync : MonoBehaviour
 
         if (character != null)
         {
-            moveSpeedBonus += character.BaseMoveSpeedBonus;
+            moveSpeedBonus += character.TraitMoveSpeedBonus;
 
             if (!_inventory.IsUniqueItemEquipped())
             {

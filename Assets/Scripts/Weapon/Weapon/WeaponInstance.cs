@@ -39,6 +39,9 @@ public class WeaponInstance
     /// <summary>탄 적중 시 넉백 속도, 0 = 넉백 없음 (생성 시 0, ApplyStats로만 변경)</summary>
     public float KnockbackStrength { get; private set; }
 
+    /// <summary>자루 하나가 발사 1회에 쏘는 탄 수 (생성 시 Definition 값, ApplyStats로만 변경)</summary>
+    public int ProjectilesPerShot { get; private set; }
+
     /// <summary>다음 발사까지 남은 시간(초), 0 이하면 발사 가능 (음수 = 발사 예정 시각을 넘긴 시간)</summary>
     public float ShotCooldown { get; private set; }
 
@@ -80,11 +83,12 @@ public class WeaponInstance
         FireInterval = definition.FireInterval;
         SpreadAngle = definition.SpreadAngle;
         RandomSpread = definition.RandomSpread;
+        ProjectilesPerShot = definition.ProjectilesPerShot;
     }
 
     /// <summary>레벨·런타임 스탯 갱신 (남은 쿨다운·잔탄·재장전은 유지, 새 발사 간격은 다음 ScheduleNextShot부터 적용)</summary>
     public void ApplyStats(int level, float damage, float fireInterval, float spreadAngle, bool randomSpread,
-        int gunCount, float knockbackStrength)
+        int gunCount, float knockbackStrength, int projectilesPerShot)
     {
         // 자루 0개면 뷰·총구 인덱스가 성립하지 않아 1로 보정
         if (gunCount < MIN_GUN_COUNT)
@@ -100,6 +104,7 @@ public class WeaponInstance
         RandomSpread = randomSpread;
         GunCount = gunCount;
         KnockbackStrength = knockbackStrength;
+        ProjectilesPerShot = projectilesPerShot;
     }
 
     /// <summary>발사 쿨다운·재장전 시간을 경과 시간만큼 감소 (쿨다운은 음수까지 내려감)</summary>
