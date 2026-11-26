@@ -204,7 +204,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8373200349068620165}
@@ -250,7 +250,7 @@ MonoBehaviour:
   _moveSpeed: 5
   _stopDistance: 1.5
   _separationRadius: 2
-  _separationWeight: 1
+  _separationWeight: 0
   _enemyLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -271,7 +271,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   _aimPoint: {fileID: 8373200349068620165}
   _animator: {fileID: 7473655978481860682}
-  _maxHealth: 300
+  _maxHealth: 600
   _deathDuration: 2
   _contactDamage: 20
   _experienceValue: 0

@@ -93,7 +93,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   _aimPoint: {fileID: 3770864831796653394}
   _animator: {fileID: 7901615431927725629}
-  _maxHealth: 45
+  _maxHealth: 67.5
   _deathDuration: 1
   _contactDamage: 10
   _experienceValue: 1
