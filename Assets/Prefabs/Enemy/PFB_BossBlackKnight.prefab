@@ -250,10 +250,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 053e0900924b1d046bf98c245099819e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovement
-  _moveSpeed: 4.5
+  _moveSpeed: 6
   _stopDistance: 1.5
   _separationRadius: 2
-  _separationWeight: 1
+  _separationWeight: 0
   _enemyLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -274,7 +274,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   _aimPoint: {fileID: 8373200349068620165}
   _animator: {fileID: 1926680151159275161}
-  _maxHealth: 2400
+  _maxHealth: 25000
   _deathDuration: 2
   _contactDamage: 20
   _experienceValue: 0
@@ -383,7 +383,7 @@ MonoBehaviour:
   - {fileID: 8592517009922977436}
   - {fileID: 3048622051578285267}
   - {fileID: 6587251031817440195}
-  _interval: 1.5
+  _interval: 0.75
 --- !u!1001 &270201934120902152
 PrefabInstance:
   m_ObjectHideFlags: 0

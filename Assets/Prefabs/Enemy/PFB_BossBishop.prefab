@@ -107,7 +107,7 @@ MonoBehaviour:
   _moveSpeed: 2.5
   _stopDistance: 1.5
   _separationRadius: 2
-  _separationWeight: 1
+  _separationWeight: 0
   _enemyLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -168,7 +168,7 @@ MonoBehaviour:
   _stopWhileWarning: 1
   _detectRange: 12
   _warnDuration: 0.5
-  _cooldown: 3
+  _cooldown: 1.5
   _projectileCount: 8
   _spreadAngle: 360
   _projectileSpeed: 5
