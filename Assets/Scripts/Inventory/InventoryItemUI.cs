@@ -11,6 +11,8 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 {
     private const int ROTATION_COUNT = 4; // 90도 단위 회전 상태 수
     private const float ROTATION_STEP_ANGLE = 90f;
+    private const string VEST_RELEASE_REJECTED_NOTICE =
+        "조끼를 벗으려면 조끼로 확장된 칸(주황색)을 비워 주세요.";
 
     private static readonly Vector2 _cellCenterOffset = new Vector2(0.5f, 0.5f); // 칸 좌표 → 칸 중심
     private static readonly List<RaycastResult> _raycastResults = new List<RaycastResult>(); // 드롭 시 합성 대상 탐색용 재사용 버퍼
@@ -268,19 +270,30 @@ public class InventoryItemUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         else if (inventoryUI.IsOverSellArea(eventData.position, eventData.pressEventCamera))
         {
             // 데이터는 팝업 확인 시에만 바뀌므로 아래 RefreshPosition으로 원위치·원회전 복귀 (미리보기 회전 버림), 판매 불가면 복귀만
+            // 조끼 해제 거부면 확인 후에도 TrySell이 실패하므로 팝업 대신 안내
             if (inventory.CanSell(item))
-                _sellPopup.Open(item, this);
+            {
+                if (inventory.CanReleaseUniqueEffect(item))
+                    _sellPopup.Open(item, this);
+                else
+                    inventoryUI.ShowNotice(VEST_RELEASE_REJECTED_NOTICE);
+            }
         }
         else if (inventoryUI.IsOverStorage(eventData.position, eventData.pressEventCamera))
         {
-            inventory.TryStore(item);
+            // 보관함 가득 참 등 일반 실패는 안내하지 않음
+            if (!inventory.TryStore(item) && !inventory.CanReleaseUniqueEffect(item))
+                inventoryUI.ShowNotice(VEST_RELEASE_REJECTED_NOTICE);
         }
         else
         {
             // 드롭 시 이미지 중심 기준으로 Temporary 영역 안 가장 가까운 위치
             Vector2 temporaryPosition = inventoryUI.ClampToTemporary(
                 eventData.position + dragOffset, rectTransform.rect.size, _dragRotation, eventData.pressEventCamera);
-            inventory.MoveToTemporary(item, temporaryPosition, _dragRotation);
+
+            if (!inventory.MoveToTemporary(item, temporaryPosition, _dragRotation) &&
+                !inventory.CanReleaseUniqueEffect(item))
+                inventoryUI.ShowNotice(VEST_RELEASE_REJECTED_NOTICE);
         }
 
         // 실패 시에도 데이터는 원래 영역·회전 상태 그대로라 다시 표시하면 원위치·원회전 복귀

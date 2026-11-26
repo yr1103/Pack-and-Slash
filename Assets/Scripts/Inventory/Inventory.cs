@@ -747,7 +747,7 @@ public class Inventory : MonoBehaviour
         if (!IsInGrid(cell) || cells[cell.x, cell.y].IsAvailable)
             return false;
 
-        if (IsVestReservationActive() && Array.IndexOf(_vestCells, cell) >= 0)
+        if (IsVestCell(cell))
             return false;
 
         foreach (Vector2Int direction in _adjacentDirections)
@@ -757,6 +757,12 @@ public class Inventory : MonoBehaviour
         }
 
         return false;
+    }
+
+    /// <summary>조끼 전용 칸으로 예약된 칸인지 (EquippedUnlocksVestCells 캐릭터이고 조끼 판매로 예약 해제 전이면 조끼 보관으로 잠긴 동안에도 true, 열림 여부는 IsCellAvailable로 판단)</summary>
+    public bool IsVestCell(Vector2Int cell)
+    {
+        return IsVestReservationActive() && Array.IndexOf(_vestCells, cell) >= 0;
     }
 
     /// <summary>현재 확장 후보 칸 수</summary>
@@ -811,8 +817,9 @@ public class Inventory : MonoBehaviour
         return Mathf.Min(BASE_STORAGE_CAPACITY + bonus, MAX_STORAGE_CAPACITY);
     }
 
-    // item이 Inventory를 떠나 장착 효과가 풀릴 때, 잠길 조끼 전용 칸(item 자신 외)·보관함 확장 슬롯에 아이템이 있으면 거부
-    private bool CanReleaseUniqueEffect(ItemInstance item)
+    /// <summary>item을 Inventory 밖으로 옮겨도 되는지 조회, 상태 변경 없음 (RemoveItem·TryStore·MoveToTemporary·TrySell·TryMerge 공통 해제 거부 기준, UI 거부 안내도 조회)</summary>
+    /// <returns>장착 효과가 풀릴 때 잠길 조끼 전용 칸(item 자신 외)·보관함 확장 슬롯에 아이템이 있으면 false</returns>
+    public bool CanReleaseUniqueEffect(ItemInstance item)
     {
         if (!item.IsPlaced || !IsUniqueItemEquipped() || IsUniqueItemEquippedExcept(item))
             return true;

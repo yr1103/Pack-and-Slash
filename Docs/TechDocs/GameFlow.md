@@ -31,6 +31,7 @@
 | 포함 | Issue #23 : 보물 상자 회차의 인벤토리 4칸 확장 선택(`LevelUpPanel.BeginExpansion`, `Inventory.IsCellAvailable`/`IsExpansionCandidate`/`CountExpansionCandidates`/`TryUnlockCell`, `InventoryUI` 칸 색 표시·`SetExpansionMode`·`ExpansionCellClicked`, 안내 문구 `ExpansionGuideText`), 보상 선택(`Selecting`) 중 아이템 hover 툴팁 표시(`InventoryItemUI.IsDragEnabled`로 드래그만 차단), 레벨업 인벤토리 UI에 `InventoryUI_casual` 스프라이트 적용 |
 | 포함 | Issue #25 : 소비 아이템 2종(구급 상자 `SO_Inventory_HealthPack` 회복 20, 확장권 `SO_Inventory_ExpansionTicket` 1칸 확장) 효과 적용(`InventoryData.ExpendableEffectType`/`ExpendableEffectValue`, `LevelUpPanel.ApplyExpendable`, `PlayerHealth.Heal`/`Healed`, `Health.Heal`), 확장 후보가 없을 때 확장권 후보 제외, 보상 카드 레벨 표기 생략(`MaxLevel` 1) |
 | 포함 | Issue #40 : 캐릭터 특성(항상 적용)과 고유 아이템 장착/해제 효과의 두 층 구조(`CharacterDefinition` 필드 재구성, `Inventory.GetTraitDamageBonus`/`GetTraitProjectileBonus`/`GetCharacterAccuracyBonus`, `PlayerStatSync` 이동속도 공식), 고유 아이템 장착 시 보관함 한도 확장(`Inventory.StorageCapacity`, `InventoryUI.RefreshStorageSlots`, 보관함 슬롯 7개), 조끼 전용 칸 (4,5)·(5,5) 예약·열림·잠김·해제 거부, `LevelUpPanel` 보관함 표시 갱신 경로(`Changed`), 툴팁 특성 줄 |
+| 포함 | Issue #51 : 조끼 회수 거부 안내(`Inventory.CanReleaseUniqueEffect` public 전환, `Inventory.IsVestCell`, `InventoryUI.ShowNotice`·`NoticeText`, `InventoryItemUI.OnEndDrag` 거부 시 안내), 조끼로 확장된 칸 주황색 표시(`InventoryUI._vestCellColor`, `StorageSlot_06`·`07` Image 색) |
 | 제외 (후속) | 인벤토리 전체 기술 문서(별도 작업), 판매 외 재화 획득, 다시하기, 무기별 재장전 게이지 |
 
 ## 주요 클래스와 역할
@@ -386,12 +387,14 @@
 | `InventoryUI.GetItemSize(Vector2Int[] shape)` | 회전 0 정규화 Shape의 바운딩 칸 수로 이미지 크기 계산 : `칸 수 × cellSize + (칸 수 − 1) × spacing` (`GameScene` 값 cellSize 72, spacing 4) |
 | `InventoryItemUI.OnPointerEnter` / `OnPointerExit` | `IPointerEnterHandler`·`IPointerExitHandler` 구현. 툴팁 표시·숨김 (위 `ItemTooltipUI`의 `호출 측 규칙`) |
 | `Inventory.IsCellAvailable(Vector2Int)` | 사용 가능(잠금 해제) 칸인지. 범위 밖이면 false (Issue #23) |
-| `Inventory.IsExpansionCandidate(Vector2Int)` | 확장 후보인지. 범위 안이고 잠긴 칸이며 상하좌우에 사용 가능한 칸이 있으면 true (Issue #23) |
+| `Inventory.IsExpansionCandidate(Vector2Int)` | 확장 후보인지. 범위 안이고 잠긴 칸이며 예약 중인 조끼 전용 칸(`IsVestCell` true)이 아니고 상하좌우에 사용 가능한 칸이 있으면 true (Issue #23) |
+| `Inventory.IsVestCell(Vector2Int)` | 조끼 전용 칸으로 예약된 칸인지. 조끼 예약 중(`IsVestReservationActive`)이고 좌표가 `(4,5)`·`(5,5)`이면 true. 장착 상태와 무관해 조끼를 보관해 칸이 잠긴 동안에도 true이며, 열림 여부는 `IsCellAvailable`로 판단한다 (요약 주석). 예약 해제(조끼 판매) 뒤와 조끼 캐릭터가 아니면 false. `IsExpansionCandidate`의 전용 칸 제외와 `InventoryUI` 칸 색이 이 메서드를 쓴다 (Issue #51) |
 | `Inventory.CountExpansionCandidates()` | 현재 확장 후보 칸 수 (10×6 전체 순회, Issue #23) |
 | `Inventory.TryUnlockCell(Vector2Int)` | 후보일 때만 칸을 사용 가능으로 바꾸고 `Changed` 1회 발생 후 true. 후보가 아니면 상태 변화 없이 false (Issue #23) |
 | `InventoryUI.SetExpansionMode(bool)` | 확장 후보 강조·클릭 통지 여부. 활성 중이면 즉시 칸 색 갱신, 비활성 중이면 다음 `OnEnable`의 갱신으로 반영 (코드 주석, Issue #23) |
 | `InventoryUI.ExpansionCellClicked` (`Action<Vector2Int>`) | 확장 모드에서 확장 후보 칸을 클릭하면 셀 좌표로 발생. `InventoryUI`가 `IPointerClickHandler`를 구현하며, Grid의 Slot 셀이 레이캐스트를 받아 부모 `InventoryUI`로 클릭이 버블링된다 (코드 주석). 확장 모드가 아니거나 후보 칸이 아니면 발생하지 않는다 (Issue #23) |
-| `InventoryUI` 칸 색 표시 | `Awake`에서 `gridRect`의 자식 60개(기존 Slot, 인덱스 `y × 10 + x`, 좌상단부터 행 우선)의 `Image`를 모아 두고, `OnEnable`·`Inventory.Changed`·`SetExpansionMode`마다 색을 갱신한다. 사용 가능 `_availableCellColor`(흰색) / 확장 모드의 후보 `_candidateCellColor`(노란색 (1, 0.85, 0.2)) / 그 외 잠김 `_lockedCellColor`(회청색 (0.45, 0.5, 0.58)). 자식 수가 60이 아니면 `LogError` 후 수집을 중단한다. `_inventory`(Inspector) 필드 필요 (Issue #23) |
+| `InventoryUI` 칸 색 표시 | `Awake`에서 `gridRect`의 자식 60개(기존 Slot, 인덱스 `y × 10 + x`, 좌상단부터 행 우선)의 `Image`를 모아 두고, `OnEnable`·`Inventory.Changed`·`SetExpansionMode`마다 색을 갱신한다. 사용 가능 `_availableCellColor`(흰색), 단 사용 가능 칸 중 `Inventory.IsVestCell`이면 `_vestCellColor`(주황색 (1, 0.6, 0.25), 조끼로 확장된 칸, Issue #51) / 확장 모드의 후보 `_candidateCellColor`(노란색 (1, 0.85, 0.2)) / 그 외 잠김 `_lockedCellColor`(회청색 (0.45, 0.5, 0.58)). 자식 수가 60이 아니면 `LogError` 후 수집을 중단한다. `_inventory`(Inspector) 필드 필요 (Issue #23) |
+| `InventoryUI.ShowNotice(string)` | 이동·판매 거부 안내 문구 표시 (Issue #51). `_noticeText`(Inspector, `Text`)에 문구를 넣고 `Text.enabled = true`, 숨길 시각을 `Time.unscaledTime + _noticeDuration`(Inspector, `Min(0)`, 기본값·`GameScene` 값 3초)으로 정한다. 표시 중 다시 호출하면 문구·시간만 갱신한다. `Update`에서 실제 시간이 숨길 시각에 도달하면 `Text.enabled = false`. 레벨업 정리 화면이 일시정지(`timeScale` 0) 중일 수 있어 실제 시간 기준이며, 재호출 시 시간만 갱신하면 되므로 Coroutine 대신 `Update`를 쓴다 (코드 주석). `Awake`에서 숨기고, `OnDisable`(패널 닫힘)에서 남은 시간과 무관하게 즉시 숨긴다. GameObject가 아닌 `Text` 컴포넌트의 `enabled`로 표시를 제어한다. `_noticeText`는 `null` 검사가 없어 비어 있으면 `Awake`에서 예외가 난다 (코드 기준) |
 | `InventoryItemUI.IsDragEnabled` (`static bool`, 기본 true) | 아이템 드래그 허용 여부. 전체 아이템 UI가 공유하며 `LevelUpPanel.ApplyPhase`·`HandleCompleteClicked`가 바꾼다 (Issue #23) |
 | `Inventory.GetSellPrice(InventoryData data, int level)` | 보유하지 않은 아이템(보상 후보 등)의 판매가 `level × SELL_PRICE_PER_LEVEL`(1). `data`가 null이면 0. 기존 `GetSellPrice(ItemInstance)`는 null이면 0, 아니면 `GetSellPrice(item.Data, item.Level)`에 위임한다 |
 
@@ -400,7 +403,7 @@
 - 아이템 영역 `ItemLocation` : `None`(생성 후 어디에도 없음·판매·합성 재료 소비), `Inventory`(그리드 셀 점유, `IsPlaced`), `Storage`(보관함, Shape 무관 1칸 = 1개. 한도는 아래 `보관함 한도`), `Temporary`(셀 점유 없음, `TemporaryPosition` 로컬 좌표).
 - `TryPlace(item, position, rotation)` : 출발 영역과 무관하게 지정 회전으로 그리드 배치. 실패 시 원래 영역·위치·회전 유지. `TryStore(item)` : 현재 한도 안의 첫 빈 보관함 슬롯에 넣고 회전 0. 이미 보관함에 있으면 변화 없이 true. 고유 아이템 자신을 넣어 장착이 풀리는 경우에는 줄어든 한도(5) 안의 슬롯만 쓴다 (코드 주석). `MoveToTemporary(item, 위치, rotation)` : Temporary로 이동(이미 Temporary면 좌표·회전만 갱신, 충돌 검사 없음). `RotateItem` : Inventory는 충돌 검사 후 회전, Temporary는 검사 없이 회전.
 - 반환값 (Issue #40) : `RemoveItem`·`MoveToTemporary`는 `bool`을 반환한다. `RemoveItem`은 `item`이 null·미배치·고유 아이템 해제 거부이면 false, `MoveToTemporary`는 `item`이 null·고유 아이템 해제 거부이면 false이며 둘 다 실패 시 상태 변화가 없다.
-- 판매 : `CanSell`(`IsSellable`이고 `Location != None`) → `TrySell`(출발 영역 해제, `Location = None`, 재화 지급은 호출부). `InventoryItemUI`가 판매 영역(`IsOverSellArea`)에 드롭하면 `CanSell`일 때만 `SellConfirmPopup.Open`을 띄우고 아이템은 원위치로 돌아간다. 확인 버튼에서 상태 변경 전에 `GetSellPrice`로 가격을 확정한 뒤 `TrySell` 성공 시 `Currency.Add(가격)`·아이템 UI `SetActive(false)`. 팝업이 열린 동안 회전 입력을 무시한다.
+- 판매 : `CanSell`(`IsSellable`이고 `Location != None`) → `TrySell`(출발 영역 해제, `Location = None`, 재화 지급은 호출부). `InventoryItemUI`가 판매 영역(`IsOverSellArea`)에 드롭하면 `CanSell`이고 `CanReleaseUniqueEffect`도 true일 때만 `SellConfirmPopup.Open`을 띄우고(해제 거부면 팝업 대신 `InventoryUI.ShowNotice` 안내, 아래 `고유 아이템 해제 거부`) 아이템은 원위치로 돌아간다. 확인 버튼에서 상태 변경 전에 `GetSellPrice`로 가격을 확정한 뒤 `TrySell` 성공 시 `Currency.Add(가격)`·아이템 UI `SetActive(false)`. 팝업이 열린 동안 회전 입력을 무시한다.
 - 이벤트 순서 : 출발 영역 해제(`ReleaseLocation`) → 도착 영역 기록 → 조끼 전용 칸 갱신(`RefreshVestCells`) → `TemporaryCountChanged`/`StorageCountChanged`(출발·도착 중 한쪽만 해당 영역일 때) → `Changed`. `RefreshVestCells`는 상태 확정 후 모든 통지보다 먼저 호출해 구독자가 중간 상태를 보지 않게 한다 (코드 주석). 호출 위치는 `Character` setter, `PlaceItem`, `RemoveItem`, `TryPlace`, `TryStore`, `MoveToTemporary`, `TrySell`, `TryMerge`다 (`MoveItem`·`RotateItem`은 장착 상태가 바뀌지 않아 호출하지 않음).
 
 #### 보관함 한도 (Issue #40)
@@ -424,17 +427,22 @@
 - 예약 해제 (`TrySell`) : 조끼 캐릭터(`EquippedUnlocksVestCells`)이고 판매 대상이 현재 캐릭터의 고유 아이템이며, 판매 뒤 같은 데이터의 고유 아이템이 그리드·보관함에 남아 있지 않으면(`HasUniqueItemInstance`가 false) `_isVestReservationReleased = true`. 판매 처리에서 먼저 `RefreshVestCells`로 칸을 잠근 뒤 해제하므로, 두 칸은 잠긴 채 일반 확장 후보로 남는다 (코드 주석). 이후 다시 고유 아이템을 얻어도 예약은 돌아오지 않는다 (재설정 경로는 `Character` setter뿐). 합성은 같은 Id의 target이 남으므로 예약 해제 대상이 아니다 (코드 주석).
 - 보스·레벨업 확장(`TryUnlockCell`)으로 연 다른 칸은 장착 상태와 무관하게 유지된다. 예약 중에는 전용 칸을 확장으로 열 수 없으므로, 전용 칸이 확장으로 열리는 것은 예약 해제 뒤뿐이다.
 
-#### 고유 아이템 해제 거부 (`CanReleaseUniqueEffect`, Issue #40)
+#### 고유 아이템 해제 거부 (`CanReleaseUniqueEffect`, Issue #40, #51)
 
+- 계약 : `public bool CanReleaseUniqueEffect(ItemInstance item)` (Issue #51에서 private → public). `item`을 Inventory 밖으로 옮겨도 되는지 조회만 하고 상태를 바꾸지 않는다. `RemoveItem`·`TryStore`·`MoveToTemporary`·`TrySell`·`TryMerge`가 함께 쓰는 해제 거부 기준이며, UI(`InventoryItemUI`)도 거부 안내 여부를 정할 때 조회한다 (요약 주석). `item` `null` 검사가 없어 `null`을 넘기면 예외가 난다. 위 5개 메서드는 `null`·`CanSell`/`CanMerge` 실패를 먼저 걸러 낸 뒤 호출한다 (코드 기준).
 - 대상 : Inventory에 배치된 아이템이 그리드를 떠나 고유 아이템 장착이 풀리는 경우만 검사한다. `item`이 미배치이거나, 현재 장착 중이 아니거나, `item`을 빼도 다른 고유 아이템 인스턴스로 장착이 유지되면 항상 허용한다.
 - 거부 조건 (하나라도 해당하면 거부)
     1. 조끼 예약 중이고 전용 칸 `(4,5)`·`(5,5)`에 `item` 외의 아이템이 있다.
     2. 보관함 6·7번째 슬롯(인덱스 5·6, 한도가 줄면 숨겨질 슬롯)에 아이템이 있다. 예약 여부와 무관하다.
 - 거부 시 `RemoveItem`·`TryStore`·`MoveToTemporary`·`TrySell`·`TryMerge`(재료 `source` 기준)가 false를 반환하고 상태·이벤트 변화가 없다. 그리드에 놓는 조작(`PlaceItem`·`TryPlace`·`MoveItem`·`RotateItem`)은 그리드를 떠나지 않으므로 검사하지 않는다.
-- `Inventory`에는 거부 이유를 사용자에게 안내하는 코드가 없다. 거부 시 UI 동작 중 코드로 확인한 부분은 아래와 같다.
-    - 드롭 (`InventoryItemUI.OnEndDrag`) : 합성(`TryMerge`) 실패 시 영역별 처리로 진행하고, `TryStore`·`MoveToTemporary`의 반환값과 무관하게 마지막에 `RefreshPosition()`을 호출한다. 거부되면 데이터가 원래 영역·위치·회전 그대로이므로 원위치·원회전으로 돌아간다 (코드 주석).
-    - 판매 : 드롭 시 `CanSell`(`IsSellable`·`Location != None`)만 보고 `SellConfirmPopup.Open`을 띄운다. `CanSell`은 해제 거부 조건을 검사하지 않으므로 팝업은 열리고, 확인 버튼에서 `TrySell`이 거부되면 재화 지급·아이템 UI 비활성화 없이 팝업만 닫힌다 (`HandleConfirmClicked`). 거부 안내 문구는 없다.
-    - 화면에서 실제로 원위치 복귀·팝업 닫힘이 보이는지는 Play로만 확인할 수 있으며, 이 문서 작성 시 Play 확인은 하지 않았다 (미검증).
+- `Inventory`는 거부 이유를 안내하지 않는다. 안내는 드롭 처리(`InventoryItemUI.OnEndDrag`)가 `InventoryUI.ShowNotice`로 표시한다 (Issue #51).
+    - 안내 문구 : `InventoryItemUI.VEST_RELEASE_REJECTED_NOTICE` (private const) = `"조끼를 벗으려면 조끼로 확장된 칸(주황색)을 비워 주세요."`
+    - 원위치 : 합성(`TryMerge`) 실패 시 영역별 처리로 진행하고, 결과와 무관하게 마지막에 `RefreshPosition()`을 호출한다. 거부되면 데이터가 원래 영역·위치·회전 그대로이므로 원위치·원회전으로 돌아간다 (코드 주석).
+    - 판매 영역 : `CanSell`이 false면 아무것도 하지 않는다. `CanSell`이 true이고 `CanReleaseUniqueEffect`가 true면 `SellConfirmPopup.Open`, false면 팝업 대신 안내 문구를 표시한다. 거부면 확인 후에도 `TrySell`이 실패하기 때문이다 (코드 주석).
+    - 보관함 : `TryStore`가 실패하고 `CanReleaseUniqueEffect`도 false일 때만 안내한다. 보관함 가득 참 등 일반 실패는 안내하지 않는다 (코드 주석).
+    - Temporary : `MoveToTemporary`가 실패하고 `CanReleaseUniqueEffect`도 false일 때만 안내한다.
+    - 그리드 안 드롭(`TryPlace`)과 합성 거부는 별도 안내가 없다. 합성 거부 뒤의 안내는 이어지는 영역별 처리(판매 영역·보관함·Temporary)를 따른다.
+    - 화면에서 원위치 복귀·안내 표시가 실제로 보이는지는 아래 `검증 방법`의 Issue #51 항목 참고.
 
 #### 합성 (`CanMerge` / `TryMerge`)
 
@@ -560,7 +568,7 @@ StartRound : _isShowingChest = (_pendingCount == 0) → Phase = Selecting
   → 남은 수 0이면 SetExpansionMode(false) → RefreshExpansionGuide (0이면 문구 숨김) → RefreshCompleteButton
 [아이템 정리] 드래그로 인벤토리·저장고·판매 → Inventory.TemporaryCountChanged → RefreshCompleteButton (0개면 완료 버튼 켬, 경고 끔)
   드롭 시 포인터 아래 다른 아이템 → TryMerge (성공 : 재료 None·대상 Level+1·재료 UI 끔) / 실패 → 영역별 처리
-  판매 영역 드롭 → CanSell이면 SellConfirmPopup.Open → 확인 : 가격 확정 → TrySell → Currency.Add → 아이템 UI 끔
+  판매 영역 드롭 → CanSell·CanReleaseUniqueEffect이면 SellConfirmPopup.Open (해제 거부면 InventoryUI.ShowNotice 안내) → 확인 : 가격 확정 → TrySell → Currency.Add → 아이템 UI 끔
   조작 성공마다 Inventory.Changed → InventoryWeaponSync.SyncWeapons (무기 장착·해제·스탯, Weapon.md) · PlayerStatSync.ApplyStats
     · LevelUpPanel.RefreshStorageCount (보관 수·한도 문구) · InventoryUI.RefreshCellColors · InventoryUI.RefreshStorageSlots (한도 밖 슬롯 숨김)
 [툴팁 Hover]
@@ -651,9 +659,13 @@ UI
 │  ├─ PFB_LevelUpPanel        (PFB_LevelUpPanel 인스턴스, Scene 저장 시 비활성, LevelUpPanel._panelRoot, InventoryUI 추가, 구성은 아래 `PFB_LevelUpPanel` + 아래 추가 오브젝트)
 │  │  ├─ (Prefab 자식. RewardCards는 위치 오버라이드 (128, -215))
 │  │  ├─ StoragePanel/StorageSlot_01 ~ 07 (인스턴스의 Prefab 자식 StoragePanel 아래에 Scene에서 추가, 각 280×95, 중앙 기준 x 0 · y 315부터 105 간격으로 아래로(07 = -315),
-│  │  │                        InventoryUI._storageSlots[0] ~ [6] 순서대로 연결. 06·07은 Issue #40 추가)
+│  │  │                        InventoryUI._storageSlots[0] ~ [6] 순서대로 연결. 06·07은 Issue #40 추가,
+│  │  │                        06·07 Image 색 주황 (1, 0.6, 0.25, 1) = 조끼 장착 시에만 보이는 슬롯, Issue #51)
 │  │  ├─ ExpansionGuideText   (인스턴스에 추가 · Prefab 자식 InventoryFrame 다음 형제, Layer 0 Default, Scene 저장 시 비활성, 중앙 기준 (129, 440) · 700×56 = 프레임 상단 중앙,
 │  │  │                        Text 노란색 (1, 0.85, 0.2) · 굵게 · 크기 40 · 가운데 정렬 · Raycast Target 꺼짐, Outline 검정 (1, -1), LevelUpPanel._expansionGuideText)
+│  │  ├─ NoticeText           (Issue #51, 인스턴스에 추가 · ExpansionGuideText 다음 형제, Layer 0 Default, 중앙 기준 (129, 495) · 1100×50,
+│  │  │                        Text 노란색 (1, 0.85, 0.2) · 굵게 · 크기 32 · 가운데 정렬 · Raycast Target 꺼짐 · 저장 값 빈 문자열, Outline 검정 (1, -1),
+│  │  │                        GameObject는 활성 · Text 컴포넌트는 Scene 저장 시 비활성, InventoryUI._noticeText)
 │  │  ├─ SelectingGroup       (인스턴스에 추가, 중앙 기준 (120, -315) · 1150×400, LevelUpPanel._selectingGroup)
 │  │  │  ├─ RerollButton      ((-300, -110) · 170×56, Button, Image RewardCard, LevelUpPanel._rerollButton)
 │  │  │  │  ├─ RerollIcon     (Image F_UI_MenuIcons_Tile Map 16x16_11)
@@ -762,7 +774,7 @@ UI
 - `ItemTooltipUI`는 툴팁 루트(`ItemTooltip`)가 아닌 항상 활성인 별도 오브젝트(`TooltipLayer`)에 둔다. 같은 오브젝트에 두면 첫 표시 때 루트가 처음 켜지며 `Awake`가 실행되어 루트를 다시 끈다 (주의사항 ah).
 - `TooltipLayer`는 `PFB_LevelUpPanel` 인스턴스 루트에 Scene에서 추가한 오브젝트 중 마지막(`m_AddedGameObjects` 순서)이라 패널의 다른 요소·아이템 위에 그려진다. `TooltipLayer`에는 Graphic이 없고 `ItemTooltip`은 Image의 Raycast Target 꺼짐·CanvasGroup `blocksRaycasts` false라 툴팁이 아래 카드·아이템의 포인터 이벤트를 가리지 않는다.
 - `ItemTooltip`은 Scene 저장 시 활성이며, 패널이 처음 열릴 때 `ItemTooltipUI.Awake`가 끈다. 폭은 320 고정이고 높이는 `ContentSizeFitter`가 정한다.
-- `InventoryUI`는 `PFB_LevelUpPanel` 원본이 아니라 Scene에서 인스턴스 루트에 추가한 컴포넌트다. Issue #23에서 `GameScene`을 포함한 Scene 4개의 `InventoryUI`에 칸 색(`_availableCellColor`·`_lockedCellColor`·`_candidateCellColor`)과 `_inventory`(Scene의 `Inventory`)를 연결했다 (작업 시 Unity에서 직접 설정·확인). 나머지 테스트 Scene 3개에는 `ExpansionGuideText`가 없다 (`_expansionGuideText` `null` 허용, 주의사항 ar).
+- `InventoryUI`는 `PFB_LevelUpPanel` 원본이 아니라 Scene에서 인스턴스 루트에 추가한 컴포넌트다. Issue #23에서 `GameScene`의 `InventoryUI`에 칸 색(`_availableCellColor`·`_lockedCellColor`·`_candidateCellColor`)과 `_inventory`(Scene의 `Inventory`)를 연결했다 (작업 시 Unity에서 직접 설정·확인). 현재 `InventoryUI` 스크립트(GUID)를 참조하는 Scene은 `GameScene` 하나뿐이다 (주의사항 ar).
 - `ItemLayer`의 CanvasGroup은 남아 있으나 `blocksRaycasts` true이며 코드에서 쓰지 않는다. 보상 선택 중 드래그 차단은 `InventoryItemUI.IsDragEnabled`가 맡는다.
 - `ItemLayer`의 테스트 아이템 13개는 `_tooltip`이 비어 있어 툴팁이 뜨지 않는다 (`null`이면 툴팁 없음, 필드 주석).
 
@@ -942,9 +954,10 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 | ao | 확장 안내 문구(`ExpansionGuideText`, 프레임 상단 중앙)가 HUD 타이머와 겹친다 (주의사항 q와 같은 위치) | 레이아웃 조정 시 |
 | ap | `InventoryItemUI.IsDragEnabled`는 `static`이다. Domain Reload를 끈 Play 모드에서 보상 선택 중 Play를 멈추면 false가 다음 Play에 남을 수 있다 (코드 기준 추정, 미검증) | Domain Reload 설정 변경 시 |
 | aq | `InventoryUI`는 `gridRect` 자식이 정확히 60개(10×6 Slot)라는 전제로 칸 Image를 모은다. 60개가 아니면 `Awake`에서 `LogError` 후 수집을 건너뛰고, 곧이은 첫 `OnEnable`의 칸 색 갱신부터 예외가 난다 (코드 기준) | Grid 구조 변경 시 |
-| ar | `GameScene` 외 테스트 Scene 3개에는 `ExpansionGuideText`가 배치되지 않았다. `_expansionGuideText`가 `null`이면 안내 없이 확장만 동작한다 | 테스트 Scene 정리 시 |
+| ar | `InventoryUI`가 있는 Scene은 `GameScene` 하나뿐이다. `_expansionGuideText`가 `null`이면 안내 없이 확장만 동작한다. 테스트 Scene에 `InventoryUI`를 다시 붙이면 `_noticeText` 미연결 시 `Awake`에서 예외가 난다 (`null` 검사 없음) | 테스트 Scene 정리 시 |
 | as | `Inventory`의 두 전제 (Issue #40, reviewer 권고, 미반영). (1) `Character` setter는 게임 시작 시 1회 설정 전제다. 재설정 시 조끼 전용 칸 상태가 맞지 않을 수 있다. (2) `HasUniqueItemInstance`는 Temporary를 확인하지 않는 `shortcut`이며 고유 아이템이 1개뿐이라는 전제다 (위 `캐릭터 특성·고유 아이템 장착/해제 효과`) | 캐릭터 재설정 경로 추가 시 / Temporary 아이템 목록이 생기거나 고유 아이템이 2개 이상 가능해질 때 |
-| at | 보관함 6·7번째 슬롯이나 예약 중 조끼 전용 칸에 아이템이 있으면 고유 아이템을 그리드 밖으로 옮기거나 판매·합성할 수 없다. `Inventory`에는 거부 이유를 알리는 안내가 없다 (위 `고유 아이템 해제 거부`) | 안내 UI 추가 시 |
+| at | (해결) 보관함 6·7번째 슬롯이나 예약 중 조끼 전용 칸에 아이템이 있으면 고유 아이템을 그리드 밖으로 옮기거나 판매·합성할 수 없다. 거부 이유 안내가 없던 문제는 Issue #51에서 드롭 시 판매 영역·보관함·Temporary 거부에 안내 문구를 표시해 해결됐다. 그리드 안 드롭과 합성 거부 자체에는 별도 안내가 없다 (위 `고유 아이템 해제 거부`) | 해결 (#51) |
+| au | 안내 문구의 "주황색"은 세 곳이 따로 정한다 : 문구 상수 `InventoryItemUI.VEST_RELEASE_REJECTED_NOTICE`, 그리드 칸 색 `InventoryUI._vestCellColor`(`GameScene` 값 (1, 0.6, 0.25, 1)), `GameScene`의 `StorageSlot_06`·`07` Image 색. 색을 바꾸려면 세 곳을 함께 고쳐야 한다 | 색·문구 변경 시 |
 | ag | `ItemTooltipUI`에는 Inspector 참조 `null` 방어가 없다. `_inventory`·`_tooltipRect`·텍스트·이미지 참조가 비면 `Awake`·`Show`에서 `NullReferenceException`이 난다. 호출 측(`RewardCardUI`·`InventoryItemUI`)은 `_tooltip`이 비면 툴팁만 생략한다 | Scene 구성 시 연결 필수 |
 | ah | `ItemTooltipUI`를 툴팁 루트(`_tooltipRect`)와 같은 오브젝트에 두면, 루트가 비활성인 채 첫 `Show`가 루트를 켤 때 `Awake`가 처음 실행되어 루트를 다시 끈다. 항상 활성인 별도 오브젝트(`TooltipLayer`)에 두어야 한다. `_tooltipRect`의 필드 주석("자신과 같아도 됨")과 `OnDisable`의 같은 오브젝트 분기는 이 배치를 허용하는 것처럼 쓰여 있다 (코드 기준 추정, 같은 오브젝트 배치는 실행 확인하지 않음) | 필드 주석 정리 시 |
 
@@ -986,6 +999,11 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
     - EditMode 테스트 : `InventoryTests`, `UniqueItemEffectTests`, `WeaponInstanceTests`가 변경되었다. 개별 테스트 항목은 이 문서 작성 시 대조하지 않았다.
     - 테스트 실행 결과 : EditMode 356개 중 355개 통과. 실패 1개는 이번 변경과 무관한 `ResultPanelTests` (reviewer 보고 기준).
     - Play 모드 확인 항목(보관함 슬롯 표시·숨김, 조끼 전용 칸 열림·잠김, 해제 거부 시 UI 동작, 툴팁 특성 줄)은 이 문서 작성 입력에 없다 (미검증).
+- Issue #51 (조끼 회수 거부 안내)
+    - EditMode 테스트 (`UniqueItemEffectTests`에 단언 추가) : `CanReleaseUniqueEffect` — 카우보이 모자 해제 가능(`Cowboy_HatUnequipped_TraitDamageAttackSpeedAndRandomSpread`), 조끼 전용 칸 점유 시 false·비우면 true(`Survivor_VestCellOccupied_ReleaseRejectedNoChange`), 보관함 6번째 슬롯 점유 시 false·비우면 true(`Survivor_ExtraStorageSlotOccupied_ReleaseRejectedNoChange`). `IsVestCell` — 조끼 장착 중 `(4,5)`·`(5,5)` true·다른 칸 false(`Survivor_VestEquipped_VestCellsOpenStorage7_UnequippedLockedStorage5`), 조끼 판매 뒤 false(`VestCells_NotExpansionCandidateUntilVestSold`), 조끼 캐릭터가 아니면 false(`NonVestCharacter_VestCellsActAsNormalCells`). 안내 표시·칸 색은 자동 테스트가 없다.
+    - 테스트 실행 결과 : EditMode 356개 중 355개 통과. 실패 1개는 이번 변경과 무관한 `ResultPanelTests` (메인 세션이 Unity에서 직접 실행).
+    - Play 확인 절차 : 겁쟁이(`SO_Survivor`)로 시작 → 레벨업 화면 `Organizing`에서 조끼 장착 중 `(4,5)`·`(5,5)` 칸과 보관함 6·7번째 슬롯이 주황색인지 확인 → 전용 칸(또는 보관함 6·7번째 슬롯)에 아이템을 둔 채 조끼를 판매 영역·보관함·Temporary로 각각 드래그 → 조끼가 원위치로 돌아가고 판매 팝업이 열리지 않으며 안내 문구가 약 3초 표시된 뒤 사라지는지 확인 → 칸을 비운 뒤 같은 조작이 정상 처리(판매 팝업·보관·Temporary 이동)되는지 확인 → 조끼가 아닌 아이템을 가득 찬 보관함에 드롭하는 일반 실패에는 안내가 없는지 확인.
+    - Play 모드 확인 결과 : 사용자 Play 확인 완료(사용자 검수 승인).
 
 ## 관련 Issue/PR
 
@@ -998,3 +1016,4 @@ PFB_InventoryItem             (Prefab에서 활성, 72×72, Image(기본 스프�
 - 이슈 미등록 (브랜치 `art/fix-inven-ui`. 레벨업·보물 상자 보상 선택·리롤·Temporary 정리, 툴팁, 합성·레벨 성장·인접 효과·패시브 Lv.3·고유 아이템 효과, `PlayerStatSync`, 재장전 게이지, 피격·젬 획득 반경 조정). PR : 미정
 - Issue #23 (브랜치 `feat/boss-inventory-expansion`. 보물 상자 보상 인벤토리 4칸 확장, 보상 선택 중 툴팁, `InventoryUI_casual` 스프라이트). PR : 미정
 - Issue #40 (브랜치 `feat/character-trait-essential-effect`. 캐릭터 특성·고유 아이템 효과 두 층 구조, 보관함 한도 확장, 조끼 전용 칸, 해제 거부). PR : 미정
+- Issue #51 (브랜치 `feat/vest-release-notice`. 조끼 회수 거부 안내 표시, 조끼로 확장된 칸 주황색 표시). PR : 미정
