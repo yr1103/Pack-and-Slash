@@ -61,7 +61,7 @@
 
 `@Docs\TechDocs\GameFlow.md`
 
-### 브랜치 생성 시
+### 브랜치 생성·`main` 병합 시
 
 `@Docs\Documentation\GitBranchRules.md`
 
