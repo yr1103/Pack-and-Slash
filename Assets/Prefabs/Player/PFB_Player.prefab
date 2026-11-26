@@ -756,7 +756,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e91d6508e38dbd49b12152dbee9846e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerExperience
-  _collectRadius: 0.8
+  _collectRadius: 0.9
 --- !u!1001 &4587042763216714343
 PrefabInstance:
   m_ObjectHideFlags: 0

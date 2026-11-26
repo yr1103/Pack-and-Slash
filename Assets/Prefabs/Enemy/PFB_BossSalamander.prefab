@@ -250,7 +250,7 @@ MonoBehaviour:
   _moveSpeed: 5
   _stopDistance: 1.5
   _separationRadius: 2
-  _separationWeight: 1
+  _separationWeight: 0
   _enemyLayer:
     serializedVersion: 2
     m_Bits: 64

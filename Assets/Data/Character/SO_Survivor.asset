@@ -24,7 +24,7 @@ MonoBehaviour:
   _equippedDamageBonus: 0
   _unequippedAttackSpeedBonus: 0
   _unequippedSpreadAngle: 0
-  _unequippedMoveSpeedBonus: 0.3
+  _unequippedMoveSpeedBonus: 0.1
   _unequippedMaxHealthBonus: -0.3
   _unequippedAccuracyBonus: 0
   _baseMoveSpeedBonus: 0
