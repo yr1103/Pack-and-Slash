@@ -104,6 +104,7 @@ public class UniqueItemEffectTests
     {
         _inventory.Character = _cowboy;
         Inventory.ItemInstance hat = Place(_hatData, _uniqueCell, 1);
+        Assert.IsTrue(_inventory.CanReleaseUniqueEffect(hat));
         _inventory.TryStore(hat);
 
         // 특성 공격력 유지, 간격 1 ÷ 1.6, 확산각 70° 랜덤
@@ -204,6 +205,9 @@ public class UniqueItemEffectTests
 
         AssertVestCellsAvailable(true);
         Assert.AreEqual(7, _inventory.StorageCapacity);
+        Assert.IsTrue(_inventory.IsVestCell(new Vector2Int(4, 5)));
+        Assert.IsTrue(_inventory.IsVestCell(new Vector2Int(5, 5)));
+        Assert.IsFalse(_inventory.IsVestCell(_uniqueCell));
 
         Assert.IsTrue(_inventory.TryStore(vest));
         AssertVestCellsAvailable(false);
@@ -215,13 +219,17 @@ public class UniqueItemEffectTests
     {
         _inventory.Character = _survivor;
         Inventory.ItemInstance vest = Place(_vestData, _uniqueCell, 1);
-        Place(_pistolData, _vestCells[0], 1);
+        Inventory.ItemInstance pistol = Place(_pistolData, _vestCells[0], 1);
 
+        Assert.IsFalse(_inventory.CanReleaseUniqueEffect(vest));
         Assert.IsFalse(_inventory.TryStore(vest));
         Assert.IsFalse(_inventory.RemoveItem(vest));
         Assert.IsFalse(_inventory.MoveToTemporary(vest, Vector2.zero, 0));
         Assert.IsFalse(_inventory.TrySell(vest));
         AssertVestReleaseUnchanged(vest, 0);
+
+        Assert.IsTrue(_inventory.RemoveItem(pistol));
+        Assert.IsTrue(_inventory.CanReleaseUniqueEffect(vest));
     }
 
     [Test]
@@ -231,15 +239,23 @@ public class UniqueItemEffectTests
         Inventory.ItemInstance vest = Place(_vestData, _uniqueCell, 1);
 
         // 6번째 슬롯까지 채움 (기본 한도 5 초과)
+        Inventory.ItemInstance storedPistol = null;
+
         for (int i = 0; i < 6; i++)
         {
-            Assert.IsTrue(_inventory.TryStore(new Inventory.ItemInstance(_pistolData)));
+            storedPistol = new Inventory.ItemInstance(_pistolData);
+            Assert.IsTrue(_inventory.TryStore(storedPistol));
         }
 
+        Assert.IsFalse(_inventory.CanReleaseUniqueEffect(vest));
         Assert.IsFalse(_inventory.TryStore(vest));
         Assert.IsFalse(_inventory.RemoveItem(vest));
         Assert.IsFalse(_inventory.TrySell(vest));
         AssertVestReleaseUnchanged(vest, 6);
+
+        // 6번째 슬롯을 비우면 해제 가능
+        Assert.IsTrue(_inventory.MoveToTemporary(storedPistol, Vector2.zero, 0));
+        Assert.IsTrue(_inventory.CanReleaseUniqueEffect(vest));
     }
 
     // 합성 재료로 장착 조끼가 빠져도 다른 해제 경로와 같은 거부 기준
@@ -284,6 +300,7 @@ public class UniqueItemEffectTests
 
         foreach (Vector2Int cell in _vestCells)
         {
+            Assert.IsFalse(_inventory.IsVestCell(cell));
             Assert.IsTrue(_inventory.IsExpansionCandidate(cell));
             Assert.IsTrue(_inventory.TryUnlockCell(cell));
         }
@@ -303,6 +320,7 @@ public class UniqueItemEffectTests
 
         foreach (Vector2Int cell in _vestCells)
         {
+            Assert.IsFalse(_inventory.IsVestCell(cell));
             Assert.IsTrue(_inventory.IsExpansionCandidate(cell));
             Assert.IsTrue(_inventory.TryUnlockCell(cell));
         }

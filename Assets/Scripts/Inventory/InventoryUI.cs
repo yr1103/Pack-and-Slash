@@ -21,6 +21,8 @@ public class InventoryUI : MonoBehaviour, IPointerClickHandler
     [SerializeField] private RectTransform[] _storageSlots; // 인덱스 = Inventory 보관함 슬롯 인덱스 (기본 5 + 확장 2)
     [SerializeField] private RectTransform _sellArea; // 드롭 시 판매 확인 팝업 표시
     [SerializeField] private InputActionReference _rotateAction; // 아이템 UI 전체가 공유하는 회전 액션
+    [SerializeField] private Text _noticeText; // 이동·판매 거부 안내 문구
+    [SerializeField, Min(0f)] private float _noticeDuration = 3f; // 안내 표시 시간(초)
 
     private const int Width = 10;
     private const int Height = 6;
@@ -29,17 +31,21 @@ public class InventoryUI : MonoBehaviour, IPointerClickHandler
     [SerializeField] private Color _availableCellColor = Color.white;
     [SerializeField] private Color _lockedCellColor = new Color(0.45f, 0.5f, 0.58f, 1f);
     [SerializeField] private Color _candidateCellColor = new Color(1f, 0.85f, 0.2f, 1f); // 확장 모드에서만 사용
+    [SerializeField] private Color _vestCellColor = new Color(1f, 0.6f, 0.25f, 1f); // 조끼로 확장된 칸 (회수 거부 안내 문구의 "주황색")
 
     private readonly Image[,] _cellImages = new Image[Width, Height];
 
     private bool _isRotateEnabled = true; // 보상 선택 단계에서 꺼둔 상태가 패널 재활성화 시에도 유지되도록 보관
     private bool _isExpansionMode;
+    private float _noticeHideTime; // 안내 문구를 숨길 Time.unscaledTime
 
     /// <summary>확장 모드에서 확장 후보 칸을 클릭했을 때 발생 (인자 = 셀 좌표)</summary>
     public event Action<Vector2Int> ExpansionCellClicked;
 
     private void Awake()
     {
+        _noticeText.enabled = false;
+
         // gridRect 자식 = 기존 Slot 셀 (행 우선, 좌상단부터)
         if (gridRect.childCount != Width * Height)
         {
@@ -70,6 +76,24 @@ public class InventoryUI : MonoBehaviour, IPointerClickHandler
         _rotateAction.action.Disable();
         _inventory.Changed -= RefreshCellColors;
         _inventory.Changed -= RefreshStorageSlots;
+
+        // 패널을 닫으면 남은 표시 시간과 관계없이 숨김
+        _noticeText.enabled = false;
+    }
+
+    // 레벨업 정리 화면은 일시정지(timeScale 0) 중일 수 있어 실제 시간으로 판정, 재호출 시 시간만 갱신하면 되므로 Coroutine 대신 Update
+    private void Update()
+    {
+        if (_noticeText.enabled && Time.unscaledTime >= _noticeHideTime)
+            _noticeText.enabled = false;
+    }
+
+    /// <summary>안내 문구를 표시하고 _noticeDuration 뒤 숨김, 표시 중 다시 호출하면 문구·시간 갱신</summary>
+    public void ShowNotice(string message)
+    {
+        _noticeText.text = message;
+        _noticeText.enabled = true;
+        _noticeHideTime = Time.unscaledTime + _noticeDuration;
     }
 
     // 현재 보관함 한도 이상 인덱스 슬롯은 숨김 (고유 아이템 탈착으로 한도가 바뀜)
@@ -110,7 +134,7 @@ public class InventoryUI : MonoBehaviour, IPointerClickHandler
                 Vector2Int cell = new Vector2Int(x, y);
 
                 if (_inventory.IsCellAvailable(cell))
-                    _cellImages[x, y].color = _availableCellColor;
+                    _cellImages[x, y].color = _inventory.IsVestCell(cell) ? _vestCellColor : _availableCellColor;
                 else if (_isExpansionMode && _inventory.IsExpansionCandidate(cell))
                     _cellImages[x, y].color = _candidateCellColor;
                 else
